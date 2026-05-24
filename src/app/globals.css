@@ -1,0 +1,86 @@
+@import "tailwindcss";
+
+:root {
+  /* Attenda Design Tokens */
+  --primary-900: #1E3A8A;
+  --primary-600: #1D4ED8;
+  --primary-100: #DBEAFE;
+  --dark-950: #0F172A;
+  --dark-800: #1E293B;
+  --dark-700: #334155;
+  --gray-500: #64748B;
+  --gray-200: #E2E8F0;
+  --gray-100: #F1F5F9;
+  --gray-50: #F8FAFC;
+  --success-700: #065F46;
+  --success-500: #10B981;
+  --success-100: #D1FAE5;
+  --warning-800: #92400E;
+  --warning-500: #F59E0B;
+  --warning-100: #FEF3C7;
+  --danger-800: #991B1B;
+  --danger-500: #EF4444;
+  --danger-100: #FEE2E2;
+  --purple-700: #5B21B6;
+  --purple-500: #8B5CF6;
+  --purple-100: #EDE9FE;
+  --teal-700: #0F766E;
+  --teal-100: #CCFBF1;
+
+  --font-sans: 'DM Sans', sans-serif;
+  --font-mono: 'DM Mono', monospace;
+}
+
+@theme inline {
+  --color-background: var(--gray-50);
+  --color-foreground: var(--dark-950);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--gray-50);
+  color: var(--dark-950);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--gray-200); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: var(--gray-500); }
+
+/* Modal animation */
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.95) translateY(8px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes backdropIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes slideInRight {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.modal-animate { animation: modalIn 0.2s ease-out forwards; }
+.backdrop-animate { animation: backdropIn 0.15s ease-out forwards; }
+.slide-in-right { animation: slideInRight 0.25s ease-out forwards; }
+.fade-in-up { animation: fadeInUp 0.2s ease-out forwards; }
+
+/* Focus ring */
+*:focus-visible {
+  outline: 2px solid var(--primary-600);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
