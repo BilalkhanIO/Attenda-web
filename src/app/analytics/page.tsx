@@ -38,6 +38,7 @@ export default function AnalyticsPage() {
   const [reportFormat, setReportFormat]     = useState<'pdf' | 'csv'>('pdf');
   const [generating, setGenerating]         = useState(false);
   const [reportReady, setReportReady]       = useState(false);
+  const [reportId, setReportId]             = useState<string | null>(null);
 
   const fetchAnalytics = useCallback(async () => {
     setLoading(true);
@@ -65,12 +66,14 @@ export default function AnalyticsPage() {
     if (!selectedReport) { toast.error('Select a report type'); return; }
     setGenerating(true);
     setReportReady(false);
+    setReportId(null);
     try {
-      await analyticsApi.generateReport(selectedReport, {
+      const { data } = await analyticsApi.generateReport(selectedReport, {
         start_date: reportStart,
         end_date: reportEnd,
         format: reportFormat,
       });
+      setReportId(data.data?.id || 'latest');
       setReportReady(true);
       toast.success('Report generated successfully');
     } catch (err) {
@@ -81,11 +84,10 @@ export default function AnalyticsPage() {
   };
 
   const onDownloadReport = async () => {
-    if (!selectedReport) return;
+    if (!reportId) return;
     try {
       toast.loading('Starting download...', { duration: 1500 });
-      // In real scenario, we'd use the ID from generateReport response
-      await analyticsApi.downloadReport('latest');
+      await analyticsApi.downloadReport(reportId);
       toast.success('Report downloaded');
     } catch (err) {
       toast.error(getApiError(err));

@@ -45,8 +45,12 @@ export default function LeavePage() {
   const fetchRequests = useCallback(async () => {
     try {
       const fn = hasRole('hr_admin', 'super_admin') ? leaveApi.getAllRequests : leaveApi.getTeamRequests;
-      const [reqRes] = await Promise.all([fn()]);
+      const [reqRes, typesRes] = await Promise.all([
+        fn(),
+        leaveApi.getLeaveTypes(),
+      ]);
       setRequests(reqRes.data.data || []);
+      setLeaveTypes(typesRes.data.data || []);
     } catch (err) {
       toast.error(getApiError(err));
     } finally {

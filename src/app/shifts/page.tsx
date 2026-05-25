@@ -5,9 +5,9 @@ import {
   PageHeader, Card, Button, Modal, ConfirmDialog, Input, Select,
   Badge, Avatar, EmptyState, Table
 } from '@/components/ui';
-import { shiftsApi } from '@/lib/api';
+import { shiftsApi, usersApi } from '@/lib/api';
 import { getApiError, formatTime } from '@/lib/utils';
-import type { Shift, ShiftAssignment, SwapRequest } from '@/types';
+import type { Shift, ShiftAssignment, SwapRequest, User } from '@/types';
 import {
   Plus, Calendar, ChevronLeft, ChevronRight, Send,
   Check, X, Clock, Edit2, Trash2
@@ -33,6 +33,7 @@ const SHIFT_COLORS = ['#1D4ED8','#065F46','#5B21B6','#92400E','#991B1B','#0F766E
 
 export default function ShiftsPage() {
   const [shifts, setShifts]         = useState<Shift[]>([]);
+  const [users, setUsers]           = useState<User[]>([]);
   const [assignments, setAssignments] = useState<ShiftAssignment[]>([]);
   const [swapRequests, setSwapRequests] = useState<SwapRequest[]>([]);
   const [loading, setLoading]         = useState(true);
@@ -51,6 +52,10 @@ export default function ShiftsPage() {
   const [rejectReason, setRejectReason]     = useState('');
   const [actionLoading, setActionLoading]   = useState(false);
 
+  // Assign shift
+  const [assignModal, setAssignModal] = useState<{ shift_id: string; date: string } | null>(null);
+  const [selectedUser, setSelectedUser] = useState('');
+
   const form = useForm<ShiftForm>({
     defaultValues: { days_of_week: [], color: '#1D4ED8', name: '', start_time: '', end_time: '' },
   });
@@ -58,14 +63,16 @@ export default function ShiftsPage() {
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [tRes, aRes, sRes] = await Promise.all([
+      const [tRes, aRes, sRes, uRes] = await Promise.all([
         shiftsApi.getTemplates(),
         shiftsApi.getAssignments({ week_start: format(weekStart, 'yyyy-MM-dd') }),
         shiftsApi.getSwapRequests(),
+        usersApi.getAll(),
       ]);
       setShifts(tRes.data.data || []);
       setAssignments(aRes.data.data || []);
       setSwapRequests(sRes.data.data || []);
+      setUsers(uRes.data.data || []);
     } catch (err) {
       toast.error(getApiError(err));
     } finally {
@@ -123,6 +130,26 @@ export default function ShiftsPage() {
       toast.error(getApiError(err));
     } finally {
       setPublishing(false);
+    }
+  };
+
+  const onAssign = async () => {
+    if (!assignModal || !selectedUser) return;
+    setActionLoading(true);
+    try {
+      await shiftsApi.assignShift({
+        user_id: selectedUser,
+        shift_id: assignModal.shift_id,
+        date: assignModal.date,
+      });
+      toast.success('Shift assigned');
+      setAssignModal(null);
+      setSelectedUser('');
+      fetchAll();
+    } catch (err) {
+      toast.error(getApiError(err));
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -319,7 +346,9 @@ export default function ShiftsPage() {
                           </div>
                         ))}
                         {isActiveDay && (
-                          <button className="w-full mt-1 text-xs text-[var(--gray-500)] hover:text-[var(--primary-600)] hover:bg-[var(--primary-100)] rounded-lg py-1 transition-colors">
+                          <button
+                            onClick={() => setAssignModal({ shift_id: shift.id, date: format(day, 'yyyy-MM-dd') })}
+                            className="w-full mt-1 text-xs text-[var(--gray-500)] hover:text-[var(--primary-600)] hover:bg-[var(--primary-100)] rounded-lg py-1 transition-colors">
                             + Add
                           </button>
                         )}
@@ -500,6 +529,34 @@ export default function ShiftsPage() {
         confirmLabel="Approve Swap"
         variant="primary"
       />
+
+      {/* Assign shift modal */}
+      <Modal
+        isOpen={!!assignModal}
+        onClose={() => setAssignModal(null)}
+        title="Assign Shift"
+        size="sm"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setAssignModal(null)}>Cancel</Button>
+            <Button onClick={onAssign} loading={actionLoading} disabled={!selectedUser}>Assign</Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-[var(--gray-500)]">
+            Select an employee to assign to this shift on <strong>{assignModal?.date}</strong>.
+          </p>
+          <Select
+            label="Employee"
+            required
+            placeholder="Select employee..."
+            options={users.map(u => ({ value: u.id, label: u.name }))}
+            value={selectedUser}
+            onChange={e => setSelectedUser(e.target.value)}
+          />
+        </div>
+      </Modal>
 
       {/* Reject swap modal */}
       <Modal

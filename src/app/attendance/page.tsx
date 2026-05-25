@@ -34,14 +34,25 @@ export default function AttendancePage() {
   const fetchAttendance = useCallback(async () => {
     setLoading(true);
     try {
-      const { data } = await attendanceApi.getToday();
+      const isToday = selectedDate === format(new Date(), 'yyyy-MM-dd');
+      let data;
+      if (isToday) {
+        const res = await attendanceApi.getToday();
+        data = res.data;
+      } else {
+        const res = await attendanceApi.getReport({
+          start_date: selectedDate,
+          end_date: selectedDate
+        });
+        data = res.data;
+      }
       setRecords(data.data || []);
     } catch (err) {
       toast.error(getApiError(err));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [selectedDate]);
 
   useEffect(() => { fetchAttendance(); }, [fetchAttendance]);
 
@@ -70,6 +81,19 @@ export default function AttendancePage() {
     }
   };
 
+  const onExport = async () => {
+    try {
+      toast.loading('Exporting attendance data...', { duration: 2000 });
+      await attendanceApi.getReport({
+        start_date: selectedDate,
+        end_date: selectedDate,
+      });
+      toast.success('Export complete');
+    } catch (err) {
+      toast.error(getApiError(err));
+    }
+  };
+
   const filtered = records.filter(r => !statusFilter || r.status === statusFilter);
 
   const typeLabel: Record<string, string> = {
@@ -85,7 +109,7 @@ export default function AttendancePage() {
         title="Attendance"
         subtitle="Track and manage daily attendance records"
         actions={
-          <Button variant="outline" size="sm" icon={<Download size={14} />}>Export CSV</Button>
+          <Button variant="outline" size="sm" icon={<Download size={14} />} onClick={onExport}>Export CSV</Button>
         }
       />
 

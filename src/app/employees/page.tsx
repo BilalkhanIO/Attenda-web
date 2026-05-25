@@ -43,6 +43,7 @@ export default function EmployeesPage() {
   const [deactivateUser, setDeactivateUser] = useState<User | null>(null);
   const [deactivating, setDeactivating] = useState(false);
   const [actionMenuId, setActionMenuId] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
 
   const form = useForm<UserForm>({ resolver: zodResolver(userSchema) });
 
@@ -119,6 +120,26 @@ export default function EmployeesPage() {
     }
   };
 
+  const onImportCSV = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setImporting(true);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      await usersApi.importCSV(formData);
+      toast.success('Employees imported successfully');
+      fetchUsers();
+    } catch (err) {
+      toast.error(getApiError(err));
+    } finally {
+      setImporting(false);
+      e.target.value = '';
+    }
+  };
+
   const filtered = users.filter(u => {
     const matchSearch = u.name.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase());
     const matchDept   = !deptFilter || u.department === deptFilter;
@@ -169,7 +190,23 @@ export default function EmployeesPage() {
         subtitle={`${users.filter(u => u.status === 'active').length} active employees`}
         actions={
           <>
-            <Button variant="outline" size="sm" icon={<Upload size={14} />}>Import CSV</Button>
+            <input
+              type="file"
+              accept=".csv"
+              className="hidden"
+              id="csv-import"
+              onChange={onImportCSV}
+              disabled={importing}
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              icon={<Upload size={14} />}
+              loading={importing}
+              onClick={() => document.getElementById('csv-import')?.click()}
+            >
+              Import CSV
+            </Button>
             <Button size="sm" icon={<UserPlus size={14} />} onClick={openAdd}>Add Employee</Button>
           </>
         }

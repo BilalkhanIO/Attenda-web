@@ -127,6 +127,8 @@ export const leaveApi = {
     apiClient.put(`/leave/balance/${userId}`, data),
   getCalendar: () =>
     apiClient.get('/leave/calendar'),
+  getLeaveTypes: () =>
+    apiClient.get('/leave/types'),
 };
 
 // ─── SHIFTS ───────────────────────────────────────────

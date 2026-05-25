@@ -95,7 +95,7 @@ export default function ProfileSettingsPage() {
                 <Avatar name={user?.name || ''} imageUrl={user?.avatar_url} size="lg" />
                 <div className="text-center">
                   <h3 className="font-bold text-[var(--dark-950)]">{user?.name}</h3>
-                  <p className="text-xs text-[var(--gray-500)] uppercase font-semibold tracking-wider">{user?.role.replace('_', ' ')}</p>
+                  <p className="text-xs text-[var(--gray-500)] uppercase font-semibold tracking-wider">{user?.role?.replace('_', ' ')}</p>
                 </div>
                 <Button variant="outline" size="sm">Change Photo</Button>
               </div>
