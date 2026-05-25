@@ -135,10 +135,16 @@ export const shiftsApi = {
     apiClient.get('/shifts'),
   createTemplate: (data: Record<string, unknown>) =>
     apiClient.post('/shifts', data),
+  updateTemplate: (id: string, data: Record<string, unknown>) =>
+    apiClient.put(`/shifts/${id}`, data),
+  deleteTemplate: (id: string) =>
+    apiClient.delete(`/shifts/${id}`),
   getAssignments: (params?: { week_start?: string; department?: string }) =>
     apiClient.get('/shifts/assignments', { params }),
   assignShift: (data: { user_id: string; shift_id: string; date: string }) =>
     apiClient.post('/shifts/assignments', data),
+  publishSchedule: (week_start: string) =>
+    apiClient.post('/shifts/schedule/publish', { week_start }),
   getSwapRequests: () =>
     apiClient.get('/shifts/swaps'),
   approveSwap: (id: string) =>
@@ -153,6 +159,8 @@ export const payrollApi = {
     apiClient.get('/payroll'),
   getPayroll: (id: string) =>
     apiClient.get(`/payroll/${id}`),
+  generatePayroll: (month: string) =>
+    apiClient.post('/payroll/generate', { month }),
   process: (id: string) =>
     apiClient.post(`/payroll/${id}/process`),
   adjust: (id: string, employeeId: string, data: { field: string; value: number; reason: string }) =>

@@ -83,7 +83,7 @@ export default function ShiftsPage() {
   const onSaveShift = async (data: ShiftForm) => {
     try {
       if (editShift) {
-        await shiftsApi.createTemplate(data); // PUT not shown in stub api — reuse create
+        await shiftsApi.updateTemplate(editShift.id, data);
         toast.success('Shift template updated');
         setEditShift(null);
       } else {
@@ -98,10 +98,25 @@ export default function ShiftsPage() {
     }
   };
 
+  const onDeleteShift = async () => {
+    if (!deleteShift) return;
+    setDeleting(true);
+    try {
+      await shiftsApi.deleteTemplate(deleteShift.id);
+      toast.success('Template deleted');
+      setDeleteShift(null);
+      fetchAll();
+    } catch (err) {
+      toast.error(getApiError(err));
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const onPublish = async () => {
     setPublishing(true);
     try {
-      await shiftsApi.getTemplates(); // placeholder — real: /shifts/schedule/publish
+      await shiftsApi.publishSchedule(format(weekStart, 'yyyy-MM-dd'));
       toast.success('Schedule published — all employees notified');
       setPublishConfirm(false);
     } catch (err) {
@@ -454,7 +469,7 @@ export default function ShiftsPage() {
       <ConfirmDialog
         isOpen={!!deleteShift}
         onClose={() => setDeleteShift(null)}
-        onConfirm={async () => { setDeleteShift(null); toast.success('Template deleted'); fetchAll(); }}
+        onConfirm={onDeleteShift}
         loading={deleting}
         title="Delete Shift Template"
         message={`Delete "${deleteShift?.name}"? If this template is used in published schedules, those assignments will be unaffected.`}

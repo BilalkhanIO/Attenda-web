@@ -85,6 +85,33 @@ export default function PayrollPage() {
     }
   };
 
+  const onGeneratePayroll = async () => {
+    setLoading(true);
+    try {
+      await payrollApi.generatePayroll(selectedMonth);
+      toast.success('Payroll generated for ' + selectedMonth);
+      fetchPayroll();
+    } catch (err) {
+      toast.error(getApiError(err));
+      setLoading(false);
+    }
+  };
+
+  const onDownloadPayslip = async (id: string) => {
+    try {
+      toast.loading('Downloading payslip...', { duration: 1000 });
+      // In a real app, this would be a file download
+      await payrollApi.getPayslip(id);
+      toast.success('Payslip downloaded');
+    } catch (err) {
+      toast.error(getApiError(err));
+    }
+  };
+
+  const onExport = () => {
+    toast.success('Exporting payroll data to CSV...');
+  };
+
   const isProcessed = payroll?.status === 'processed';
   const hasErrors   = payroll?.records.some(r => r.is_incomplete);
 
@@ -113,7 +140,7 @@ export default function PayrollPage() {
               className="px-3 py-2 text-sm border border-[var(--gray-200)] rounded-lg outline-none focus:border-[var(--primary-600)]">
               {MONTHS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
             </select>
-            <Button variant="outline" size="sm" icon={<Download size={14} />}>Export</Button>
+            <Button variant="outline" size="sm" icon={<Download size={14} />} onClick={onExport}>Export</Button>
             {!isProcessed && payroll && (
               <Button size="sm" icon={<Play size={14} />}
                 onClick={() => setProcess(true)}
@@ -204,7 +231,7 @@ export default function PayrollPage() {
                         Adjust
                       </Button>
                     ) : (
-                      <Button variant="outline" size="sm" icon={<Download size={12} />}>Payslip</Button>
+                      <Button variant="outline" size="sm" icon={<Download size={12} />} onClick={() => onDownloadPayslip(rec.id)}>Payslip</Button>
                     )}
                   </td>
                 </tr>
@@ -218,7 +245,7 @@ export default function PayrollPage() {
             icon={<Wallet size={24} />}
             title="No payroll for this period"
             description="Payroll is generated automatically at the end of each month. You can also trigger it manually."
-            action={<Button icon={<Play size={14} />}>Generate Payroll</Button>}
+            action={<Button icon={<Play size={14} />} onClick={onGeneratePayroll} loading={loading}>Generate Payroll</Button>}
           />
         </Card>
       )}

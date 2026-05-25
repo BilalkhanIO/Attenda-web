@@ -5,7 +5,7 @@ import {
   PageHeader, Card, Table, Avatar, Badge, Button, Modal, ConfirmDialog,
   Input, Textarea, Select, EmptyState, Skeleton
 } from '@/components/ui';
-import { performanceApi } from '@/lib/api';
+import { performanceApi, orgApi } from '@/lib/api';
 import { getApiError } from '@/lib/utils';
 import type { PerformanceReview, User } from '@/types';
 import { TrendingUp, Star, Target, CheckCircle, Clock, Plus } from 'lucide-react';
@@ -51,8 +51,10 @@ function StarRating({ value, onChange, readonly }: { value: number; onChange?: (
 
 export default function PerformancePage() {
   const [reviews, setReviews]   = useState<PerformanceReview[]>([]);
+  const [departments, setDepts] = useState<string[]>([]);
   const [loading, setLoading]   = useState(true);
   const [selectedMonth, setMth] = useState(MONTHS[0].value);
+  const [selectedDept, setDept] = useState('');
   const [reviewUser, setReviewUser] = useState<PerformanceReview | null>(null);
   const [submitConfirm, setSubmitConfirm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -67,16 +69,23 @@ export default function PerformancePage() {
   const fetchReviews = useCallback(async () => {
     setLoading(true);
     try {
-      const { data } = await performanceApi.getReviews({ month: selectedMonth });
+      const { data } = await performanceApi.getReviews({
+        month: selectedMonth,
+        department: selectedDept || undefined
+      });
       setReviews(data.data || []);
     } catch (err) {
       toast.error(getApiError(err));
     } finally {
       setLoading(false);
     }
-  }, [selectedMonth]);
+  }, [selectedMonth, selectedDept]);
 
   useEffect(() => { fetchReviews(); }, [fetchReviews]);
+
+  useEffect(() => {
+    orgApi.getDepartments().then(r => setDepts(r.data.data || [])).catch(() => {});
+  }, []);
 
   const openReview = (review: PerformanceReview) => {
     form.reset({ score: review.score || 0, comments: review.comments || '', month: selectedMonth });
@@ -129,6 +138,11 @@ export default function PerformancePage() {
         subtitle="Monthly reviews and goal tracking"
         actions={
           <div className="flex items-center gap-3">
+            <select value={selectedDept} onChange={e => setDept(e.target.value)}
+              className="px-3 py-2 text-sm border border-[var(--gray-200)] rounded-lg outline-none">
+              <option value="">All Departments</option>
+              {departments.map(d => <option key={d} value={d}>{d}</option>)}
+            </select>
             <select value={selectedMonth} onChange={e => setMth(e.target.value)}
               className="px-3 py-2 text-sm border border-[var(--gray-200)] rounded-lg outline-none">
               {MONTHS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}

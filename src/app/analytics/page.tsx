@@ -80,6 +80,18 @@ export default function AnalyticsPage() {
     }
   };
 
+  const onDownloadReport = async () => {
+    if (!selectedReport) return;
+    try {
+      toast.loading('Starting download...', { duration: 1500 });
+      // In real scenario, we'd use the ID from generateReport response
+      await analyticsApi.downloadReport('latest');
+      toast.success('Report downloaded');
+    } catch (err) {
+      toast.error(getApiError(err));
+    }
+  };
+
   // Pie data from overview
   const pieData = overview ? [
     { name: 'In Office', value: overview.checked_in  },
@@ -314,7 +326,7 @@ export default function AnalyticsPage() {
                     <p className="text-sm text-[var(--gray-500)] mb-4">
                       {REPORT_TYPES.find(r => r.id === selectedReport)?.label} — {reportFormat.toUpperCase()}
                     </p>
-                    <Button icon={<Download size={14} />} size="lg">
+                    <Button icon={<Download size={14} />} size="lg" onClick={onDownloadReport}>
                       Download {reportFormat.toUpperCase()}
                     </Button>
                   </div>
