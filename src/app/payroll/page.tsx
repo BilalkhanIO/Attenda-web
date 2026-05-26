@@ -120,17 +120,16 @@ export default function PayrollPage() {
 
   const onExportCSV = () => {
     if (!payroll?.records?.length) { toast.error('No payroll data to export'); return; }
-    const headers = ['Name','Department','Gross Pay','Tax','Pension','Adjustments','Net Pay','Hours Worked','Overtime Hours','Status'];
+    const headers = ['Name','Department','Hourly Rate','Regular Hours','Overtime Hours','Gross Pay','Adjustments','Net Pay','Status'];
     const rows = payroll.records.map(r => [
       r.user?.name || '',
       r.user?.department || '',
+      r.hourly_rate.toFixed(2),
+      r.regular_hours.toFixed(1),
+      r.overtime_hours.toFixed(1),
       r.gross_pay.toFixed(2),
-      r.tax.toFixed(2),
-      r.pension.toFixed(2),
       r.adjustments.toFixed(2),
       r.net_pay.toFixed(2),
-      r.hours_worked.toFixed(1),
-      r.overtime_hours.toFixed(1),
       r.is_incomplete ? 'Incomplete' : 'OK',
     ]);
     const csv = [headers, ...rows].map(row => row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
