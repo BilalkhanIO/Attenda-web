@@ -1,10 +1,10 @@
 'use client';
 import { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { PageHeader, Card, Button, Input, Avatar } from '@/components/ui';
-import { usersApi } from '@/lib/api';
+import { PageHeader, Card, Button, Input, Avatar, Modal } from '@/components/ui';
+import { usersApi, authApi } from '@/lib/api';
 import { getApiError } from '@/lib/utils';
-import { Save, Camera } from 'lucide-react';
+import { Save, Camera, Shield, ShieldCheck, ShieldOff } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -32,6 +32,16 @@ export default function ProfilePage() {
   const [me, setMe] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // 2FA state
+  const [twoFAEnabled, setTwoFAEnabled]       = useState(false);
+  const [setup2FAOpen, setSetup2FAOpen]        = useState(false);
+  const [disable2FAOpen, setDisable2FAOpen]    = useState(false);
+  const [qrDataUrl, setQrDataUrl]              = useState('');
+  const [otpSecret, setOtpSecret]              = useState('');
+  const [verifyCode, setVerifyCode]            = useState('');
+  const [disableCode, setDisableCode]          = useState('');
+  const [saving2FA, setSaving2FA]              = useState(false);
+
   const profileForm = useForm<ProfileForm>({ resolver: zodResolver(profileSchema) });
   const passwordForm = useForm<PasswordForm>({ resolver: zodResolver(passwordSchema) });
 
@@ -39,6 +49,7 @@ export default function ProfilePage() {
     usersApi.getMe().then(r => {
       const u: User = r.data.data;
       setMe(u);
+      setTwoFAEnabled(!!(u as unknown as { totp_enabled?: boolean }).totp_enabled);
       profileForm.reset({ name: u.name, phone: u.phone || '', job_title: u.job_title || '' });
     }).catch(() => toast.error('Failed to load profile')).finally(() => setLoading(false));
   }, []);
@@ -59,6 +70,51 @@ export default function ProfilePage() {
       passwordForm.reset();
     } catch (err) {
       toast.error(getApiError(err));
+    }
+  };
+
+  const onSetup2FA = async () => {
+    setSaving2FA(true);
+    try {
+      const { data } = await authApi.setup2FA();
+      setQrDataUrl(data.data?.qr_code_url || '');
+      setOtpSecret(data.data?.secret || '');
+    } catch (err) {
+      toast.error(getApiError(err));
+    } finally {
+      setSaving2FA(false);
+    }
+  };
+
+  const onVerify2FA = async () => {
+    if (!verifyCode.trim()) { toast.error('Enter the 6-digit code'); return; }
+    setSaving2FA(true);
+    try {
+      await authApi.verify2FA(verifyCode);
+      toast.success('Two-factor authentication enabled');
+      setTwoFAEnabled(true);
+      setSetup2FAOpen(false);
+      setQrDataUrl(''); setOtpSecret(''); setVerifyCode('');
+    } catch (err) {
+      toast.error(getApiError(err));
+    } finally {
+      setSaving2FA(false);
+    }
+  };
+
+  const onDisable2FA = async () => {
+    if (!disableCode.trim()) { toast.error('Enter the 6-digit code'); return; }
+    setSaving2FA(true);
+    try {
+      await authApi.disable2FA(disableCode);
+      toast.success('Two-factor authentication disabled');
+      setTwoFAEnabled(false);
+      setDisable2FAOpen(false);
+      setDisableCode('');
+    } catch (err) {
+      toast.error(getApiError(err));
+    } finally {
+      setSaving2FA(false);
     }
   };
 
@@ -139,8 +195,115 @@ export default function ProfilePage() {
               </Button>
             </div>
           </Card>
+
+          {/* 2FA Card */}
+          <Card className="p-6">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${twoFAEnabled ? 'bg-[var(--success-100)]' : 'bg-[var(--gray-100)]'}`}>
+                  {twoFAEnabled
+                    ? <ShieldCheck size={20} className="text-[var(--success-700)]" />
+                    : <Shield size={20} className="text-[var(--gray-500)]" />}
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-[var(--dark-950)]">Two-Factor Authentication</h3>
+                  <p className="text-sm text-[var(--gray-500)]">
+                    {twoFAEnabled ? 'Your account is secured with 2FA.' : 'Add an extra layer of security to your account.'}
+                  </p>
+                </div>
+              </div>
+              {twoFAEnabled ? (
+                <Button variant="danger" size="sm" icon={<ShieldOff size={14} />}
+                  onClick={() => setDisable2FAOpen(true)}>
+                  Disable
+                </Button>
+              ) : (
+                <Button variant="outline" size="sm" icon={<Shield size={14} />}
+                  onClick={() => { setSetup2FAOpen(true); onSetup2FA(); }}>
+                  Enable 2FA
+                </Button>
+              )}
+            </div>
+          </Card>
         </div>
       </div>
+
+      {/* 2FA Setup Modal */}
+      <Modal
+        isOpen={setup2FAOpen}
+        onClose={() => { setSetup2FAOpen(false); setQrDataUrl(''); setOtpSecret(''); setVerifyCode(''); }}
+        title="Set Up Two-Factor Authentication"
+        size="md"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => { setSetup2FAOpen(false); setQrDataUrl(''); setOtpSecret(''); setVerifyCode(''); }}>
+              Cancel
+            </Button>
+            <Button loading={saving2FA} onClick={onVerify2FA}>Verify & Enable</Button>
+          </>
+        }
+      >
+        <div className="space-y-5">
+          {!qrDataUrl ? (
+            <div className="flex justify-center py-8">
+              <div className="w-6 h-6 border-2 border-[var(--primary-600)] border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : (
+            <>
+              <p className="text-sm text-[var(--gray-500)]">
+                Scan this QR code with your authenticator app (Google Authenticator, Authy, etc.), then enter the 6-digit code to confirm.
+              </p>
+              <div className="flex justify-center">
+                <img src={qrDataUrl} alt="2FA QR Code" className="w-48 h-48 border border-[var(--gray-200)] rounded-xl p-2" />
+              </div>
+              {otpSecret && (
+                <div className="p-3 bg-[var(--gray-50)] rounded-lg">
+                  <p className="text-xs text-[var(--gray-500)] mb-1">Manual entry key:</p>
+                  <p className="font-mono text-sm text-[var(--dark-950)] tracking-widest break-all">{otpSecret}</p>
+                </div>
+              )}
+              <Input
+                label="Verification Code"
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                placeholder="000000"
+                value={verifyCode}
+                onChange={e => setVerifyCode(e.target.value.replace(/\D/g, ''))}
+                className="text-center text-xl tracking-widest font-mono"
+              />
+            </>
+          )}
+        </div>
+      </Modal>
+
+      {/* Disable 2FA Modal */}
+      <Modal
+        isOpen={disable2FAOpen}
+        onClose={() => { setDisable2FAOpen(false); setDisableCode(''); }}
+        title="Disable Two-Factor Authentication"
+        size="sm"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => { setDisable2FAOpen(false); setDisableCode(''); }}>Cancel</Button>
+            <Button variant="danger" loading={saving2FA} onClick={onDisable2FA}>Disable 2FA</Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-[var(--gray-500)]">Enter the current code from your authenticator app to disable 2FA. Your account will be less secure without it.</p>
+          <Input
+            label="Authenticator Code"
+            type="text"
+            inputMode="numeric"
+            maxLength={6}
+            placeholder="000000"
+            value={disableCode}
+            onChange={e => setDisableCode(e.target.value.replace(/\D/g, ''))}
+            className="text-center text-xl tracking-widest font-mono"
+          />
+        </div>
+      </Modal>
     </DashboardLayout>
   );
 }

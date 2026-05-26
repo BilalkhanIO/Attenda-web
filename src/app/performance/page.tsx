@@ -8,7 +8,7 @@ import {
 import { performanceApi } from '@/lib/api';
 import { getApiError } from '@/lib/utils';
 import type { PerformanceReview } from '@/types';
-import { TrendingUp, Star, Target, CheckCircle, Clock, Plus } from 'lucide-react';
+import { TrendingUp, Star, Target, CheckCircle, Clock, Plus, Sparkles } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -98,6 +98,11 @@ export default function PerformancePage() {
   const [starValue, setStarValue] = useState(0);
   const [pendingData, setPendingData] = useState<ReviewForm | null>(null);
 
+  // AI Insights state
+  const [insightsUser, setInsightsUser] = useState<PerformanceReview | null>(null);
+  const [insights, setInsights]         = useState<string>('');
+  const [insightsLoading, setInsightsLoading] = useState(false);
+
   // Goals state
   const [goals, setGoals]         = useState<Goal[]>([]);
   const [goalLoading, setGoalLoading] = useState(false);
@@ -183,6 +188,20 @@ export default function PerformancePage() {
   };
 
   // ── Goal logic ───────────────────────────────────────
+  const openInsights = async (review: PerformanceReview) => {
+    setInsightsUser(review);
+    setInsights('');
+    setInsightsLoading(true);
+    try {
+      const { data } = await performanceApi.getInsights(review.user_id);
+      setInsights(data.data?.insights || 'No insights available.');
+    } catch (err) {
+      setInsights(`Error: ${getApiError(err)}`);
+    } finally {
+      setInsightsLoading(false);
+    }
+  };
+
   const openAddGoal = (review: PerformanceReview) => {
     setGoalUserId(review.user_id);
     setGoalReviewId(review.id);
@@ -364,6 +383,10 @@ export default function PerformancePage() {
                       <Button variant="ghost" size="sm" icon={<Target size={12} />}
                         onClick={() => openAddGoal(review)}>
                         Goal
+                      </Button>
+                      <Button variant="ghost" size="sm" icon={<Sparkles size={12} />}
+                        onClick={() => openInsights(review)}>
+                        AI
                       </Button>
                     </div>
                   </td>
@@ -567,6 +590,42 @@ export default function PerformancePage() {
               />
               <CompletionBar value={newCompletion} />
             </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* ── AI INSIGHTS MODAL ──────────────────────── */}
+      <Modal
+        isOpen={!!insightsUser}
+        onClose={() => { setInsightsUser(null); setInsights(''); }}
+        title="AI Performance Insights"
+        size="lg"
+        footer={<Button onClick={() => { setInsightsUser(null); setInsights(''); }}>Close</Button>}
+      >
+        {insightsUser && (
+          <div className="space-y-4">
+            {insightsUser.user && (
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-[var(--gray-50)]">
+                <Avatar name={insightsUser.user.name} size="md" />
+                <div>
+                  <p className="font-bold text-[var(--dark-950)]">{insightsUser.user.name}</p>
+                  <p className="text-sm text-[var(--gray-500)]">{insightsUser.user.department}</p>
+                </div>
+                <div className="ml-auto flex items-center gap-1 text-xs text-[var(--primary-600)] font-medium">
+                  <Sparkles size={12} /> AI-generated
+                </div>
+              </div>
+            )}
+            {insightsLoading ? (
+              <div className="flex flex-col items-center gap-3 py-10">
+                <div className="w-6 h-6 border-2 border-[var(--primary-600)] border-t-transparent rounded-full animate-spin" />
+                <p className="text-sm text-[var(--gray-500)]">Analysing performance data…</p>
+              </div>
+            ) : (
+              <div className="prose prose-sm max-w-none text-[var(--dark-950)] leading-relaxed whitespace-pre-wrap bg-[var(--gray-50)] rounded-xl p-4 text-sm">
+                {insights}
+              </div>
+            )}
           </div>
         )}
       </Modal>

@@ -59,6 +59,15 @@ export const authApi = {
     apiClient.post('/auth/setup-account', { token, password }),
   refreshToken: (refresh_token: string) =>
     apiClient.post('/auth/refresh', { refresh_token }),
+  // ─── 2FA ──────────────────────────────────────────────
+  setup2FA: () =>
+    apiClient.post('/auth/2fa/setup'),
+  verify2FA: (code: string) =>
+    apiClient.post('/auth/2fa/verify', { code }),
+  authenticate2FA: (partial_token: string, code: string) =>
+    apiClient.post('/auth/2fa/authenticate', { partial_token, code }),
+  disable2FA: (code: string) =>
+    apiClient.delete('/auth/2fa/disable', { data: { code } }),
 };
 
 // ─── USERS ────────────────────────────────────────────
@@ -153,6 +162,8 @@ export const shiftsApi = {
     apiClient.put(`/shifts/swaps/${id}/approve`),
   rejectSwap: (id: string, reason: string) =>
     apiClient.put(`/shifts/swaps/${id}/reject`, { reason }),
+  aiSchedule: (description: string, weekStart?: string, department?: string) =>
+    apiClient.post('/shifts/ai-schedule', { description, week_start: weekStart, department }),
 };
 
 // ─── PAYROLL ──────────────────────────────────────────
@@ -189,6 +200,8 @@ export const performanceApi = {
     apiClient.get('/performance/reviews', { params }),
   submitReview: (userId: string, data: { score: number; comments: string; month: string }) =>
     apiClient.post(`/performance/reviews/${userId}`, data),
+  getInsights: (userId: string) =>
+    apiClient.get(`/performance/reviews/${userId}/insights`),
 };
 
 // ─── ANALYTICS ────────────────────────────────────────
@@ -211,6 +224,13 @@ export const analyticsApi = {
     apiClient.post(`/reports/${type}`, data),
   downloadReport: (id: string) =>
     apiClient.get(`/reports/${id}/download`),
+  // ─── Phase 2 AI ─────────────────────────────────────
+  chat: (message: string) =>
+    apiClient.post('/analytics/chat', { message }),
+  getAnomalies: (days?: number) =>
+    apiClient.get('/analytics/anomalies', { params: { days } }),
+  getPayrollAnomalies: () =>
+    apiClient.get('/analytics/payroll-anomalies'),
 };
 
 // ─── ORG SETTINGS ─────────────────────────────────────

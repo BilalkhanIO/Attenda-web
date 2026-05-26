@@ -10,7 +10,7 @@ import { getApiError, formatTime } from '@/lib/utils';
 import type { Shift, ShiftAssignment, SwapRequest } from '@/types';
 import {
   Plus, Calendar, ChevronLeft, ChevronRight, Send,
-  Check, X, Clock, Edit2, Trash2
+  Check, X, Clock, Edit2, Trash2, Sparkles
 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -51,6 +51,14 @@ export default function ShiftsPage() {
   const [rejectReason, setRejectReason]     = useState('');
   const [actionLoading, setActionLoading]   = useState(false);
 
+  // AI Scheduling
+  const [aiOpen, setAiOpen]               = useState(false);
+  const [aiPrompt, setAiPrompt]           = useState('');
+  const [aiLoading, setAiLoading]         = useState(false);
+  const [aiPlan, setAiPlan]               = useState<{user_name:string;shift_name:string;dates:string[]}[]>([]);
+  const [aiSummary, setAiSummary]         = useState('');
+  const [aiWarnings, setAiWarnings]       = useState<string[]>([]);
+
   const form = useForm<ShiftForm>({
     defaultValues: { days_of_week: [], color: '#1D4ED8', name: '', start_time: '', end_time: '' },
   });
@@ -76,6 +84,23 @@ export default function ShiftsPage() {
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+
+  const onRunAiSchedule = async () => {
+    if (!aiPrompt.trim()) { toast.error('Describe the schedule you need'); return; }
+    setAiLoading(true);
+    setAiPlan([]); setAiSummary(''); setAiWarnings([]);
+    try {
+      const { data } = await shiftsApi.aiSchedule(aiPrompt, format(weekStart, 'yyyy-MM-dd'));
+      const result = data.data || {};
+      setAiPlan(result.plan || []);
+      setAiSummary(result.summary || '');
+      setAiWarnings(result.warnings || []);
+    } catch (err) {
+      toast.error(getApiError(err));
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   const getAssignmentsForDay = (date: Date) =>
     assignments.filter(a => isSameDay(parseISO(a.date), date));
@@ -201,6 +226,9 @@ export default function ShiftsPage() {
         subtitle="Manage weekly schedules and shift templates"
         actions={
           <div className="flex gap-3">
+            <Button variant="ghost" size="sm" icon={<Sparkles size={14} />} onClick={() => setAiOpen(true)}>
+              AI Schedule
+            </Button>
             <Button variant="outline" size="sm" icon={<Plus size={14} />}
               onClick={() => { form.reset({ days_of_week: [], color: '#1D4ED8' }); setAddShiftOpen(true); }}>
               New Template
@@ -524,6 +552,77 @@ export default function ShiftsPage() {
             placeholder="Explain why this swap cannot be approved..."
             className="w-full rounded-lg border border-[var(--gray-200)] bg-white px-3 py-2 text-sm resize-none focus:border-[var(--primary-600)] focus:ring-2 focus:ring-[var(--primary-100)] outline-none"
           />
+        </div>
+      </Modal>
+      {/* AI Schedule Modal */}
+      <Modal
+        isOpen={aiOpen}
+        onClose={() => { setAiOpen(false); setAiPrompt(''); setAiPlan([]); setAiSummary(''); setAiWarnings([]); }}
+        title="AI Shift Scheduling"
+        size="xl"
+        footer={
+          <Button variant="ghost" onClick={() => { setAiOpen(false); setAiPrompt(''); setAiPlan([]); setAiSummary(''); setAiWarnings([]); }}>
+            Close
+          </Button>
+        }
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="text-sm font-semibold text-[var(--dark-800)] block mb-1">Describe the schedule you need</label>
+            <div className="flex gap-2">
+              <textarea
+                rows={2}
+                value={aiPrompt}
+                onChange={e => setAiPrompt(e.target.value)}
+                placeholder={`e.g. "Cover all 5 weekdays with at least 2 people on morning shift. Give Sarah and James consecutive days off."`}
+                className="flex-1 rounded-lg border border-[var(--gray-200)] px-3 py-2 text-sm resize-none focus:border-[var(--primary-600)] focus:ring-2 focus:ring-[var(--primary-100)] outline-none"
+              />
+              <Button loading={aiLoading} onClick={onRunAiSchedule} icon={<Sparkles size={14} />}>
+                Generate
+              </Button>
+            </div>
+            <p className="text-xs text-[var(--gray-500)] mt-1">
+              Week of {format(weekStart, 'MMM d')} · {shifts.length} templates available
+            </p>
+          </div>
+
+          {aiSummary && (
+            <div className="p-4 bg-[var(--primary-50)] border border-[var(--primary-100)] rounded-xl">
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles size={14} className="text-[var(--primary-600)]" />
+                <p className="text-sm font-semibold text-[var(--primary-600)]">AI Summary</p>
+              </div>
+              <p className="text-sm text-[var(--dark-950)]">{aiSummary}</p>
+            </div>
+          )}
+
+          {aiWarnings.length > 0 && (
+            <div className="p-3 bg-[var(--warning-100)] rounded-lg">
+              <p className="text-xs font-semibold text-[var(--warning-800)] mb-1">Warnings</p>
+              {aiWarnings.map((w, i) => <p key={i} className="text-xs text-[var(--warning-800)]">• {w}</p>)}
+            </div>
+          )}
+
+          {aiPlan.length > 0 && (
+            <div>
+              <p className="text-sm font-semibold text-[var(--dark-950)] mb-3">Suggested Assignments ({aiPlan.length})</p>
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {aiPlan.map((entry, i) => (
+                  <div key={i} className="flex items-center justify-between p-3 bg-[var(--gray-50)] rounded-lg">
+                    <div>
+                      <p className="text-sm font-semibold text-[var(--dark-950)]">{entry.user_name}</p>
+                      <p className="text-xs text-[var(--gray-500)]">{entry.shift_name}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs text-[var(--gray-500)]">{entry.dates?.length} day{entry.dates?.length !== 1 ? 's' : ''}</p>
+                      <p className="text-xs text-[var(--primary-600)]">{entry.dates?.slice(0,3).map((d: string) => format(new Date(d), 'EEE d')).join(', ')}{(entry.dates?.length || 0) > 3 ? '…' : ''}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-[var(--gray-500)] mt-2">Review this plan and create assignments manually from the schedule view, or copy the dates above.</p>
+            </div>
+          )}
         </div>
       </Modal>
     </DashboardLayout>
