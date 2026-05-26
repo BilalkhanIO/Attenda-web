@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -23,7 +23,7 @@ const schema = z.object({
 
 type Form = z.infer<typeof schema>;
 
-export default function SetupAccountPage() {
+function SetupAccountContent() {
   const router       = useRouter();
   const searchParams = useSearchParams();
   const { loginWithTokens } = useAuth();
@@ -43,7 +43,6 @@ export default function SetupAccountPage() {
     if (!token) return;
     try {
       const { data: res } = await authApi.setupAccount(token, data.password);
-      // Auto-login with returned tokens
       const { access_token, refresh_token } = res.data;
       loginWithTokens(access_token, refresh_token);
       toast.success('Account set up! Welcome to Attenda.');
@@ -80,7 +79,6 @@ export default function SetupAccountPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-[var(--gray-50)] p-4">
       <div className="w-full max-w-md">
-        {/* Logo */}
         <div className="flex justify-center mb-8">
           <AttendaLogo iconSize={40} variant="light" />
         </div>
@@ -134,5 +132,21 @@ export default function SetupAccountPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+function PageFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-[var(--gray-50)]">
+      <div className="w-8 h-8 border-2 border-[var(--primary-600)] border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
+}
+
+export default function SetupAccountPage() {
+  return (
+    <Suspense fallback={<PageFallback />}>
+      <SetupAccountContent />
+    </Suspense>
   );
 }

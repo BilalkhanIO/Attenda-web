@@ -1,12 +1,12 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import AttendaLogo from '@/components/ui/AttendaLogo';
 import { AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui';
 
-export default function SSOCallbackPage() {
+function SSOCallbackContent() {
   const router       = useRouter();
   const searchParams = useSearchParams();
   const { loginWithTokens } = useAuth();
@@ -64,5 +64,21 @@ export default function SSOCallbackPage() {
         <p className="text-sm text-[var(--gray-500)]">Completing sign-in…</p>
       </div>
     </div>
+  );
+}
+
+function PageFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-[var(--gray-50)]">
+      <div className="w-8 h-8 border-2 border-[var(--primary-600)] border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
+}
+
+export default function SSOCallbackPage() {
+  return (
+    <Suspense fallback={<PageFallback />}>
+      <SSOCallbackContent />
+    </Suspense>
   );
 }

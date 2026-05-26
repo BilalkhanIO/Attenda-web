@@ -1,4 +1,4 @@
-import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
+import axios, { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import Cookies from 'js-cookie';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
@@ -20,7 +20,7 @@ apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 
 // --- Response interceptor: handle 401 refresh ---
 apiClient.interceptors.response.use(
-  (res) => res,
+  (res: AxiosResponse) => res,
   async (error: AxiosError) => {
     const original = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
     if (error.response?.status === 401 && !original._retry) {
