@@ -83,8 +83,8 @@ export const usersApi = {
 
 // ─── ATTENDANCE ───────────────────────────────────────
 export const attendanceApi = {
-  getToday: () =>
-    apiClient.get('/attendance/today'),
+  getToday: (params?: { date?: string }) =>
+    apiClient.get('/attendance/today', { params }),
   getMe: (params?: { days?: number }) =>
     apiClient.get('/attendance/me', { params }),
   getEmployee: (userId: string, params?: { start?: string; end?: string }) =>
@@ -111,7 +111,7 @@ export const leaveApi = {
     apiClient.get('/leave/requests/team'),
   getAllRequests: (params?: { status?: string; department?: string }) =>
     apiClient.get('/leave/requests', { params }),
-  submit: (data: { leave_type_id: string; start_date: string; end_date: string; reason: string }) =>
+  submit: (data: { leave_type: string; start_date: string; end_date: string; reason: string }) =>
     apiClient.post('/leave/requests', data),
   cancel: (id: string) =>
     apiClient.delete(`/leave/requests/${id}`),
@@ -135,8 +135,16 @@ export const shiftsApi = {
     apiClient.get('/shifts'),
   createTemplate: (data: Record<string, unknown>) =>
     apiClient.post('/shifts', data),
+  updateTemplate: (id: string, data: Record<string, unknown>) =>
+    apiClient.put(`/shifts/${id}`, data),
+  deleteTemplate: (id: string) =>
+    apiClient.delete(`/shifts/${id}`),
+  publishSchedule: (weekStart: string) =>
+    apiClient.post('/shifts/schedule/publish', { week_start: weekStart }),
   getAssignments: (params?: { week_start?: string; department?: string }) =>
     apiClient.get('/shifts/assignments', { params }),
+  deleteAssignment: (id: string) =>
+    apiClient.delete(`/shifts/assignments/${id}`),
   assignShift: (data: { user_id: string; shift_id: string; date: string }) =>
     apiClient.post('/shifts/assignments', data),
   getSwapRequests: () =>
@@ -149,18 +157,24 @@ export const shiftsApi = {
 
 // ─── PAYROLL ──────────────────────────────────────────
 export const payrollApi = {
-  getPayrolls: () =>
-    apiClient.get('/payroll'),
+  getPayrolls: (params?: { month?: number; year?: number }) =>
+    apiClient.get('/payroll', { params }),
   getPayroll: (id: string) =>
     apiClient.get(`/payroll/${id}`),
-  process: (id: string) =>
-    apiClient.post(`/payroll/${id}/process`),
-  adjust: (id: string, employeeId: string, data: { field: string; value: number; reason: string }) =>
-    apiClient.put(`/payroll/${id}/adjust/${employeeId}`, data),
+  generate: (month: number, year: number) =>
+    apiClient.post('/payroll/generate', { month, year }),
+  process: (month: number, year: number) =>
+    apiClient.post('/payroll/process', { month, year }),
+  processFull: (month: number, year: number) =>
+    apiClient.post('/payroll/process-full', { month, year }),
+  adjust: (id: string, data: { field: string; value: number; reason: string }) =>
+    apiClient.put(`/payroll/${id}/adjust`, data),
   getMyPayslips: () =>
-    apiClient.get('/payroll/payslips/me'),
+    apiClient.get('/payroll/me'),
   getPayslip: (id: string) =>
     apiClient.get(`/payroll/payslips/${id}`),
+  downloadPayslip: (id: string) =>
+    apiClient.get(`/payroll/payslips/${id}/download`),
 };
 
 // ─── PERFORMANCE ──────────────────────────────────────
@@ -213,6 +227,8 @@ export const orgApi = {
     apiClient.get('/org/whatsapp'),
   updateWhatsAppSettings: (data: Record<string, unknown>) =>
     apiClient.put('/org/whatsapp', data),
+  testWhatsApp: () =>
+    apiClient.post('/org/whatsapp/test'),
   getDepartments: () =>
     apiClient.get('/org/departments'),
 };

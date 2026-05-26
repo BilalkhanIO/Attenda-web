@@ -85,6 +85,10 @@ export default function PerformancePage() {
   };
 
   const onSubmitForm = (data: ReviewForm) => {
+    if (starValue === 0) {
+      toast.error('Please select a star rating before submitting');
+      return;
+    }
     setPendingData({ ...data, score: starValue });
     setSubmitConfirm(true);
   };

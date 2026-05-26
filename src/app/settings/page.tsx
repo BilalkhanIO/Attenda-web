@@ -21,6 +21,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     const load = async () => {
+      setQrLoading(true);
       try {
         const [ipsRes, settingsRes, qrRes] = await Promise.allSettled([
           orgApi.getOfficeIPs(),
@@ -37,7 +38,9 @@ export default function SettingsPage() {
           const qr = qrRes.value.data.data;
           setQrCode(qr?.qr_code_url || qr?.qr_code_base64 || null);
         }
-      } catch { /* ignore */ }
+      } catch { /* ignore */ } finally {
+        setQrLoading(false);
+      }
     };
     load();
   }, []);

@@ -34,14 +34,14 @@ export default function AttendancePage() {
   const fetchAttendance = useCallback(async () => {
     setLoading(true);
     try {
-      const { data } = await attendanceApi.getToday();
+      const { data } = await attendanceApi.getToday({ date: selectedDate });
       setRecords(data.data || []);
     } catch (err) {
       toast.error(getApiError(err));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [selectedDate]);
 
   useEffect(() => { fetchAttendance(); }, [fetchAttendance]);
 
@@ -85,7 +85,26 @@ export default function AttendancePage() {
         title="Attendance"
         subtitle="Track and manage daily attendance records"
         actions={
-          <Button variant="outline" size="sm" icon={<Download size={14} />}>Export CSV</Button>
+          <Button variant="outline" size="sm" icon={<Download size={14} />} onClick={async () => {
+            try {
+              const { data } = await attendanceApi.getReport({ start_date: selectedDate, end_date: selectedDate });
+              const rows = data.data || records;
+              const csv = ['Employee,Status,Check In,Check Out,Hours,Type',
+                ...rows.map((r: AttendanceRecord) => [
+                  r.user?.name || '',
+                  r.status,
+                  r.check_in_at ? format(new Date(r.check_in_at), 'HH:mm') : '',
+                  r.check_out_at ? format(new Date(r.check_out_at), 'HH:mm') : '',
+                  r.hours_worked?.toFixed(1) || '',
+                  r.type,
+                ].join(','))
+              ].join('\n');
+              const a = document.createElement('a');
+              a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+              a.download = `attendance-${selectedDate}.csv`;
+              a.click();
+            } catch (err) { toast.error(getApiError(err)); }
+          }}>Export CSV</Button>
         }
       />
 

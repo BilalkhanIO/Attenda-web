@@ -38,6 +38,7 @@ export default function AnalyticsPage() {
   const [reportFormat, setReportFormat]     = useState<'pdf' | 'csv'>('pdf');
   const [generating, setGenerating]         = useState(false);
   const [reportReady, setReportReady]       = useState(false);
+  const [downloadUrl, setDownloadUrl]       = useState<string | null>(null);
 
   const fetchAnalytics = useCallback(async () => {
     setLoading(true);
@@ -65,12 +66,14 @@ export default function AnalyticsPage() {
     if (!selectedReport) { toast.error('Select a report type'); return; }
     setGenerating(true);
     setReportReady(false);
+    setDownloadUrl(null);
     try {
-      await analyticsApi.generateReport(selectedReport, {
+      const { data } = await analyticsApi.generateReport(selectedReport, {
         start_date: reportStart,
         end_date: reportEnd,
         format: reportFormat,
       });
+      setDownloadUrl(data.data?.download_url || null);
       setReportReady(true);
       toast.success('Report generated successfully');
     } catch (err) {
@@ -228,7 +231,7 @@ export default function AnalyticsPage() {
               <h3 className="text-sm font-bold text-[var(--dark-950)] mb-4">Report Type</h3>
               <div className="space-y-2">
                 {REPORT_TYPES.map(rt => (
-                  <button key={rt.id} onClick={() => { setSelectedReport(rt.id); setReportReady(false); }}
+                  <button key={rt.id} onClick={() => { setSelectedReport(rt.id); setReportReady(false); setDownloadUrl(null); }}
                     className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 transition-all text-left ${
                       selectedReport === rt.id
                         ? 'border-[var(--primary-600)] bg-[var(--primary-100)]'
@@ -314,7 +317,18 @@ export default function AnalyticsPage() {
                     <p className="text-sm text-[var(--gray-500)] mb-4">
                       {REPORT_TYPES.find(r => r.id === selectedReport)?.label} — {reportFormat.toUpperCase()}
                     </p>
-                    <Button icon={<Download size={14} />} size="lg">
+                    <Button icon={<Download size={14} />} size="lg"
+                      onClick={() => {
+                        if (downloadUrl) {
+                          const a = document.createElement('a');
+                          a.href = downloadUrl;
+                          a.target = '_blank';
+                          a.rel = 'noopener noreferrer';
+                          a.click();
+                        } else {
+                          toast.error('Download URL not available');
+                        }
+                      }}>
                       Download {reportFormat.toUpperCase()}
                     </Button>
                   </div>

@@ -7,7 +7,7 @@ import {
 } from '@/components/ui';
 import { leaveApi } from '@/lib/api';
 import { leaveStatusConfig, formatDate, getApiError } from '@/lib/utils';
-import type { LeaveRequest, LeaveType } from '@/types';
+import type { LeaveRequest } from '@/types';
 import { Calendar, Plus, Check, X } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -15,11 +15,19 @@ import { z } from 'zod';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/lib/auth';
 
+const LEAVE_TYPES = [
+  { value: 'annual',    label: 'Annual Leave (Paid)' },
+  { value: 'sick',      label: 'Sick Leave (Paid)' },
+  { value: 'wfh',       label: 'Work From Home (Paid)' },
+  { value: 'unpaid',    label: 'Unpaid Leave' },
+  { value: 'emergency', label: 'Emergency Leave (Paid)' },
+];
+
 const leaveSchema = z.object({
-  leave_type_id: z.string().min(1, 'Leave type required'),
-  start_date:    z.string().min(1, 'Start date required'),
-  end_date:      z.string().min(1, 'End date required'),
-  reason:        z.string().min(5, 'Please provide a reason'),
+  leave_type: z.string().min(1, 'Leave type required'),
+  start_date: z.string().min(1, 'Start date required'),
+  end_date:   z.string().min(1, 'End date required'),
+  reason:     z.string().min(5, 'Please provide a reason'),
 });
 type LeaveForm = z.infer<typeof leaveSchema>;
 
@@ -29,7 +37,6 @@ type RejectForm = z.infer<typeof rejectSchema>;
 export default function LeavePage() {
   const { user, hasRole } = useAuth();
   const [requests, setRequests]   = useState<LeaveRequest[]>([]);
-  const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);
   const [loading, setLoading]     = useState(true);
   const [statusFilter, setStatus] = useState('');
 
@@ -156,8 +163,8 @@ export default function LeavePage() {
                 </td>
                 <td className="py-3 px-4">
                   <div>
-                    <p className="text-sm font-medium">{req.leave_type?.name || '—'}</p>
-                    <p className="text-xs text-[var(--gray-500)]">{req.leave_type?.is_paid ? 'Paid' : 'Unpaid'}</p>
+                    <p className="text-sm font-medium capitalize">{(req.leave_type as unknown as string) || '—'}</p>
+                    <p className="text-xs text-[var(--gray-500)]">{(req.leave_type as unknown as string) === 'unpaid' ? 'Unpaid' : 'Paid'}</p>
                   </div>
                 </td>
                 <td className="py-3 px-4">
@@ -209,9 +216,9 @@ export default function LeavePage() {
         <div className="space-y-4">
           <Select label="Leave Type" required
             placeholder="Select type..."
-            options={leaveTypes.map(t => ({ value: t.id, label: `${t.name} (${t.is_paid ? 'Paid' : 'Unpaid'})` }))}
-            error={leaveForm.formState.errors.leave_type_id?.message}
-            {...leaveForm.register('leave_type_id')}
+            options={LEAVE_TYPES}
+            error={leaveForm.formState.errors.leave_type?.message}
+            {...leaveForm.register('leave_type')}
           />
           <div className="grid grid-cols-2 gap-4">
             <Input label="Start Date" type="date" required

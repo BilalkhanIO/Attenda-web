@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { PageHeader, Card, Button, Input, Modal } from '@/components/ui';
-import { orgApi } from '@/lib/api';
+import { orgApi, apiClient } from '@/lib/api';
 import { getApiError } from '@/lib/utils';
 import { MessageSquare, Save, Plus, Trash2, TestTube2 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -55,8 +55,8 @@ export default function WhatsAppSettingsPage() {
   const sendTest = async () => {
     setTesting(true);
     try {
-      await orgApi.updateSettings({ wa_test: true });
-      toast.success('Test message sent to all configured groups');
+      const { data } = await orgApi.testWhatsApp();
+      toast.success(data.data?.message || 'Test message sent to all configured groups');
     } catch (err) {
       toast.error(getApiError(err));
     } finally { setTesting(false); }
