@@ -19,6 +19,7 @@ interface AuthContextType {
   user: AuthUser | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  loginWithTokens: (accessToken: string, refreshToken: string) => void;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
   hasRole: (...roles: UserRole[]) => boolean;
@@ -56,6 +57,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(decoded);
   };
 
+  const loginWithTokens = (accessToken: string, refreshToken: string) => {
+    Cookies.set('access_token', accessToken, { expires: 1 / 3 });
+    Cookies.set('refresh_token', refreshToken, { expires: 30 });
+    const decoded = jwtDecode<AuthUser>(accessToken);
+    setUser(decoded);
+  };
+
   const logout = async () => {
     try { await authApi.logout(); } catch { /* ignore */ }
     Cookies.remove('access_token');
@@ -74,6 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       isLoading,
       login,
+      loginWithTokens,
       logout,
       isAuthenticated: !!user,
       hasRole,

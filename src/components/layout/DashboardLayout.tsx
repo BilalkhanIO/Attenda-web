@@ -1,15 +1,16 @@
 'use client';
-import { ReactNode, useState } from 'react';
+import { ReactNode, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { cn } from '@/lib/utils';
 import {
-  LayoutDashboard, Clock, Calendar, Wallet, Users, TrendingUp,
-  BarChart2, Settings, LogOut, Bell, Menu, X, MessageSquare, Wifi,
+  LayoutDashboard, Clock, Calendar, CalendarClock, Wallet, Users, TrendingUp,
+  BarChart2, Settings, LogOut, Bell, Menu, X, MessageSquare,
   ChevronDown
 } from 'lucide-react';
 import { Avatar } from '@/components/ui';
+import AttendaLogo from '@/components/ui/AttendaLogo';
 
 interface NavItem {
   label: string;
@@ -23,7 +24,7 @@ const navItems: NavItem[] = [
   { label: 'Dashboard',    href: '/dashboard',    icon: <LayoutDashboard size={18} />, roles: ['super_admin','hr_admin','manager','employee'] },
   { label: 'Attendance',   href: '/attendance',   icon: <Clock size={18} />,           roles: ['super_admin','hr_admin','manager'] },
   { label: 'Leave',        href: '/leave',        icon: <Calendar size={18} />,        roles: ['super_admin','hr_admin','manager','employee'] },
-  { label: 'Shifts',       href: '/shifts',       icon: <Calendar size={18} />,        roles: ['super_admin','hr_admin','manager'] },
+  { label: 'Shifts',       href: '/shifts',       icon: <CalendarClock size={18} />,   roles: ['super_admin','hr_admin','manager'] },
   { label: 'Payroll',      href: '/payroll',      icon: <Wallet size={18} />,          roles: ['super_admin','hr_admin'] },
   { label: 'Employees',    href: '/employees',    icon: <Users size={18} />,           roles: ['super_admin','hr_admin','manager'] },
   { label: 'Performance',  href: '/performance',  icon: <TrendingUp size={18} />,      roles: ['super_admin','hr_admin','manager'] },
@@ -37,6 +38,14 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [dateStr, setDateStr] = useState('');
+
+  useEffect(() => {
+    const update = () => setDateStr(new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }));
+    update();
+    const t = setInterval(update, 60_000);
+    return () => clearInterval(t);
+  }, []);
 
   const filteredNav = navItems.filter(item => user && item.roles.includes(user.role));
 
@@ -44,12 +53,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     <div className="flex flex-col h-full">
       {/* Logo */}
       <div className="h-16 flex items-center px-6 border-b border-white/10 flex-shrink-0">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-[var(--primary-600)] flex items-center justify-center">
-            <Wifi size={16} className="text-white" />
-          </div>
-          <span className="text-white font-bold text-lg tracking-tight">Attenda</span>
-        </div>
+        <AttendaLogo iconSize={32} variant="dark" />
       </div>
 
       {/* Nav */}
@@ -62,13 +66,16 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               href={item.href}
               onClick={() => setSidebarOpen(false)}
               className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150',
+                'relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 overflow-hidden',
                 isActive
-                  ? 'bg-white/15 text-white'
+                  ? 'bg-white/12 text-white'
                   : 'text-white/60 hover:bg-white/8 hover:text-white'
               )}
             >
-              <span className={isActive ? 'text-white' : 'text-white/50'}>{item.icon}</span>
+              {isActive && (
+                <span className="absolute left-0 top-2 bottom-2 w-[3px] bg-white rounded-r-full" />
+              )}
+              <span className={cn('transition-colors', isActive ? 'text-white' : 'text-white/50')}>{item.icon}</span>
               {item.label}
               {item.badge != null && (
                 <span className="ml-auto bg-[var(--danger-500)] text-white text-xs font-bold rounded-full px-1.5 py-0.5 min-w-[18px] text-center">
@@ -113,7 +120,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       {sidebarOpen && (
         <div className="lg:hidden fixed inset-0 z-40 flex">
           <div className="fixed inset-0 bg-black/50" onClick={() => setSidebarOpen(false)} />
-          <aside className="relative w-60 bg-[var(--dark-950)] flex flex-col z-50 slide-in-right">
+          <aside className="relative w-60 bg-[var(--dark-950)] flex flex-col z-50 slide-in-left">
             <SidebarContent />
           </aside>
         </div>
@@ -134,6 +141,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               <h2 className="text-sm font-semibold text-[var(--dark-950)] capitalize">
                 {filteredNav.find(n => pathname === n.href || pathname.startsWith(n.href + '/'))?.label || 'Dashboard'}
               </h2>
+              {dateStr && <p className="text-xs text-[var(--gray-500)] mt-0.5">{dateStr}</p>}
             </div>
           </div>
 
@@ -182,7 +190,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
         {/* Page content */}
         <main className="flex-1 overflow-y-auto">
-          <div className="p-6">
+          <div className="p-6 page-fade-in" key={pathname}>
             {children}
           </div>
         </main>

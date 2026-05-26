@@ -35,6 +35,7 @@ export default function DashboardPage() {
   // Counts
   const counts = {
     in:     live.filter(e => e.status === 'in').length,
+    out:    live.filter(e => e.status === 'out').length,
     late:   live.filter(e => e.status === 'late').length,
     remote: live.filter(e => e.status === 'remote').length,
     leave:  live.filter(e => e.status === 'leave').length,
@@ -69,8 +70,8 @@ export default function DashboardPage() {
         {loading ? (
           Array.from({length:5}).map((_,i) => <Skeleton key={i} className="h-28 rounded-xl" />)
         ) : (<>
-          <KPICard title="Checked In"  value={counts.in}     icon={<Wifi size={20} />}          color="var(--success-700)" bg="var(--success-100)" />
-          <KPICard title="Checked Out" value={counts.in > 0 ? counts.total - counts.in - counts.absent - counts.leave - counts.remote : 0} icon={<Clock size={20} />} color="var(--gray-500)" bg="var(--gray-100)" />
+          <KPICard title="Checked In"  value={counts.in}  icon={<Wifi size={20} />}  color="var(--success-700)" bg="var(--success-100)" />
+          <KPICard title="Checked Out" value={counts.out} icon={<Clock size={20} />} color="var(--gray-500)"    bg="var(--gray-100)" />
           <KPICard title="Remote"      value={counts.remote} icon={<Wifi size={20} />}           color="var(--purple-700)" bg="var(--purple-100)" />
           <KPICard title="On Leave"    value={counts.leave}  icon={<Calendar size={20} />}       color="var(--primary-600)" bg="var(--primary-100)" />
           <KPICard title="Absent"      value={counts.absent} icon={<AlertTriangle size={20} />}  color="var(--danger-800)" bg="var(--danger-100)"

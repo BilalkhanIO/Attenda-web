@@ -7,7 +7,7 @@ import {
 } from '@/components/ui';
 import { leaveApi } from '@/lib/api';
 import { leaveStatusConfig, formatDate, getApiError } from '@/lib/utils';
-import type { LeaveRequest, LeaveType } from '@/types';
+import type { LeaveRequest } from '@/types';
 import { Calendar, Plus, Check, X } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -15,11 +15,19 @@ import { z } from 'zod';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/lib/auth';
 
+const LEAVE_TYPES = [
+  { value: 'annual',    label: 'Annual Leave (Paid)' },
+  { value: 'sick',      label: 'Sick Leave (Paid)' },
+  { value: 'wfh',       label: 'Work From Home (Paid)' },
+  { value: 'unpaid',    label: 'Unpaid Leave' },
+  { value: 'emergency', label: 'Emergency Leave (Paid)' },
+];
+
 const leaveSchema = z.object({
-  leave_type_id: z.string().min(1, 'Leave type required'),
-  start_date:    z.string().min(1, 'Start date required'),
-  end_date:      z.string().min(1, 'End date required'),
-  reason:        z.string().min(5, 'Please provide a reason'),
+  leave_type: z.string().min(1, 'Leave type required'),
+  start_date: z.string().min(1, 'Start date required'),
+  end_date:   z.string().min(1, 'End date required'),
+  reason:     z.string().min(5, 'Please provide a reason'),
 });
 type LeaveForm = z.infer<typeof leaveSchema>;
 
@@ -29,7 +37,7 @@ type RejectForm = z.infer<typeof rejectSchema>;
 export default function LeavePage() {
   const { user, hasRole } = useAuth();
   const [requests, setRequests]   = useState<LeaveRequest[]>([]);
-  const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);
+  const [balances, setBalances]   = useState<{leave_type:string; total_days:number; used_days:number; available_days:number}[]>([]);
   const [loading, setLoading]     = useState(true);
   const [statusFilter, setStatus] = useState('');
 
@@ -45,8 +53,9 @@ export default function LeavePage() {
   const fetchRequests = useCallback(async () => {
     try {
       const fn = hasRole('hr_admin', 'super_admin') ? leaveApi.getAllRequests : leaveApi.getTeamRequests;
-      const [reqRes] = await Promise.all([fn()]);
-      setRequests(reqRes.data.data || []);
+      const [reqRes, balRes] = await Promise.allSettled([fn(), leaveApi.getMyBalance()]);
+      if (reqRes.status === 'fulfilled') setRequests(reqRes.value.data.data || []);
+      if (balRes.status === 'fulfilled') setBalances(balRes.value.data.data || []);
     } catch (err) {
       toast.error(getApiError(err));
     } finally {
@@ -112,6 +121,28 @@ export default function LeavePage() {
         }
       />
 
+      {/* Leave Balance Cards */}
+      {balances.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
+          {balances.map(b => (
+            <Card key={b.leave_type} className="p-4">
+              <p className="text-xs font-semibold text-[var(--gray-500)] capitalize mb-2">{b.leave_type.replace('_', ' ')}</p>
+              <div className="flex items-end gap-1">
+                <span className="text-2xl font-bold text-[var(--dark-950)]">{b.available_days}</span>
+                <span className="text-xs text-[var(--gray-500)] mb-0.5">/ {b.total_days} days</span>
+              </div>
+              <div className="mt-2 h-1.5 bg-[var(--gray-100)] rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-[var(--primary-600)] rounded-full transition-all"
+                  style={{ width: `${b.total_days > 0 ? (b.available_days / b.total_days) * 100 : 0}%` }}
+                />
+              </div>
+              <p className="text-xs text-[var(--gray-500)] mt-1">{b.used_days} used</p>
+            </Card>
+          ))}
+        </div>
+      )}
+
       <Card>
         {/* Status filter */}
         <div className="flex items-center gap-2 px-5 pt-4 border-b border-[var(--gray-100)] overflow-x-auto">
@@ -156,8 +187,8 @@ export default function LeavePage() {
                 </td>
                 <td className="py-3 px-4">
                   <div>
-                    <p className="text-sm font-medium">{req.leave_type?.name || '—'}</p>
-                    <p className="text-xs text-[var(--gray-500)]">{req.leave_type?.is_paid ? 'Paid' : 'Unpaid'}</p>
+                    <p className="text-sm font-medium capitalize">{(req.leave_type as unknown as string) || '—'}</p>
+                    <p className="text-xs text-[var(--gray-500)]">{(req.leave_type as unknown as string) === 'unpaid' ? 'Unpaid' : 'Paid'}</p>
                   </div>
                 </td>
                 <td className="py-3 px-4">
@@ -209,9 +240,9 @@ export default function LeavePage() {
         <div className="space-y-4">
           <Select label="Leave Type" required
             placeholder="Select type..."
-            options={leaveTypes.map(t => ({ value: t.id, label: `${t.name} (${t.is_paid ? 'Paid' : 'Unpaid'})` }))}
-            error={leaveForm.formState.errors.leave_type_id?.message}
-            {...leaveForm.register('leave_type_id')}
+            options={LEAVE_TYPES}
+            error={leaveForm.formState.errors.leave_type?.message}
+            {...leaveForm.register('leave_type')}
           />
           <div className="grid grid-cols-2 gap-4">
             <Input label="Start Date" type="date" required

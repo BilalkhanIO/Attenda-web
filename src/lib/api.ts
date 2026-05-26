@@ -59,6 +59,15 @@ export const authApi = {
     apiClient.post('/auth/setup-account', { token, password }),
   refreshToken: (refresh_token: string) =>
     apiClient.post('/auth/refresh', { refresh_token }),
+  // ─── 2FA ──────────────────────────────────────────────
+  setup2FA: () =>
+    apiClient.post('/auth/2fa/setup'),
+  verify2FA: (code: string) =>
+    apiClient.post('/auth/2fa/verify', { code }),
+  authenticate2FA: (partial_token: string, code: string) =>
+    apiClient.post('/auth/2fa/authenticate', { partial_token, code }),
+  disable2FA: (code: string) =>
+    apiClient.delete('/auth/2fa/disable', { data: { code } }),
 };
 
 // ─── USERS ────────────────────────────────────────────
@@ -83,8 +92,8 @@ export const usersApi = {
 
 // ─── ATTENDANCE ───────────────────────────────────────
 export const attendanceApi = {
-  getToday: () =>
-    apiClient.get('/attendance/today'),
+  getToday: (params?: { date?: string }) =>
+    apiClient.get('/attendance/today', { params }),
   getMe: (params?: { days?: number }) =>
     apiClient.get('/attendance/me', { params }),
   getEmployee: (userId: string, params?: { start?: string; end?: string }) =>
@@ -111,7 +120,7 @@ export const leaveApi = {
     apiClient.get('/leave/requests/team'),
   getAllRequests: (params?: { status?: string; department?: string }) =>
     apiClient.get('/leave/requests', { params }),
-  submit: (data: { leave_type_id: string; start_date: string; end_date: string; reason: string }) =>
+  submit: (data: { leave_type: string; start_date: string; end_date: string; reason: string }) =>
     apiClient.post('/leave/requests', data),
   cancel: (id: string) =>
     apiClient.delete(`/leave/requests/${id}`),
@@ -135,8 +144,16 @@ export const shiftsApi = {
     apiClient.get('/shifts'),
   createTemplate: (data: Record<string, unknown>) =>
     apiClient.post('/shifts', data),
+  updateTemplate: (id: string, data: Record<string, unknown>) =>
+    apiClient.put(`/shifts/${id}`, data),
+  deleteTemplate: (id: string) =>
+    apiClient.delete(`/shifts/${id}`),
+  publishSchedule: (weekStart: string) =>
+    apiClient.post('/shifts/schedule/publish', { week_start: weekStart }),
   getAssignments: (params?: { week_start?: string; department?: string }) =>
     apiClient.get('/shifts/assignments', { params }),
+  deleteAssignment: (id: string) =>
+    apiClient.delete(`/shifts/assignments/${id}`),
   assignShift: (data: { user_id: string; shift_id: string; date: string }) =>
     apiClient.post('/shifts/assignments', data),
   getSwapRequests: () =>
@@ -145,22 +162,30 @@ export const shiftsApi = {
     apiClient.put(`/shifts/swaps/${id}/approve`),
   rejectSwap: (id: string, reason: string) =>
     apiClient.put(`/shifts/swaps/${id}/reject`, { reason }),
+  aiSchedule: (description: string, weekStart?: string, department?: string) =>
+    apiClient.post('/shifts/ai-schedule', { description, week_start: weekStart, department }),
 };
 
 // ─── PAYROLL ──────────────────────────────────────────
 export const payrollApi = {
-  getPayrolls: () =>
-    apiClient.get('/payroll'),
+  getPayrolls: (params?: { month?: number; year?: number }) =>
+    apiClient.get('/payroll', { params }),
   getPayroll: (id: string) =>
     apiClient.get(`/payroll/${id}`),
-  process: (id: string) =>
-    apiClient.post(`/payroll/${id}/process`),
-  adjust: (id: string, employeeId: string, data: { field: string; value: number; reason: string }) =>
-    apiClient.put(`/payroll/${id}/adjust/${employeeId}`, data),
+  generate: (month: number, year: number) =>
+    apiClient.post('/payroll/generate', { month, year }),
+  process: (month: number, year: number) =>
+    apiClient.post('/payroll/process', { month, year }),
+  processFull: (month: number, year: number) =>
+    apiClient.post('/payroll/process-full', { month, year }),
+  adjust: (id: string, data: { field: string; value: number; reason: string }) =>
+    apiClient.put(`/payroll/${id}/adjust`, data),
   getMyPayslips: () =>
-    apiClient.get('/payroll/payslips/me'),
+    apiClient.get('/payroll/me'),
   getPayslip: (id: string) =>
     apiClient.get(`/payroll/payslips/${id}`),
+  downloadPayslip: (id: string) =>
+    apiClient.get(`/payroll/payslips/${id}/download`),
 };
 
 // ─── PERFORMANCE ──────────────────────────────────────
@@ -175,6 +200,8 @@ export const performanceApi = {
     apiClient.get('/performance/reviews', { params }),
   submitReview: (userId: string, data: { score: number; comments: string; month: string }) =>
     apiClient.post(`/performance/reviews/${userId}`, data),
+  getInsights: (userId: string) =>
+    apiClient.get(`/performance/reviews/${userId}/insights`),
 };
 
 // ─── ANALYTICS ────────────────────────────────────────
@@ -197,6 +224,13 @@ export const analyticsApi = {
     apiClient.post(`/reports/${type}`, data),
   downloadReport: (id: string) =>
     apiClient.get(`/reports/${id}/download`),
+  // ─── Phase 2 AI ─────────────────────────────────────
+  chat: (message: string) =>
+    apiClient.post('/analytics/chat', { message }),
+  getAnomalies: (days?: number) =>
+    apiClient.get('/analytics/anomalies', { params: { days } }),
+  getPayrollAnomalies: () =>
+    apiClient.get('/analytics/payroll-anomalies'),
 };
 
 // ─── ORG SETTINGS ─────────────────────────────────────
@@ -213,6 +247,8 @@ export const orgApi = {
     apiClient.get('/org/whatsapp'),
   updateWhatsAppSettings: (data: Record<string, unknown>) =>
     apiClient.put('/org/whatsapp', data),
+  testWhatsApp: () =>
+    apiClient.post('/org/whatsapp/test'),
   getDepartments: () =>
     apiClient.get('/org/departments'),
 };

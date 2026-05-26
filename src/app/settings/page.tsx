@@ -18,9 +18,11 @@ export default function SettingsPage() {
   const [deleteIp, setDeleteIp]       = useState<string | null>(null);
   const [orgName, setOrgName]         = useState('');
   const [timezone, setTimezone]       = useState('UTC');
+  const [lateThreshold, setLateThreshold] = useState(15);
 
   useEffect(() => {
     const load = async () => {
+      setQrLoading(true);
       try {
         const [ipsRes, settingsRes, qrRes] = await Promise.allSettled([
           orgApi.getOfficeIPs(),
@@ -32,12 +34,15 @@ export default function SettingsPage() {
           const s = settingsRes.value.data.data;
           setOrgName(s?.name || '');
           setTimezone(s?.timezone || 'UTC');
+          setLateThreshold(s?.late_threshold ?? 15);
         }
         if (qrRes.status === 'fulfilled') {
           const qr = qrRes.value.data.data;
           setQrCode(qr?.qr_code_url || qr?.qr_code_base64 || null);
         }
-      } catch { /* ignore */ }
+      } catch { /* ignore */ } finally {
+        setQrLoading(false);
+      }
     };
     load();
   }, []);
@@ -83,7 +88,7 @@ export default function SettingsPage() {
   const saveOrgSettings = async () => {
     setSaving(true);
     try {
-      await orgApi.updateSettings({ name: orgName, timezone });
+      await orgApi.updateSettings({ name: orgName, timezone, late_threshold: lateThreshold });
       toast.success('Organisation settings saved');
     } catch (err) {
       toast.error(getApiError(err));
@@ -167,6 +172,20 @@ export default function SettingsPage() {
                   <option key={tz} value={tz}>{tz}</option>
                 ))}
               </select>
+            </div>
+            <div>
+              <label className="text-sm font-semibold text-[var(--dark-800)] block mb-1">
+                Late Arrival Threshold
+                <span className="font-normal text-[var(--gray-500)] ml-1">(minutes after shift start)</span>
+              </label>
+              <input
+                type="number" min={0} max={120} value={lateThreshold}
+                onChange={e => setLateThreshold(Math.max(0, Math.min(120, parseInt(e.target.value) || 0)))}
+                className="w-full px-3 py-2 text-sm border border-[var(--gray-200)] rounded-lg outline-none focus:border-[var(--primary-600)]"
+              />
+              <p className="text-xs text-[var(--gray-500)] mt-1">
+                Employees who check in more than {lateThreshold} minute{lateThreshold !== 1 ? 's' : ''} after their shift starts are marked as late.
+              </p>
             </div>
             <Button icon={<Save size={14} />} loading={saving} onClick={saveOrgSettings}>Save Settings</Button>
           </div>

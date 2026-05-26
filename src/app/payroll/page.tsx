@@ -55,9 +55,9 @@ export default function PayrollPage() {
   useEffect(() => { fetchPayroll(); }, [fetchPayroll]);
 
   const onAdjust = async (data: AdjustForm) => {
-    if (!adjustRow || !payroll) return;
+    if (!adjustRow) return;
     try {
-      await payrollApi.adjust(payroll.id, adjustRow.user_id, {
+      await payrollApi.adjust(adjustRow.id, {
         field: data.field,
         value: parseFloat(data.value),
         reason: data.reason,
@@ -74,7 +74,8 @@ export default function PayrollPage() {
     if (!payroll) return;
     setProcessing(true);
     try {
-      await payrollApi.process(payroll.id);
+      const [year, month] = selectedMonth.split('-').map(Number);
+      await payrollApi.processFull(month, year);
       toast.success('Payroll processed — payslips generated and employees notified');
       setProcess(false);
       fetchPayroll();
@@ -85,8 +86,62 @@ export default function PayrollPage() {
     }
   };
 
+  const onGenerate = async () => {
+    try {
+      const [year, month] = selectedMonth.split('-').map(Number);
+      await payrollApi.generate(month, year);
+      toast.success('Payroll generated');
+      fetchPayroll();
+    } catch (err) {
+      toast.error(getApiError(err));
+    }
+  };
+
+  const onDownloadPayslip = async (recordId: string) => {
+    try {
+      const { data } = await payrollApi.downloadPayslip(recordId);
+      const url = data.data?.url;
+      if (url) {
+        const a = document.createElement('a');
+        a.href = url;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.click();
+      } else {
+        toast.error('Payslip URL not available');
+      }
+    } catch (err) {
+      toast.error(getApiError(err));
+    }
+  };
+
   const isProcessed = payroll?.status === 'processed';
   const hasErrors   = payroll?.records.some(r => r.is_incomplete);
+
+  const onExportCSV = () => {
+    if (!payroll?.records?.length) { toast.error('No payroll data to export'); return; }
+    const headers = ['Name','Department','Gross Pay','Tax','Pension','Adjustments','Net Pay','Hours Worked','Overtime Hours','Status'];
+    const rows = payroll.records.map(r => [
+      r.user?.name || '',
+      r.user?.department || '',
+      r.gross_pay.toFixed(2),
+      r.tax.toFixed(2),
+      r.pension.toFixed(2),
+      r.adjustments.toFixed(2),
+      r.net_pay.toFixed(2),
+      r.hours_worked.toFixed(1),
+      r.overtime_hours.toFixed(1),
+      r.is_incomplete ? 'Incomplete' : 'OK',
+    ]);
+    const csv = [headers, ...rows].map(row => row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url;
+    a.download = `payroll-${selectedMonth}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const totalGross     = payroll?.records.reduce((s, r) => s + r.gross_pay, 0) || 0;
   const totalOT        = payroll?.records.reduce((s, r) => s + r.overtime_hours, 0) || 0;
@@ -113,7 +168,7 @@ export default function PayrollPage() {
               className="px-3 py-2 text-sm border border-[var(--gray-200)] rounded-lg outline-none focus:border-[var(--primary-600)]">
               {MONTHS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
             </select>
-            <Button variant="outline" size="sm" icon={<Download size={14} />}>Export</Button>
+            <Button variant="outline" size="sm" icon={<Download size={14} />} onClick={onExportCSV}>Export CSV</Button>
             {!isProcessed && payroll && (
               <Button size="sm" icon={<Play size={14} />}
                 onClick={() => setProcess(true)}
@@ -204,7 +259,8 @@ export default function PayrollPage() {
                         Adjust
                       </Button>
                     ) : (
-                      <Button variant="outline" size="sm" icon={<Download size={12} />}>Payslip</Button>
+                      <Button variant="outline" size="sm" icon={<Download size={12} />}
+                        onClick={() => onDownloadPayslip(rec.id)}>Payslip</Button>
                     )}
                   </td>
                 </tr>
@@ -218,7 +274,7 @@ export default function PayrollPage() {
             icon={<Wallet size={24} />}
             title="No payroll for this period"
             description="Payroll is generated automatically at the end of each month. You can also trigger it manually."
-            action={<Button icon={<Play size={14} />}>Generate Payroll</Button>}
+            action={<Button icon={<Play size={14} />} onClick={onGenerate}>Generate Payroll</Button>}
           />
         </Card>
       )}

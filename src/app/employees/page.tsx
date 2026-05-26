@@ -169,7 +169,23 @@ export default function EmployeesPage() {
         subtitle={`${users.filter(u => u.status === 'active').length} active employees`}
         actions={
           <>
-            <Button variant="outline" size="sm" icon={<Upload size={14} />}>Import CSV</Button>
+            <Button variant="outline" size="sm" icon={<Upload size={14} />} onClick={() => {
+              const input = document.createElement('input');
+              input.type = 'file';
+              input.accept = '.csv';
+              input.onchange = async (e) => {
+                const file = (e.target as HTMLInputElement).files?.[0];
+                if (!file) return;
+                const formData = new FormData();
+                formData.append('file', file);
+                try {
+                  const { data } = await usersApi.importCSV(formData);
+                  toast.success(`Imported ${data.data?.imported || 0} employees`);
+                  fetchUsers();
+                } catch (err) { toast.error(getApiError(err)); }
+              };
+              input.click();
+            }}>Import CSV</Button>
             <Button size="sm" icon={<UserPlus size={14} />} onClick={openAdd}>Add Employee</Button>
           </>
         }
