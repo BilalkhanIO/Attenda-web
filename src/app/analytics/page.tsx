@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { PageHeader, Card, Button, KPICard, Badge, Skeleton } from '@/components/ui';
 import { analyticsApi } from '@/lib/api';
@@ -40,6 +40,7 @@ export default function AnalyticsPage() {
   const [anomalies, setAnomalies]       = useState<{user_name:string;type:string;severity:string;description:string;date?:string}[]>([]);
   const [payAnomalies, setPayAnomalies] = useState<{user_name:string;type:string;severity:string;description:string;month?:string}[]>([]);
   const [anomalyLoading, setAnomalyLoading] = useState(false);
+  const chatBottomRef = useRef<HTMLDivElement>(null);
 
   // Report generator state
   const [selectedReport, setSelectedReport] = useState<string | null>(null);
@@ -71,6 +72,10 @@ export default function AnalyticsPage() {
   }, []);
 
   useEffect(() => { fetchAnalytics(); }, [fetchAnalytics]);
+
+  useEffect(() => {
+    chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatMessages, chatLoading]);
 
   const sendChatMessage = async () => {
     const msg = chatInput.trim();
@@ -346,7 +351,7 @@ export default function AnalyticsPage() {
                 </div>
               ) : generating ? (
                 <div className="flex-1 flex items-center justify-center flex-col gap-4 p-8">
-                  <div className="w-10 h-10 border-3 border-[var(--primary-600)] border-t-transparent rounded-full animate-spin" />
+                  <div className="w-10 h-10 border-[3px] border-[var(--primary-600)] border-t-transparent rounded-full animate-spin" />
                   <p className="text-sm font-semibold text-[var(--dark-950)]">Generating your report…</p>
                   <p className="text-xs text-[var(--gray-500)]">This may take a few seconds</p>
                   {/* Progress bar */}
@@ -438,6 +443,7 @@ export default function AnalyticsPage() {
                   </div>
                 </div>
               )}
+              <div ref={chatBottomRef} />
             </div>
             <div className="p-3 border-t border-[var(--gray-100)]">
               <div className="flex gap-2">

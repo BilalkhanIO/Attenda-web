@@ -1,7 +1,7 @@
 'use client';
 import { ReactNode, ButtonHTMLAttributes, InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes, useEffect, useRef } from 'react';
 import { cn, getInitials } from '@/lib/utils';
-import { X, Loader2, AlertTriangle } from 'lucide-react';
+import { X, Loader2, AlertTriangle, ChevronRight } from 'lucide-react';
 
 // ─── Button ───────────────────────────────────────────
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -165,11 +165,11 @@ export function Badge({ label, color, bg, size = 'md' }: BadgeProps) {
 interface AvatarProps {
   name: string;
   imageUrl?: string;
-  size?: 'xs' | 'sm' | 'md' | 'lg';
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
 }
 
 export function Avatar({ name, imageUrl, size = 'md' }: AvatarProps) {
-  const sizes = { xs: 'w-6 h-6 text-xs', sm: 'w-8 h-8 text-xs', md: 'w-10 h-10 text-sm', lg: 'w-12 h-12 text-base' };
+  const sizes = { xs: 'w-6 h-6 text-xs', sm: 'w-8 h-8 text-xs', md: 'w-10 h-10 text-sm', lg: 'w-12 h-12 text-base', xl: 'w-16 h-16 text-xl', '2xl': 'w-24 h-24 text-2xl' };
   return (
     <div className={cn('rounded-full flex items-center justify-center font-semibold text-white bg-[var(--primary-600)] overflow-hidden flex-shrink-0', sizes[size])}>
       {imageUrl ? <img src={imageUrl} alt={name} className="w-full h-full object-cover" /> : getInitials(name)}
@@ -355,10 +355,24 @@ interface PageHeaderProps {
   actions?: ReactNode;
 }
 
-export function PageHeader({ title, subtitle, actions }: PageHeaderProps) {
+export function PageHeader({ title, subtitle, breadcrumb, actions }: PageHeaderProps) {
   return (
     <div className="flex items-start justify-between mb-6">
       <div>
+        {breadcrumb && breadcrumb.length > 0 && (
+          <nav className="flex items-center gap-1 mb-1">
+            {breadcrumb.map((crumb, i) => (
+              <span key={crumb.label} className="flex items-center gap-1">
+                {i > 0 && <ChevronRight size={12} className="text-[var(--gray-500)]" />}
+                {crumb.href ? (
+                  <a href={crumb.href} className="text-xs text-[var(--primary-600)] hover:underline">{crumb.label}</a>
+                ) : (
+                  <span className="text-xs text-[var(--gray-500)]">{crumb.label}</span>
+                )}
+              </span>
+            ))}
+          </nav>
+        )}
         <h1 className="text-2xl font-bold text-[var(--dark-950)]">{title}</h1>
         {subtitle && <p className="text-sm text-[var(--gray-500)] mt-1">{subtitle}</p>}
       </div>

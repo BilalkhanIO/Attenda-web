@@ -9,7 +9,7 @@ import { authApi } from '@/lib/api';
 import { getApiError } from '@/lib/utils';
 import { Button, Input, Modal } from '@/components/ui';
 import AttendaLogo from '@/components/ui/AttendaLogo';
-import { Eye, EyeOff, Mail, Shield } from 'lucide-react';
+import { Eye, EyeOff, Mail, Shield, MapPin, MessageCircle, Bot, Banknote } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const loginSchema = z.object({
@@ -103,13 +103,13 @@ export default function LoginPage() {
           </div>
           <div className="space-y-4">
             {[
-              { icon: '📍', text: 'Auto check-in via office WiFi IP' },
-              { icon: '💬', text: 'Real-time WhatsApp notifications' },
-              { icon: '🤖', text: 'AI-powered remote work check-ins' },
-              { icon: '💰', text: 'One-click payroll processing' },
+              { icon: <MapPin size={16} />, text: 'Auto check-in via office WiFi IP' },
+              { icon: <MessageCircle size={16} />, text: 'Real-time WhatsApp notifications' },
+              { icon: <Bot size={16} />, text: 'AI-powered remote work check-ins' },
+              { icon: <Banknote size={16} />, text: 'One-click payroll processing' },
             ].map((f) => (
               <div key={f.text} className="flex items-center gap-3">
-                <span className="text-xl">{f.icon}</span>
+                <span className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/10 text-white/70 flex-shrink-0">{f.icon}</span>
                 <span className="text-white/70 text-sm">{f.text}</span>
               </div>
             ))}

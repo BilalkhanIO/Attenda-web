@@ -5,6 +5,7 @@
   --primary-900: #1E3A8A;
   --primary-600: #1D4ED8;
   --primary-100: #DBEAFE;
+  --primary-50:  #EFF6FF;
   --dark-950: #0F172A;
   --dark-800: #1E293B;
   --dark-700: #334155;
@@ -21,6 +22,7 @@
   --danger-800: #991B1B;
   --danger-500: #EF4444;
   --danger-100: #FEE2E2;
+  --danger-50:  #FFF5F5;
   --purple-700: #5B21B6;
   --purple-500: #8B5CF6;
   --purple-100: #EDE9FE;
@@ -68,15 +70,25 @@ body {
   from { transform: translateX(100%); opacity: 0; }
   to   { transform: translateX(0); opacity: 1; }
 }
+@keyframes slideInLeft {
+  from { transform: translateX(-100%); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
+}
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(12px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+@keyframes pageFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
 
-.modal-animate { animation: modalIn 0.2s ease-out forwards; }
+.modal-animate    { animation: modalIn 0.2s ease-out forwards; }
 .backdrop-animate { animation: backdropIn 0.15s ease-out forwards; }
-.slide-in-right { animation: slideInRight 0.25s ease-out forwards; }
-.fade-in-up { animation: fadeInUp 0.2s ease-out forwards; }
+.slide-in-right   { animation: slideInRight 0.25s ease-out forwards; }
+.slide-in-left    { animation: slideInLeft 0.25s ease-out forwards; }
+.fade-in-up       { animation: fadeInUp 0.2s ease-out forwards; }
+.page-fade-in     { animation: pageFadeIn 0.25s ease-out forwards; }
 
 /* Focus ring */
 *:focus-visible {
