@@ -118,6 +118,31 @@ export default function PayrollPage() {
   const isProcessed = payroll?.status === 'processed';
   const hasErrors   = payroll?.records.some(r => r.is_incomplete);
 
+  const onExportCSV = () => {
+    if (!payroll?.records?.length) { toast.error('No payroll data to export'); return; }
+    const headers = ['Name','Department','Gross Pay','Tax','Pension','Adjustments','Net Pay','Hours Worked','Overtime Hours','Status'];
+    const rows = payroll.records.map(r => [
+      r.user?.name || '',
+      r.user?.department || '',
+      r.gross_pay.toFixed(2),
+      r.tax.toFixed(2),
+      r.pension.toFixed(2),
+      r.adjustments.toFixed(2),
+      r.net_pay.toFixed(2),
+      r.hours_worked.toFixed(1),
+      r.overtime_hours.toFixed(1),
+      r.is_incomplete ? 'Incomplete' : 'OK',
+    ]);
+    const csv = [headers, ...rows].map(row => row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url;
+    a.download = `payroll-${selectedMonth}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const totalGross     = payroll?.records.reduce((s, r) => s + r.gross_pay, 0) || 0;
   const totalOT        = payroll?.records.reduce((s, r) => s + r.overtime_hours, 0) || 0;
   const totalDeductions= payroll?.records.reduce((s, r) => s + Math.abs(r.adjustments), 0) || 0;
@@ -143,7 +168,7 @@ export default function PayrollPage() {
               className="px-3 py-2 text-sm border border-[var(--gray-200)] rounded-lg outline-none focus:border-[var(--primary-600)]">
               {MONTHS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
             </select>
-            <Button variant="outline" size="sm" icon={<Download size={14} />}>Export</Button>
+            <Button variant="outline" size="sm" icon={<Download size={14} />} onClick={onExportCSV}>Export CSV</Button>
             {!isProcessed && payroll && (
               <Button size="sm" icon={<Play size={14} />}
                 onClick={() => setProcess(true)}
