@@ -9,6 +9,9 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   size?: 'sm' | 'md' | 'lg';
   loading?: boolean;
   icon?: ReactNode;
+  children?: ReactNode;
+  className?: string;
+  disabled?: boolean;
 }
 
 export function Button({
@@ -42,6 +45,9 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   hint?: string;
   leftIcon?: ReactNode;
   rightIcon?: ReactNode;
+  className?: string;
+  id?: string;
+  required?: boolean;
 }
 
 export function Input({ label, error, hint, leftIcon, rightIcon, className, id, ...props }: InputProps) {
@@ -82,6 +88,9 @@ interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   error?: string;
   options: { value: string; label: string }[];
   placeholder?: string;
+  className?: string;
+  id?: string;
+  required?: boolean;
 }
 
 export function Select({ label, error, options, placeholder, className, id, ...props }: SelectProps) {
@@ -115,6 +124,9 @@ export function Select({ label, error, options, placeholder, className, id, ...p
 interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
   label?: string;
   error?: string;
+  className?: string;
+  id?: string;
+  required?: boolean;
 }
 
 export function Textarea({ label, error, className, id, ...props }: TextareaProps) {
