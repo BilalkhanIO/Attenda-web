@@ -499,7 +499,10 @@ export default function AnalyticsPage() {
               </Card>
             ) : (
               <div className="space-y-3 max-h-[480px] overflow-y-auto pr-1">
-                {[...anomalies.map(a => ({...a, source:'attendance'})), ...payAnomalies.map(a => ({...a, source:'payroll'}))].map((a, i) => {
+                {[
+                  ...anomalies.map(a => ({ ...a, label: a.date, source: 'attendance' })),
+                  ...payAnomalies.map(a => ({ ...a, label: a.month, source: 'payroll' })),
+                ].map((a, i) => {
                   const sevColor = a.severity === 'high' ? ['var(--danger-800)','var(--danger-100)'] : a.severity === 'medium' ? ['var(--warning-800)','var(--warning-100)'] : ['var(--gray-500)','var(--gray-100)'];
                   return (
                     <Card key={i} className="p-4">
@@ -515,9 +518,7 @@ export default function AnalyticsPage() {
                           </div>
                           <p className="text-xs text-[var(--gray-500)] capitalize mb-1">{a.type?.replace(/_/g, ' ')}</p>
                           <p className="text-sm text-[var(--dark-950)] leading-snug">{a.description}</p>
-                          {(a.date || a.month) && (
-                            <p className="text-xs text-[var(--gray-500)] mt-1">{a.date || a.month}</p>
-                          )}
+                          {a.label && <p className="text-xs text-[var(--gray-500)] mt-1">{a.label}</p>}
                         </div>
                       </div>
                     </Card>
