@@ -37,6 +37,7 @@ type RejectForm = z.infer<typeof rejectSchema>;
 export default function LeavePage() {
   const { user, hasRole } = useAuth();
   const [requests, setRequests]   = useState<LeaveRequest[]>([]);
+  const [balances, setBalances]   = useState<{leave_type:string; total_days:number; used_days:number; available_days:number}[]>([]);
   const [loading, setLoading]     = useState(true);
   const [statusFilter, setStatus] = useState('');
 
@@ -52,8 +53,9 @@ export default function LeavePage() {
   const fetchRequests = useCallback(async () => {
     try {
       const fn = hasRole('hr_admin', 'super_admin') ? leaveApi.getAllRequests : leaveApi.getTeamRequests;
-      const [reqRes] = await Promise.all([fn()]);
-      setRequests(reqRes.data.data || []);
+      const [reqRes, balRes] = await Promise.allSettled([fn(), leaveApi.getMyBalance()]);
+      if (reqRes.status === 'fulfilled') setRequests(reqRes.value.data.data || []);
+      if (balRes.status === 'fulfilled') setBalances(balRes.value.data.data || []);
     } catch (err) {
       toast.error(getApiError(err));
     } finally {
@@ -118,6 +120,28 @@ export default function LeavePage() {
           </Button>
         }
       />
+
+      {/* Leave Balance Cards */}
+      {balances.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
+          {balances.map(b => (
+            <Card key={b.leave_type} className="p-4">
+              <p className="text-xs font-semibold text-[var(--gray-500)] capitalize mb-2">{b.leave_type.replace('_', ' ')}</p>
+              <div className="flex items-end gap-1">
+                <span className="text-2xl font-bold text-[var(--dark-950)]">{b.available_days}</span>
+                <span className="text-xs text-[var(--gray-500)] mb-0.5">/ {b.total_days} days</span>
+              </div>
+              <div className="mt-2 h-1.5 bg-[var(--gray-100)] rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-[var(--primary-600)] rounded-full transition-all"
+                  style={{ width: `${b.total_days > 0 ? (b.available_days / b.total_days) * 100 : 0}%` }}
+                />
+              </div>
+              <p className="text-xs text-[var(--gray-500)] mt-1">{b.used_days} used</p>
+            </Card>
+          ))}
+        </div>
+      )}
 
       <Card>
         {/* Status filter */}

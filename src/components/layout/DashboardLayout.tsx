@@ -6,10 +6,11 @@ import { useAuth } from '@/lib/auth';
 import { cn } from '@/lib/utils';
 import {
   LayoutDashboard, Clock, Calendar, Wallet, Users, TrendingUp,
-  BarChart2, Settings, LogOut, Bell, Menu, X, MessageSquare, Wifi,
+  BarChart2, Settings, LogOut, Bell, Menu, X, MessageSquare,
   ChevronDown
 } from 'lucide-react';
 import { Avatar } from '@/components/ui';
+import AttendaLogo from '@/components/ui/AttendaLogo';
 
 interface NavItem {
   label: string;
@@ -44,12 +45,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     <div className="flex flex-col h-full">
       {/* Logo */}
       <div className="h-16 flex items-center px-6 border-b border-white/10 flex-shrink-0">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-[var(--primary-600)] flex items-center justify-center">
-            <Wifi size={16} className="text-white" />
-          </div>
-          <span className="text-white font-bold text-lg tracking-tight">Attenda</span>
-        </div>
+        <AttendaLogo iconSize={32} variant="dark" />
       </div>
 
       {/* Nav */}

@@ -8,7 +8,8 @@ import { useAuth } from '@/lib/auth';
 import { authApi } from '@/lib/api';
 import { getApiError } from '@/lib/utils';
 import { Button, Input, Modal } from '@/components/ui';
-import { Eye, EyeOff, Wifi, Mail } from 'lucide-react';
+import AttendaLogo from '@/components/ui/AttendaLogo';
+import { Eye, EyeOff, Mail } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const loginSchema = z.object({
@@ -59,12 +60,7 @@ export default function LoginPage() {
       {/* Left panel */}
       <div className="hidden lg:flex w-1/2 bg-[var(--dark-950)] flex-col justify-between p-12">
         {/* Logo */}
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[var(--primary-600)] flex items-center justify-center">
-            <Wifi size={20} className="text-white" />
-          </div>
-          <span className="text-white font-bold text-2xl tracking-tight">Attenda</span>
-        </div>
+        <AttendaLogo iconSize={40} variant="dark" />
 
         {/* Feature highlights */}
         <div className="space-y-8">
