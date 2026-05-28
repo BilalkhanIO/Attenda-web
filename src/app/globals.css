@@ -1,14 +1,19 @@
 @import "tailwindcss";
 
 :root {
-  /* Attenda Design Tokens */
-  --primary-900: #1E3A8A;
-  --primary-600: #1D4ED8;
-  --primary-100: #DBEAFE;
-  --primary-50:  #EFF6FF;
-  --dark-950: #0F172A;
-  --dark-800: #1E293B;
-  --dark-700: #334155;
+  /* Attenda Design Tokens — Brand: Violet #321847 + Imperial Red #f15153 */
+
+  /* Primary — Imperial Red */
+  --primary-900: #b91c1e;
+  --primary-600: #f15153;
+  --primary-100: #fde8e8;
+  --primary-50:  #fff0f0;
+
+  /* Dark — Violet */
+  --dark-950: #321847;
+  --dark-800: #4a2466;
+  --dark-700: #5e2e7a;
+
   --gray-500: #64748B;
   --gray-200: #E2E8F0;
   --gray-100: #F1F5F9;
@@ -19,8 +24,8 @@
   --warning-800: #92400E;
   --warning-500: #F59E0B;
   --warning-100: #FEF3C7;
-  --danger-800: #991B1B;
-  --danger-500: #EF4444;
+  --danger-800: #7f1d1d;
+  --danger-500: #dc2626;
   --danger-100: #FEE2E2;
   --danger-50:  #FFF5F5;
   --purple-700: #5B21B6;
