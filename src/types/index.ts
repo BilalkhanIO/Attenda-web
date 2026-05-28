@@ -134,6 +134,8 @@ export interface PayrollRecord {
   unpaid_days: number;
   hourly_rate: number;
   gross_pay: number;
+  tax: number;
+  pension: number;
   adjustments: number;
   net_pay: number;
   is_incomplete: boolean;
