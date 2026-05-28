@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -22,7 +22,7 @@ const schema = z.object({
 
 type Form = z.infer<typeof schema>;
 
-export default function ResetPasswordPage() {
+function ResetPasswordContent() {
   const router       = useRouter();
   const searchParams = useSearchParams();
   const token        = searchParams.get('token');
@@ -128,5 +128,28 @@ export default function ResetPasswordPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-[var(--gray-50)]">
+        <div className="w-full max-w-md">
+          <div className="flex justify-center mb-8">
+            <AttendaLogo iconSize={40} variant="light" />
+          </div>
+          <div className="bg-white rounded-2xl shadow-sm border border-[var(--gray-200)] p-8">
+            <div className="animate-pulse space-y-4">
+              <div className="h-4 bg-[var(--gray-200)] rounded w-3/4 mx-auto" />
+              <div className="h-4 bg-[var(--gray-200)] rounded w-full" />
+              <div className="h-10 bg-[var(--gray-200)] rounded" />
+            </div>
+          </div>
+        </div>
+      </div>
+    }>
+      <ResetPasswordContent />
+    </Suspense>
   );
 }
