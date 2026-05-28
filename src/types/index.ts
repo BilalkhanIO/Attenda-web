@@ -131,6 +131,7 @@ export interface PayrollRecord {
   payroll_id: string;
   regular_hours: number;
   overtime_hours: number;
+  hours_worked: number;
   unpaid_days: number;
   hourly_rate: number;
   gross_pay: number;
