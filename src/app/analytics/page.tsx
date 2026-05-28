@@ -21,7 +21,7 @@ const REPORT_TYPES = [
   { id: 'performance', label: 'Performance Report',   icon: <FileText size={20} />,  color: 'var(--purple-700)',  bg: 'var(--purple-100)'   },
 ];
 
-const PIE_COLORS = ['#1D4ED8','#065F46','#5B21B6','#92400E','#991B1B'];
+const PIE_COLORS = ['#f15153','#065F46','#5B21B6','#92400E','#7f1d1d'];
 
 export default function AnalyticsPage() {
   const [overview, setOverview]     = useState<AnalyticsOverview | null>(null);
