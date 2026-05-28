@@ -46,8 +46,8 @@ export default function AnalyticsPage() {
   ]);
   const [chatInput, setChatInput]       = useState('');
   const [chatLoading, setChatLoading]   = useState(false);
-  const [anomalies, setAnomalies]       = useState<{user_name:string;type:string;severity:string;description:string;date?:string}[]>([]);
-  const [payAnomalies, setPayAnomalies] = useState<{user_name:string;type:string;severity:string;description:string;month?:string}[]>([]);
+  const [anomalies, setAnomalies]       = useState<{user_name:string;type:string;severity:string;description:string;date?:string;month?:string}[]>([]);
+  const [payAnomalies, setPayAnomalies] = useState<{user_name:string;type:string;severity:string;description:string;date?:string;month?:string}[]>([]);
   const [anomalyLoading, setAnomalyLoading] = useState(false);
   const chatBottomRef = useRef<HTMLDivElement>(null);
 
