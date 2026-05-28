@@ -12,7 +12,7 @@ import {
   Plus, Calendar, ChevronLeft, ChevronRight, Send,
   Check, X, Clock, Edit2, Trash2, Sparkles
 } from 'lucide-react';
-import { useForm } from 'react-hook-form';
+import { useForm, UseFormReturn } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
@@ -23,13 +23,60 @@ const shiftSchema = z.object({
   name:       z.string().min(1, 'Shift name required'),
   start_time: z.string().min(1, 'Start time required'),
   end_time:   z.string().min(1, 'End time required'),
-  color:      z.string().min(1).default('#1D4ED8'),
+  color:      z.string().min(1).default('#f15153'),
   days_of_week: z.array(z.number()).min(1, 'Select at least one day'),
 });
 type ShiftForm = { name: string; start_time: string; end_time: string; color: string; days_of_week: number[] };
 
 const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-const SHIFT_COLORS = ['#1D4ED8','#065F46','#5B21B6','#92400E','#991B1B','#0F766E'];
+const SHIFT_COLORS = ['#f15153','#065F46','#5B21B6','#92400E','#991B1B','#0F766E'];
+
+function ShiftFormFields({ form }: { form: UseFormReturn<ShiftForm> }) {
+  const selectedDays = form.watch('days_of_week') || [];
+  const selectedColor = form.watch('color');
+  return (
+    <div className="space-y-4">
+      <Input label="Shift Name" required placeholder="e.g. Morning Shift"
+        error={form.formState.errors.name?.message} {...form.register('name')} />
+      <div className="grid grid-cols-2 gap-4">
+        <Input label="Start Time" type="time" required
+          error={form.formState.errors.start_time?.message} {...form.register('start_time')} />
+        <Input label="End Time" type="time" required
+          error={form.formState.errors.end_time?.message} {...form.register('end_time')} />
+      </div>
+      <div>
+        <label className="text-sm font-semibold text-[var(--dark-800)] block mb-2">Active Days</label>
+        <div className="flex gap-2 flex-wrap">
+          {DAYS.map((d, i) => (
+            <button key={d} type="button"
+              onClick={() => {
+                const curr = form.getValues('days_of_week') || [];
+                form.setValue('days_of_week', curr.includes(i) ? curr.filter(x => x !== i) : [...curr, i]);
+              }}
+              className={`w-10 h-10 rounded-lg text-xs font-semibold transition-colors ${
+                selectedDays.includes(i)
+                  ? 'bg-[var(--primary-600)] text-white'
+                  : 'bg-[var(--gray-100)] text-[var(--gray-500)] hover:bg-[var(--gray-200)]'
+              }`}
+            >{d}</button>
+          ))}
+        </div>
+      </div>
+      <div>
+        <label className="text-sm font-semibold text-[var(--dark-800)] block mb-2">Colour</label>
+        <div className="flex gap-2">
+          {SHIFT_COLORS.map(c => (
+            <button key={c} type="button"
+              onClick={() => form.setValue('color', c)}
+              className={`w-8 h-8 rounded-full border-2 transition-all ${selectedColor === c ? 'border-[var(--dark-950)] scale-110' : 'border-transparent'}`}
+              style={{ backgroundColor: c }}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function ShiftsPage() {
   const [shifts, setShifts]         = useState<Shift[]>([]);
@@ -60,7 +107,7 @@ export default function ShiftsPage() {
   const [aiWarnings, setAiWarnings]       = useState<string[]>([]);
 
   const form = useForm<ShiftForm>({
-    defaultValues: { days_of_week: [], color: '#1D4ED8', name: '', start_time: '', end_time: '' },
+    defaultValues: { days_of_week: [], color: '#f15153', name: '', start_time: '', end_time: '' },
   });
 
   const fetchAll = useCallback(async () => {
@@ -170,53 +217,6 @@ export default function ShiftsPage() {
     }
   };
 
-  const ShiftFormFields = () => {
-    const selectedDays = form.watch('days_of_week') || [];
-    const selectedColor = form.watch('color');
-    return (
-      <div className="space-y-4">
-        <Input label="Shift Name" required placeholder="e.g. Morning Shift"
-          error={form.formState.errors.name?.message} {...form.register('name')} />
-        <div className="grid grid-cols-2 gap-4">
-          <Input label="Start Time" type="time" required
-            error={form.formState.errors.start_time?.message} {...form.register('start_time')} />
-          <Input label="End Time" type="time" required
-            error={form.formState.errors.end_time?.message} {...form.register('end_time')} />
-        </div>
-        <div>
-          <label className="text-sm font-semibold text-[var(--dark-800)] block mb-2">Active Days</label>
-          <div className="flex gap-2 flex-wrap">
-            {DAYS.map((d, i) => (
-              <button key={d} type="button"
-                onClick={() => {
-                  const curr = form.getValues('days_of_week') || [];
-                  form.setValue('days_of_week', curr.includes(i) ? curr.filter(x => x !== i) : [...curr, i]);
-                }}
-                className={`w-10 h-10 rounded-lg text-xs font-semibold transition-colors ${
-                  selectedDays.includes(i)
-                    ? 'bg-[var(--primary-600)] text-white'
-                    : 'bg-[var(--gray-100)] text-[var(--gray-500)] hover:bg-[var(--gray-200)]'
-                }`}
-              >{d}</button>
-            ))}
-          </div>
-        </div>
-        <div>
-          <label className="text-sm font-semibold text-[var(--dark-800)] block mb-2">Colour</label>
-          <div className="flex gap-2">
-            {SHIFT_COLORS.map(c => (
-              <button key={c} type="button"
-                onClick={() => form.setValue('color', c)}
-                className={`w-8 h-8 rounded-full border-2 transition-all ${selectedColor === c ? 'border-[var(--dark-950)] scale-110' : 'border-transparent'}`}
-                style={{ backgroundColor: c }}
-              />
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   const pendingSwaps = swapRequests.filter(s => s.status === 'pending');
 
   return (
@@ -230,7 +230,7 @@ export default function ShiftsPage() {
               AI Schedule
             </Button>
             <Button variant="outline" size="sm" icon={<Plus size={14} />}
-              onClick={() => { form.reset({ days_of_week: [], color: '#1D4ED8' }); setAddShiftOpen(true); }}>
+              onClick={() => { form.reset({ days_of_week: [], color: '#f15153' }); setAddShiftOpen(true); }}>
               New Template
             </Button>
             <Button size="sm" icon={<Send size={14} />} onClick={() => setPublishConfirm(true)}>
@@ -359,7 +359,7 @@ export default function ShiftsPage() {
                 icon={<Clock size={24} />}
                 title="No shift templates"
                 description="Create your first shift template to start building schedules."
-                action={<Button onClick={() => { form.reset({ days_of_week: [], color: '#1D4ED8' }); setAddShiftOpen(true); }}>Create Template</Button>}
+                action={<Button onClick={() => { form.reset({ days_of_week: [], color: '#f15153' }); setAddShiftOpen(true); }}>Create Template</Button>}
               />
             </div>
           ) : shifts.map(shift => (
@@ -475,7 +475,7 @@ export default function ShiftsPage() {
           </>
         }
       >
-        <ShiftFormFields />
+        <ShiftFormFields form={form} />
       </Modal>
 
       {/* Delete template */}

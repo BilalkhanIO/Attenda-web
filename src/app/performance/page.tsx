@@ -530,7 +530,7 @@ export default function PerformancePage() {
       {/* ── ADD GOAL MODAL ─────────────────────────── */}
       <Modal
         isOpen={addGoalOpen || !!editGoal}
-        onClose={() => { setAddGoalOpen(false); setEditGoal(null); goalForm.reset(); }}
+        onClose={() => { setAddGoalOpen(false); setEditGoal(null); goalForm.reset(); setGoalUserId(''); setGoalReviewId(''); }}
         title={editGoal ? 'Edit Goal' : 'Set New Goal'}
         size="md"
         footer={
