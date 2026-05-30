@@ -4,9 +4,10 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import { PageHeader, Card, Button, Input, Modal, ConfirmDialog } from '@/components/ui';
 import { orgApi, attendanceApi } from '@/lib/api';
 import { getApiError } from '@/lib/utils';
-import { Wifi, Plus, Trash2, Save, QrCode, RefreshCw, Download } from 'lucide-react';
+import { Wifi, Plus, Trash2, Save, QrCode, RefreshCw, Download, Clock, ChevronRight, MessageSquare } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/lib/auth';
+import Link from 'next/link';
 
 export default function SettingsPage() {
   const { hasRole } = useAuth();
@@ -243,6 +244,43 @@ export default function SettingsPage() {
             </Button>
           )}
         </Card>
+      </div>
+
+      {/* Row 3: Additional Settings Links */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
+        <Link href="/settings/overtime" className="block">
+          <Card className="p-5 hover:shadow-md transition-shadow cursor-pointer group">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-[var(--warning-100)] flex items-center justify-center">
+                  <Clock size={18} className="text-[var(--warning-800)]" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-[var(--dark-950)]">Overtime Rules</h3>
+                  <p className="text-xs text-[var(--gray-500)]">Multipliers &amp; thresholds</p>
+                </div>
+              </div>
+              <ChevronRight size={16} className="text-[var(--gray-500)] group-hover:text-[var(--primary-600)] transition-colors" />
+            </div>
+          </Card>
+        </Link>
+
+        <Link href="/settings/whatsapp" className="block">
+          <Card className="p-5 hover:shadow-md transition-shadow cursor-pointer group">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-[var(--success-100)] flex items-center justify-center">
+                  <MessageSquare size={18} className="text-[var(--success-700)]" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-[var(--dark-950)]">WhatsApp Notifications</h3>
+                  <p className="text-xs text-[var(--gray-500)]">Alerts &amp; integrations</p>
+                </div>
+              </div>
+              <ChevronRight size={16} className="text-[var(--gray-500)] group-hover:text-[var(--primary-600)] transition-colors" />
+            </div>
+          </Card>
+        </Link>
       </div>
 
       {/* Delete IP confirm */}

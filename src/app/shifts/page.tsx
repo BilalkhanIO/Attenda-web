@@ -631,7 +631,7 @@ export default function ShiftsPage() {
                 </div>
                 <div className="flex gap-1">
                   {hasRole('manager', 'hr_admin', 'super_admin') && (
-                    <button onClick={() => { form.reset({ name: shift.name, start_time: shift.start_time, end_time: shift.end_time, color: shift.color, days_of_week: shift.days_of_week, overtime_multiplier: (shift as Record<string, unknown>).overtime_multiplier as number ?? 1.5, min_rest_hours: (shift as Record<string, unknown>).min_rest_hours as number ?? 11, late_tolerance_mins: (shift as Record<string, unknown>).late_tolerance_mins as number ?? 15, auto_checkout: (shift as Record<string, unknown>).auto_checkout as boolean ?? true, auto_checkout_buffer_mins: (shift as Record<string, unknown>).auto_checkout_buffer_mins as number ?? 30 }); setEditShift(shift); }}
+                    <button onClick={() => { const s = shift as unknown as Record<string, unknown>; form.reset({ name: shift.name, start_time: shift.start_time, end_time: shift.end_time, color: shift.color, days_of_week: shift.days_of_week, overtime_multiplier: s.overtime_multiplier as number ?? 1.5, min_rest_hours: s.min_rest_hours as number ?? 11, late_tolerance_mins: s.late_tolerance_mins as number ?? 15, auto_checkout: s.auto_checkout as boolean ?? true, auto_checkout_buffer_mins: s.auto_checkout_buffer_mins as number ?? 30 }); setEditShift(shift); }}
                       className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-[var(--gray-100)] text-[var(--gray-500)]">
                       <Edit2 size={13} />
                     </button>
