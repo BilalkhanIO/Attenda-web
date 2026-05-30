@@ -5,15 +5,38 @@ import {
   PageHeader, Card, Table, Avatar, Badge, Button, Modal, Input, Textarea,
   EmptyState
 } from '@/components/ui';
-import { attendanceApi } from '@/lib/api';
+import { attendanceApi, remoteApi } from '@/lib/api';
 import { statusConfig, formatTime, formatDate, getApiError } from '@/lib/utils';
 import type { AttendanceRecord } from '@/types';
-import { Clock, Edit2, Download, Calendar } from 'lucide-react';
+import { Clock, Edit2, Download, Calendar, Coffee, PlayCircle, StopCircle, Home, Check, X } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
+import { useAuth } from '@/lib/auth';
+
+interface RemoteSession {
+  id: string;
+  status: 'pending' | 'approved' | 'rejected';
+  duration_type: string;
+  created_at: string;
+  user?: { id: string; name: string; department?: string; avatar_url?: string };
+  attendance?: { date: string };
+}
+
+interface BreakStatus {
+  on_break: boolean;
+  break_type?: string;
+  started_at?: string;
+  total_break_minutes?: number;
+  breaks?: { break_type: string; started_at: string; ended_at?: string; minutes?: number }[];
+}
+
+interface TodayRecord {
+  check_in_at?: string;
+  check_out_at?: string;
+}
 
 const overrideSchema = z.object({
   check_in_at:  z.string().optional(),
@@ -23,11 +46,21 @@ const overrideSchema = z.object({
 type OverrideForm = z.infer<typeof overrideSchema>;
 
 export default function AttendancePage() {
+  const { hasRole } = useAuth();
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [overrideRecord, setOverrideRecord] = useState<AttendanceRecord | null>(null);
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [statusFilter, setStatusFilter] = useState('');
+
+  // Break tracking (employee self-service)
+  const [breakStatus, setBreakStatus] = useState<BreakStatus | null>(null);
+  const [breakLoading, setBreakLoading] = useState(false);
+  const [todayRecord, setTodayRecord] = useState<TodayRecord | null>(null);
+
+  // Remote session requests (managers)
+  const [remoteSessions, setRemoteSessions] = useState<RemoteSession[]>([]);
+  const [remoteActionId, setRemoteActionId] = useState<string | null>(null);
 
   const form = useForm<OverrideForm>({ resolver: zodResolver(overrideSchema) });
 
@@ -43,7 +76,96 @@ export default function AttendancePage() {
     }
   }, [selectedDate]);
 
+  const loadBreakStatus = useCallback(async () => {
+    try {
+      const { data } = await attendanceApi.getBreakStatus();
+      setBreakStatus(data.data || null);
+    } catch {
+      // break endpoint may not exist yet — silently ignore
+    }
+  }, []);
+
+  const loadRemoteSessions = useCallback(async () => {
+    if (!hasRole('manager', 'hr_admin', 'super_admin')) return;
+    try {
+      const { data } = await remoteApi.getSessions({ status: 'pending' });
+      setRemoteSessions(data.data || []);
+    } catch {
+      // ignore
+    }
+  }, [hasRole]);
+
+  const handleApproveRemote = async (id: string) => {
+    setRemoteActionId(id);
+    try {
+      await remoteApi.approveSession(id);
+      toast.success('Remote session approved');
+      loadRemoteSessions();
+      fetchAttendance();
+    } catch (err) {
+      toast.error(getApiError(err));
+    } finally {
+      setRemoteActionId(null);
+    }
+  };
+
+  const handleRejectRemote = async (id: string) => {
+    setRemoteActionId(id);
+    try {
+      await remoteApi.rejectSession(id);
+      toast.success('Remote session rejected');
+      loadRemoteSessions();
+      fetchAttendance();
+    } catch (err) {
+      toast.error(getApiError(err));
+    } finally {
+      setRemoteActionId(null);
+    }
+  };
+
+  const loadTodayRecord = useCallback(async () => {
+    try {
+      const { data } = await attendanceApi.getMe({ days: 1 });
+      const rows: TodayRecord[] = data.data || [];
+      setTodayRecord(rows[0] || null);
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const handleStartBreak = async (breakType: string) => {
+    setBreakLoading(true);
+    try {
+      await attendanceApi.startBreak(breakType);
+      toast.success(`${breakType === 'meal' ? 'Meal' : 'Rest'} break started`);
+      loadBreakStatus();
+    } catch (err) {
+      toast.error(getApiError(err));
+    } finally {
+      setBreakLoading(false);
+    }
+  };
+
+  const handleEndBreak = async () => {
+    setBreakLoading(true);
+    try {
+      await attendanceApi.endBreak();
+      toast.success('Break ended');
+      loadBreakStatus();
+    } catch (err) {
+      toast.error(getApiError(err));
+    } finally {
+      setBreakLoading(false);
+    }
+  };
+
   useEffect(() => { fetchAttendance(); }, [fetchAttendance]);
+
+  useEffect(() => {
+    loadBreakStatus();
+    loadTodayRecord();
+    loadRemoteSessions();
+  }, [loadBreakStatus, loadTodayRecord, loadRemoteSessions]);
 
   const openOverride = (record: AttendanceRecord) => {
     form.reset({
@@ -85,10 +207,10 @@ export default function AttendancePage() {
         title="Attendance"
         subtitle="Track and manage daily attendance records"
         actions={
-          <Button variant="outline" size="sm" icon={<Download size={14} />} onClick={async () => {
+          hasRole('hr_admin', 'super_admin') && <Button variant="outline" size="sm" icon={<Download size={14} />} onClick={async () => {
             try {
               const { data } = await attendanceApi.getReport({ start_date: selectedDate, end_date: selectedDate });
-              const rows = data.data || records;
+              const rows: AttendanceRecord[] = data.data || [];
               const csv = ['Employee,Status,Check In,Check Out,Hours,Type',
                 ...rows.map((r: AttendanceRecord) => [
                   r.user?.name || '',
@@ -107,6 +229,148 @@ export default function AttendancePage() {
           }}>Export CSV</Button>
         }
       />
+
+      {/* ── Break Tracking Card (employee self-service, only when checked in) ── */}
+      {todayRecord?.check_in_at && !todayRecord?.check_out_at && (
+        <Card className="p-5 mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Coffee size={16} className="text-[var(--primary-600)]" />
+            <h3 className="text-sm font-bold text-[var(--dark-950)]">Break Tracking</h3>
+            {breakStatus?.total_break_minutes != null && breakStatus.total_break_minutes > 0 && (
+              <span className="ml-auto text-xs text-[var(--gray-500)]">
+                {breakStatus.total_break_minutes} min total break today
+              </span>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            {breakStatus?.on_break ? (
+              <>
+                <div className="flex items-center gap-2 px-3 py-2 bg-[var(--warning-100)] rounded-lg">
+                  <div className="w-2 h-2 rounded-full bg-[var(--warning-800)] animate-pulse" />
+                  <span className="text-sm font-semibold text-[var(--warning-800)]">
+                    On {breakStatus.break_type === 'meal' ? 'Meal' : 'Rest'} Break
+                  </span>
+                  {breakStatus.started_at && (
+                    <span className="text-xs text-[var(--warning-800)] opacity-75">
+                      since {formatTime(breakStatus.started_at)}
+                    </span>
+                  )}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  icon={<StopCircle size={14} />}
+                  loading={breakLoading}
+                  onClick={handleEndBreak}
+                >
+                  End Break
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  icon={<PlayCircle size={14} />}
+                  loading={breakLoading}
+                  onClick={() => handleStartBreak('rest')}
+                >
+                  Rest Break
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  icon={<Coffee size={14} />}
+                  loading={breakLoading}
+                  onClick={() => handleStartBreak('meal')}
+                >
+                  Meal Break
+                </Button>
+              </>
+            )}
+          </div>
+
+          {/* Break history for today */}
+          {breakStatus?.breaks && breakStatus.breaks.length > 0 && (
+            <div className="mt-4 space-y-1">
+              <p className="text-xs font-semibold text-[var(--gray-500)] uppercase tracking-wide mb-2">Today&apos;s Breaks</p>
+              {breakStatus.breaks.map((b, i) => (
+                <div key={i} className="flex items-center justify-between px-3 py-1.5 bg-[var(--gray-50)] rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <Coffee size={11} className="text-[var(--gray-500)]" />
+                    <span className="text-xs font-medium text-[var(--dark-950)] capitalize">{b.break_type} break</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-[var(--gray-500)] font-mono">{formatTime(b.started_at)}</span>
+                    {b.ended_at && (
+                      <>
+                        <span className="text-xs text-[var(--gray-500)]">–</span>
+                        <span className="text-xs text-[var(--gray-500)] font-mono">{formatTime(b.ended_at)}</span>
+                      </>
+                    )}
+                    {b.minutes != null && (
+                      <span className="text-xs text-[var(--gray-500)]">{b.minutes} min</span>
+                    )}
+                    {!b.ended_at && (
+                      <Badge label="Active" color="var(--warning-800)" bg="var(--warning-100)" size="sm" />
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+      )}
+
+      {/* ── Remote Work Requests (managers only) ────────────────────────────── */}
+      {hasRole('manager', 'hr_admin', 'super_admin') && remoteSessions.length > 0 && (
+        <Card className="p-5 mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Home size={16} className="text-[var(--purple-700)]" />
+            <h3 className="text-sm font-bold text-[var(--dark-950)]">Pending Remote Work Requests</h3>
+            <span className="ml-auto px-2 py-0.5 text-xs font-bold bg-[var(--warning-100)] text-[var(--warning-800)] rounded-full">
+              {remoteSessions.length}
+            </span>
+          </div>
+          <div className="space-y-3">
+            {remoteSessions.map((session) => (
+              <div key={session.id} className="flex items-center gap-3 p-3 rounded-xl bg-[var(--gray-50)] border border-[var(--gray-100)]">
+                {session.user && (
+                  <Avatar name={session.user.name} imageUrl={session.user.avatar_url} size="sm" />
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-[var(--dark-950)] truncate">{session.user?.name || '—'}</p>
+                  <p className="text-xs text-[var(--gray-500)]">
+                    {session.attendance?.date ? formatDate(session.attendance.date) : '—'}
+                    {' · '}
+                    {session.duration_type.replace(/_/g, ' ')}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Button
+                    size="sm"
+                    icon={<Check size={13} />}
+                    loading={remoteActionId === session.id}
+                    onClick={() => handleApproveRemote(session.id)}
+                  >
+                    Approve
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    icon={<X size={13} />}
+                    loading={remoteActionId === session.id}
+                    onClick={() => handleRejectRemote(session.id)}
+                  >
+                    Reject
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
 
       <Card>
         {/* Filter bar */}
@@ -187,9 +451,11 @@ export default function AttendancePage() {
                   <span className="text-xs text-[var(--gray-500)]">{typeLabel[record.type] || record.type}</span>
                 </td>
                 <td className="py-3 px-4">
-                  <Button variant="ghost" size="sm" icon={<Edit2 size={12} />} onClick={() => openOverride(record)}>
-                    Override
-                  </Button>
+                  {hasRole('manager', 'hr_admin', 'super_admin') && (
+                    <Button variant="ghost" size="sm" icon={<Edit2 size={12} />} onClick={() => openOverride(record)}>
+                      Override
+                    </Button>
+                  )}
                 </td>
               </tr>
             );

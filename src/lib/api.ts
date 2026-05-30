@@ -110,6 +110,12 @@ export const attendanceApi = {
     apiClient.get('/org/qr-code'),
   regenerateQR: () =>
     apiClient.post('/org/qr-code/regenerate'),
+  startBreak: (break_type?: string) =>
+    apiClient.post('/attendance/break/start', { break_type }),
+  endBreak: () =>
+    apiClient.post('/attendance/break/end'),
+  getBreakStatus: () =>
+    apiClient.get('/attendance/break/status'),
 };
 
 // ─── LEAVE ────────────────────────────────────────────
@@ -164,6 +170,14 @@ export const shiftsApi = {
     apiClient.put(`/shifts/swaps/${id}/reject`, { reason }),
   aiSchedule: (description: string, weekStart?: string, department?: string) =>
     apiClient.post('/shifts/ai-schedule', { description, week_start: weekStart, department }),
+  getBreaks: (shiftId: string) =>
+    apiClient.get(`/shifts/${shiftId}/breaks`),
+  addBreak: (shiftId: string, data: { name: string; break_minutes: number; is_paid: boolean; after_minutes: number }) =>
+    apiClient.post(`/shifts/${shiftId}/breaks`, data),
+  updateBreak: (shiftId: string, breakId: string, data: Record<string, unknown>) =>
+    apiClient.put(`/shifts/${shiftId}/breaks/${breakId}`, data),
+  deleteBreak: (shiftId: string, breakId: string) =>
+    apiClient.delete(`/shifts/${shiftId}/breaks/${breakId}`),
 };
 
 // ─── PAYROLL ──────────────────────────────────────────
@@ -204,6 +218,22 @@ export const performanceApi = {
     apiClient.get(`/performance/reviews/${userId}/insights`),
 };
 
+// ─── REMOTE SESSIONS ──────────────────────────────────
+export const remoteApi = {
+  getSessions: (params?: { status?: string }) =>
+    apiClient.get('/attendance/remote/sessions', { params }),
+  getMySessions: () =>
+    apiClient.get('/attendance/remote/sessions/me'),
+  approveSession: (id: string) =>
+    apiClient.put(`/attendance/remote/sessions/${id}/approve`),
+  rejectSession: (id: string) =>
+    apiClient.put(`/attendance/remote/sessions/${id}/reject`),
+  getMonitor: () =>
+    apiClient.get('/attendance/remote/monitor'),
+  getSessionLogs: (id: string) =>
+    apiClient.get(`/attendance/remote/sessions/${id}/logs`),
+};
+
 // ─── ANALYTICS ────────────────────────────────────────
 export const analyticsApi = {
   getOverview: () =>
@@ -233,16 +263,44 @@ export const analyticsApi = {
     apiClient.get('/analytics/payroll-anomalies'),
 };
 
+// ─── OVERTIME ─────────────────────────────────────────
+export const overtimeApi = {
+  getRules: () =>
+    apiClient.get('/overtime/rules'),
+  createRule: (data: { name: string; rule_type: string; threshold_hours: number; multiplier: number; priority?: number }) =>
+    apiClient.post('/overtime/rules', data),
+  updateRule: (id: string, data: Record<string, unknown>) =>
+    apiClient.put(`/overtime/rules/${id}`, data),
+  deleteRule: (id: string) =>
+    apiClient.delete(`/overtime/rules/${id}`),
+  getSummary: (week_start?: string) =>
+    apiClient.get('/overtime/summary', { params: week_start ? { week_start } : {} }),
+};
+
+// ─── PLATFORM ADMIN ───────────────────────────────────
+export const adminApi = {
+  getStats: () =>
+    apiClient.get('/admin/stats'),
+  getOrgs: () =>
+    apiClient.get('/admin/orgs'),
+  getOrg: (id: string) =>
+    apiClient.get(`/admin/orgs/${id}`),
+  updatePlan: (id: string, plan: string) =>
+    apiClient.patch(`/admin/orgs/${id}/plan`, { plan }),
+};
+
 // ─── ORG SETTINGS ─────────────────────────────────────
 export const orgApi = {
   getSettings: () =>
     apiClient.get('/org/settings'),
   updateSettings: (data: Record<string, unknown>) =>
     apiClient.put('/org/settings', data),
-  getOfficeIPs: () =>
+  getOfficeNetworks: () =>
     apiClient.get('/org/office-ips'),
   updateOfficeIPs: (ips: string[]) =>
     apiClient.put('/org/office-ips', { ips }),
+  updateOfficeSSIDs: (ssids: string[]) =>
+    apiClient.put('/org/office-ssids', { ssids }),
   getWhatsAppSettings: () =>
     apiClient.get('/org/whatsapp'),
   updateWhatsAppSettings: (data: Record<string, unknown>) =>
@@ -251,4 +309,17 @@ export const orgApi = {
     apiClient.post('/org/whatsapp/test'),
   getDepartments: () =>
     apiClient.get('/org/departments'),
+};
+
+export const notificationApi = {
+  getAll: (page = 1, limit = 20, unread?: boolean) =>
+    apiClient.get('/notifications', { params: { page, limit, ...(unread ? { unread: 'true' } : {}) } }),
+  getCount: () =>
+    apiClient.get('/notifications/count'),
+  markRead: (id: string) =>
+    apiClient.put(`/notifications/${id}/read`),
+  markAllRead: () =>
+    apiClient.put('/notifications/read-all'),
+  delete: (id: string) =>
+    apiClient.delete(`/notifications/${id}`),
 };

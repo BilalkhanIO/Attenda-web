@@ -13,6 +13,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
+import { useAuth } from '@/lib/auth';
 
 // ─── Schema ───────────────────────────────────────────
 const userSchema = z.object({
@@ -28,6 +29,7 @@ const userSchema = z.object({
 type UserForm = z.infer<typeof userSchema>;
 
 export default function EmployeesPage() {
+  const { hasRole } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [departments, setDepartments] = useState<string[]>([]);
   const [managers, setManagers] = useState<User[]>([]);
@@ -169,7 +171,7 @@ export default function EmployeesPage() {
         subtitle={`${users.filter(u => u.status === 'active').length} active employees`}
         actions={
           <>
-            <Button variant="outline" size="sm" icon={<Upload size={14} />} onClick={() => {
+            {hasRole('hr_admin', 'super_admin') && <Button variant="outline" size="sm" icon={<Upload size={14} />} onClick={() => {
               const input = document.createElement('input');
               input.type = 'file';
               input.accept = '.csv';
@@ -185,8 +187,8 @@ export default function EmployeesPage() {
                 } catch (err) { toast.error(getApiError(err)); }
               };
               input.click();
-            }}>Import CSV</Button>
-            <Button size="sm" icon={<UserPlus size={14} />} onClick={openAdd}>Add Employee</Button>
+            }}>Import CSV</Button>}
+            {hasRole('hr_admin', 'super_admin') && <Button size="sm" icon={<UserPlus size={14} />} onClick={openAdd}>Add Employee</Button>}
           </>
         }
       />
@@ -276,11 +278,13 @@ export default function EmployeesPage() {
                           className="w-full text-left px-4 py-2 text-sm flex items-center gap-2 hover:bg-[var(--gray-50)] text-[var(--dark-950)]">
                           <Eye size={14} /> View Profile
                         </button>
-                        <button onClick={() => openEdit(user)}
-                          className="w-full text-left px-4 py-2 text-sm flex items-center gap-2 hover:bg-[var(--gray-50)] text-[var(--dark-950)]">
-                          <Edit size={14} /> Edit
-                        </button>
-                        {user.status === 'active' && (
+                        {hasRole('hr_admin', 'super_admin') && (
+                          <button onClick={() => openEdit(user)}
+                            className="w-full text-left px-4 py-2 text-sm flex items-center gap-2 hover:bg-[var(--gray-50)] text-[var(--dark-950)]">
+                            <Edit size={14} /> Edit
+                          </button>
+                        )}
+                        {hasRole('hr_admin', 'super_admin') && user.status === 'active' && (
                           <button onClick={() => { setDeactivateUser(user); setActionMenuId(null); }}
                             className="w-full text-left px-4 py-2 text-sm flex items-center gap-2 hover:bg-[var(--danger-100)] text-[var(--danger-800)]">
                             <UserX size={14} /> Deactivate

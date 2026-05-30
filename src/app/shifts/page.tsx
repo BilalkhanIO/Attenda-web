@@ -1,16 +1,19 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '@/lib/auth';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import {
   PageHeader, Card, Button, Modal, ConfirmDialog, Input, Select,
   Badge, Avatar, EmptyState, Table
 } from '@/components/ui';
-import { shiftsApi } from '@/lib/api';
+import { shiftsApi, usersApi } from '@/lib/api';
 import { getApiError, formatTime } from '@/lib/utils';
 import type { Shift, ShiftAssignment, SwapRequest } from '@/types';
+
+interface UserOption { id: string; name: string; }
 import {
   Plus, Calendar, ChevronLeft, ChevronRight, Send,
-  Check, X, Clock, Edit2, Trash2, Sparkles
+  Check, X, Clock, Edit2, Trash2, Sparkles, ChevronDown, ChevronUp, Coffee
 } from 'lucide-react';
 import { useForm, UseFormReturn } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -25,8 +28,33 @@ const shiftSchema = z.object({
   end_time:   z.string().min(1, 'End time required'),
   color:      z.string().min(1).default('#f15153'),
   days_of_week: z.array(z.number()).min(1, 'Select at least one day'),
+  overtime_multiplier:    z.number().min(1).default(1.5),
+  min_rest_hours:         z.number().min(0).default(11),
+  late_tolerance_mins:    z.number().min(0).default(15),
+  auto_checkout:          z.boolean().default(true),
+  auto_checkout_buffer_mins: z.number().min(0).default(30),
 });
-type ShiftForm = { name: string; start_time: string; end_time: string; color: string; days_of_week: number[] };
+type ShiftForm = {
+  name: string;
+  start_time: string;
+  end_time: string;
+  color: string;
+  days_of_week: number[];
+  overtime_multiplier: number;
+  min_rest_hours: number;
+  late_tolerance_mins: number;
+  auto_checkout: boolean;
+  auto_checkout_buffer_mins: number;
+};
+
+// ─── Break Types ──────────────────────────────────────
+interface ShiftBreak {
+  id: string;
+  name: string;
+  break_minutes: number;
+  is_paid: boolean;
+  after_minutes: number;
+}
 
 const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const SHIFT_COLORS = ['#f15153','#065F46','#5B21B6','#92400E','#991B1B','#0F766E'];
@@ -34,6 +62,7 @@ const SHIFT_COLORS = ['#f15153','#065F46','#5B21B6','#92400E','#991B1B','#0F766E
 function ShiftFormFields({ form }: { form: UseFormReturn<ShiftForm> }) {
   const selectedDays = form.watch('days_of_week') || [];
   const selectedColor = form.watch('color');
+  const autoCheckout = form.watch('auto_checkout');
   return (
     <div className="space-y-4">
       <Input label="Shift Name" required placeholder="e.g. Morning Shift"
@@ -74,11 +103,229 @@ function ShiftFormFields({ form }: { form: UseFormReturn<ShiftForm> }) {
           ))}
         </div>
       </div>
+
+      {/* ── Advanced fields ───────────────────────────── */}
+      <div className="border-t border-[var(--gray-100)] pt-4">
+        <p className="text-xs font-semibold text-[var(--gray-500)] uppercase tracking-wide mb-3">Overtime &amp; Compliance</p>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-semibold text-[var(--dark-800)]">Overtime Rate</label>
+            <input
+              type="number" step="0.1" min="1" max="5"
+              {...form.register('overtime_multiplier', { valueAsNumber: true })}
+              className="w-full rounded-lg border border-[var(--gray-200)] bg-white px-3 py-2 text-sm outline-none focus:border-[var(--primary-600)] focus:ring-2 focus:ring-[var(--primary-100)]"
+            />
+            <p className="text-xs text-[var(--gray-500)]">e.g. 1.5× base pay</p>
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-semibold text-[var(--dark-800)]">Min Rest Between Shifts (hrs)</label>
+            <input
+              type="number" step="1" min="0" max="24"
+              {...form.register('min_rest_hours', { valueAsNumber: true })}
+              className="w-full rounded-lg border border-[var(--gray-200)] bg-white px-3 py-2 text-sm outline-none focus:border-[var(--primary-600)] focus:ring-2 focus:ring-[var(--primary-100)]"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-semibold text-[var(--dark-800)]">Late Tolerance (mins)</label>
+            <input
+              type="number" step="1" min="0" max="120"
+              {...form.register('late_tolerance_mins', { valueAsNumber: true })}
+              className="w-full rounded-lg border border-[var(--gray-200)] bg-white px-3 py-2 text-sm outline-none focus:border-[var(--primary-600)] focus:ring-2 focus:ring-[var(--primary-100)]"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-semibold text-[var(--dark-800)]">Auto Checkout Buffer (mins)</label>
+            <input
+              type="number" step="5" min="0" max="120"
+              {...form.register('auto_checkout_buffer_mins', { valueAsNumber: true })}
+              disabled={!autoCheckout}
+              className="w-full rounded-lg border border-[var(--gray-200)] bg-white px-3 py-2 text-sm outline-none focus:border-[var(--primary-600)] focus:ring-2 focus:ring-[var(--primary-100)] disabled:opacity-50"
+            />
+          </div>
+        </div>
+        <div className="mt-3 flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => form.setValue('auto_checkout', !autoCheckout)}
+            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${autoCheckout ? 'bg-[var(--primary-600)]' : 'bg-[var(--gray-300)]'}`}
+          >
+            <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${autoCheckout ? 'translate-x-4' : 'translate-x-1'}`} />
+          </button>
+          <label className="text-sm font-semibold text-[var(--dark-800)]">Auto Checkout</label>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Breaks Panel ─────────────────────────────────────
+function BreaksPanel({ shift }: { shift: Shift }) {
+  const [open, setOpen] = useState(false);
+  const [breaks, setBreaks] = useState<ShiftBreak[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [newBreak, setNewBreak] = useState({ name: '', break_minutes: 15, is_paid: false, after_minutes: 120 });
+  const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const loadBreaks = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { data } = await shiftsApi.getBreaks(shift.id);
+      setBreaks(data.data || []);
+    } catch {
+      // silently fail — breaks endpoint may not exist yet
+    } finally {
+      setLoading(false);
+    }
+  }, [shift.id]);
+
+  useEffect(() => {
+    if (open) loadBreaks();
+  }, [open, loadBreaks]);
+
+  const handleAddBreak = async () => {
+    if (!newBreak.name.trim()) { toast.error('Break name required'); return; }
+    setSaving(true);
+    try {
+      await shiftsApi.addBreak(shift.id, newBreak);
+      toast.success('Break added');
+      setAdding(false);
+      setNewBreak({ name: '', break_minutes: 15, is_paid: false, after_minutes: 120 });
+      loadBreaks();
+    } catch (err) {
+      toast.error(getApiError(err));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteBreak = async (breakId: string) => {
+    setDeletingId(breakId);
+    try {
+      await shiftsApi.deleteBreak(shift.id, breakId);
+      toast.success('Break removed');
+      setBreaks(prev => prev.filter(b => b.id !== breakId));
+    } catch (err) {
+      toast.error(getApiError(err));
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  return (
+    <div className="border border-[var(--gray-200)] rounded-xl overflow-hidden mt-4">
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between px-4 py-3 bg-[var(--gray-50)] hover:bg-[var(--gray-100)] transition-colors"
+      >
+        <div className="flex items-center gap-2 text-sm font-semibold text-[var(--dark-950)]">
+          <Coffee size={14} className="text-[var(--primary-600)]" />
+          Breaks {breaks.length > 0 && !open && <span className="text-xs text-[var(--gray-500)] font-normal">({breaks.length})</span>}
+        </div>
+        {open ? <ChevronUp size={14} className="text-[var(--gray-500)]" /> : <ChevronDown size={14} className="text-[var(--gray-500)]" />}
+      </button>
+
+      {open && (
+        <div className="p-4 space-y-3">
+          {loading ? (
+            <div className="text-sm text-[var(--gray-500)] text-center py-4">Loading breaks…</div>
+          ) : breaks.length === 0 ? (
+            <p className="text-sm text-[var(--gray-500)] text-center py-2">No breaks configured for this shift.</p>
+          ) : (
+            <div className="space-y-2">
+              {breaks.map(b => (
+                <div key={b.id} className="flex items-center justify-between px-3 py-2 bg-[var(--gray-50)] rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <Coffee size={12} className="text-[var(--gray-500)]" />
+                    <span className="text-sm font-semibold text-[var(--dark-950)]">{b.name}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-[var(--gray-500)]">{b.break_minutes} min</span>
+                    <span className="text-xs text-[var(--gray-500)]">after {b.after_minutes} min</span>
+                    <Badge
+                      label={b.is_paid ? 'Paid' : 'Unpaid'}
+                      color={b.is_paid ? 'var(--success-700)' : 'var(--gray-500)'}
+                      bg={b.is_paid ? 'var(--success-100)' : 'var(--gray-100)'}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteBreak(b.id)}
+                      disabled={deletingId === b.id}
+                      className="text-[var(--gray-500)] hover:text-[var(--danger-800)] transition-colors disabled:opacity-50"
+                    >
+                      <X size={13} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {adding ? (
+            <div className="border border-[var(--gray-200)] rounded-lg p-3 space-y-3">
+              <p className="text-xs font-semibold text-[var(--dark-800)]">New Break</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-semibold text-[var(--dark-800)]">Name</label>
+                  <input
+                    type="text"
+                    value={newBreak.name}
+                    onChange={e => setNewBreak(b => ({ ...b, name: e.target.value }))}
+                    placeholder="e.g. Lunch Break"
+                    className="rounded-lg border border-[var(--gray-200)] px-3 py-1.5 text-sm outline-none focus:border-[var(--primary-600)] focus:ring-2 focus:ring-[var(--primary-100)]"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-semibold text-[var(--dark-800)]">Duration (mins)</label>
+                  <input
+                    type="number" min={1} max={120}
+                    value={newBreak.break_minutes}
+                    onChange={e => setNewBreak(b => ({ ...b, break_minutes: parseInt(e.target.value) || 15 }))}
+                    className="rounded-lg border border-[var(--gray-200)] px-3 py-1.5 text-sm outline-none focus:border-[var(--primary-600)] focus:ring-2 focus:ring-[var(--primary-100)]"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-semibold text-[var(--dark-800)]">After (mins into shift)</label>
+                  <input
+                    type="number" min={0}
+                    value={newBreak.after_minutes}
+                    onChange={e => setNewBreak(b => ({ ...b, after_minutes: parseInt(e.target.value) || 0 }))}
+                    className="rounded-lg border border-[var(--gray-200)] px-3 py-1.5 text-sm outline-none focus:border-[var(--primary-600)] focus:ring-2 focus:ring-[var(--primary-100)]"
+                  />
+                </div>
+                <div className="flex flex-col gap-1 justify-end">
+                  <div className="flex items-center gap-2 pb-1">
+                    <button
+                      type="button"
+                      onClick={() => setNewBreak(b => ({ ...b, is_paid: !b.is_paid }))}
+                      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${newBreak.is_paid ? 'bg-[var(--primary-600)]' : 'bg-[var(--gray-300)]'}`}
+                    >
+                      <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${newBreak.is_paid ? 'translate-x-4' : 'translate-x-1'}`} />
+                    </button>
+                    <label className="text-xs font-semibold text-[var(--dark-800)]">Paid</label>
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-2 justify-end">
+                <Button variant="ghost" size="sm" onClick={() => setAdding(false)}>Cancel</Button>
+                <Button size="sm" loading={saving} onClick={handleAddBreak}>Add Break</Button>
+              </div>
+            </div>
+          ) : (
+            <Button variant="outline" size="sm" icon={<Plus size={12} />} onClick={() => setAdding(true)}>
+              Add Break
+            </Button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
 
 export default function ShiftsPage() {
+  const { hasRole } = useAuth();
   const [shifts, setShifts]         = useState<Shift[]>([]);
   const [assignments, setAssignments] = useState<ShiftAssignment[]>([]);
   const [swapRequests, setSwapRequests] = useState<SwapRequest[]>([]);
@@ -106,27 +353,60 @@ export default function ShiftsPage() {
   const [aiSummary, setAiSummary]         = useState('');
   const [aiWarnings, setAiWarnings]       = useState<string[]>([]);
 
+  // Assign shift from calendar
+  const [users, setUsers]                 = useState<UserOption[]>([]);
+  const [assignModal, setAssignModal]     = useState<{ shiftId: string; date: Date } | null>(null);
+  const [assignUserId, setAssignUserId]   = useState('');
+  const [assigning, setAssigning]         = useState(false);
+
   const form = useForm<ShiftForm>({
+    defaultValues: {
+      days_of_week: [], color: '#f15153', name: '', start_time: '', end_time: '',
+      overtime_multiplier: 1.5, min_rest_hours: 11, late_tolerance_mins: 15,
+      auto_checkout: true, auto_checkout_buffer_mins: 30,
+    },
     defaultValues: { days_of_week: [], color: '#f15153', name: '', start_time: '', end_time: '' },
   });
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [tRes, aRes, sRes] = await Promise.all([
+      const [tRes, aRes, sRes, uRes] = await Promise.all([
         shiftsApi.getTemplates(),
         shiftsApi.getAssignments({ week_start: format(weekStart, 'yyyy-MM-dd') }),
         shiftsApi.getSwapRequests(),
+        usersApi.getAll({ status: 'active', limit: 200 }),
       ]);
       setShifts(tRes.data.data || []);
       setAssignments(aRes.data.data || []);
       setSwapRequests(sRes.data.data || []);
+      setUsers((uRes.data.data || []).map((u: { id: string; name: string }) => ({ id: u.id, name: u.name })));
     } catch (err) {
       toast.error(getApiError(err));
     } finally {
       setLoading(false);
     }
   }, [weekStart]);
+
+  const onAssignShift = async () => {
+    if (!assignModal || !assignUserId) { toast.error('Select an employee'); return; }
+    setAssigning(true);
+    try {
+      await shiftsApi.assignShift({
+        user_id:  assignUserId,
+        shift_id: assignModal.shiftId,
+        date:     format(assignModal.date, 'yyyy-MM-dd'),
+      });
+      toast.success('Shift assigned');
+      setAssignModal(null);
+      setAssignUserId('');
+      fetchAll();
+    } catch (err) {
+      toast.error(getApiError(err));
+    } finally {
+      setAssigning(false);
+    }
+  };
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
@@ -226,6 +506,22 @@ export default function ShiftsPage() {
         subtitle="Manage weekly schedules and shift templates"
         actions={
           <div className="flex gap-3">
+            {hasRole('manager', 'hr_admin', 'super_admin') && (
+              <Button variant="ghost" size="sm" icon={<Sparkles size={14} />} onClick={() => setAiOpen(true)}>
+                AI Schedule
+              </Button>
+            )}
+            {hasRole('manager', 'hr_admin', 'super_admin') && (
+              <Button variant="outline" size="sm" icon={<Plus size={14} />}
+                onClick={() => { form.reset({ days_of_week: [], color: '#f15153' }); setAddShiftOpen(true); }}>
+                New Template
+              </Button>
+            )}
+            {hasRole('manager', 'hr_admin', 'super_admin') && (
+              <Button size="sm" icon={<Send size={14} />} onClick={() => setPublishConfirm(true)}>
+                Publish Schedule
+              </Button>
+            )}
             <Button variant="ghost" size="sm" icon={<Sparkles size={14} />} onClick={() => setAiOpen(true)}>
               AI Schedule
             </Button>
@@ -331,8 +627,11 @@ export default function ShiftsPage() {
                             {a.user.name.split(' ')[0]}
                           </div>
                         ))}
-                        {isActiveDay && (
-                          <button className="w-full mt-1 text-xs text-[var(--gray-500)] hover:text-[var(--primary-600)] hover:bg-[var(--primary-100)] rounded-lg py-1 transition-colors">
+                        {isActiveDay && hasRole('manager', 'hr_admin', 'super_admin') && (
+                          <button
+                            onClick={() => { setAssignUserId(''); setAssignModal({ shiftId: shift.id, date: day }); }}
+                            className="w-full mt-1 text-xs text-[var(--gray-500)] hover:text-[var(--primary-600)] hover:bg-[var(--primary-100)] rounded-lg py-1 transition-colors"
+                          >
                             + Add
                           </button>
                         )}
@@ -375,14 +674,18 @@ export default function ShiftsPage() {
                   </div>
                 </div>
                 <div className="flex gap-1">
-                  <button onClick={() => { form.reset({ name: shift.name, start_time: shift.start_time, end_time: shift.end_time, color: shift.color, days_of_week: shift.days_of_week }); setEditShift(shift); }}
-                    className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-[var(--gray-100)] text-[var(--gray-500)]">
-                    <Edit2 size={13} />
-                  </button>
-                  <button onClick={() => setDeleteShift(shift)}
-                    className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-[var(--danger-100)] text-[var(--gray-500)] hover:text-[var(--danger-800)]">
-                    <Trash2 size={13} />
-                  </button>
+                  {hasRole('manager', 'hr_admin', 'super_admin') && (
+                    <button onClick={() => { const s = shift as unknown as Record<string, unknown>; form.reset({ name: shift.name, start_time: shift.start_time, end_time: shift.end_time, color: shift.color, days_of_week: shift.days_of_week, overtime_multiplier: s.overtime_multiplier as number ?? 1.5, min_rest_hours: s.min_rest_hours as number ?? 11, late_tolerance_mins: s.late_tolerance_mins as number ?? 15, auto_checkout: s.auto_checkout as boolean ?? true, auto_checkout_buffer_mins: s.auto_checkout_buffer_mins as number ?? 30 }); setEditShift(shift); }}
+                      className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-[var(--gray-100)] text-[var(--gray-500)]">
+                      <Edit2 size={13} />
+                    </button>
+                  )}
+                  {hasRole('manager', 'hr_admin', 'super_admin') && (
+                    <button onClick={() => setDeleteShift(shift)}
+                      className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-[var(--danger-100)] text-[var(--gray-500)] hover:text-[var(--danger-800)]">
+                      <Trash2 size={13} />
+                    </button>
+                  )}
                 </div>
               </div>
               <div className="flex gap-1">
@@ -445,7 +748,7 @@ export default function ShiftsPage() {
                   />
                 </td>
                 <td className="py-3 px-4">
-                  {req.status === 'pending' && (
+                  {req.status === 'pending' && hasRole('manager', 'hr_admin', 'super_admin') && (
                     <div className="flex gap-2">
                       <Button variant="success" size="sm" icon={<Check size={12} />} onClick={() => setApproveSwap(req)}>Approve</Button>
                       <Button variant="danger" size="sm" icon={<X size={12} />} onClick={() => { setRejectSwap(req); setRejectReason(''); }}>Reject</Button>
@@ -476,6 +779,7 @@ export default function ShiftsPage() {
         }
       >
         <ShiftFormFields form={form} />
+        {editShift && <BreaksPanel shift={editShift} />}
       </Modal>
 
       {/* Delete template */}
@@ -554,6 +858,36 @@ export default function ShiftsPage() {
           />
         </div>
       </Modal>
+      {/* Assign shift modal */}
+      <Modal
+        isOpen={!!assignModal}
+        onClose={() => { setAssignModal(null); setAssignUserId(''); }}
+        title="Assign Shift"
+        size="sm"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => { setAssignModal(null); setAssignUserId(''); }}>Cancel</Button>
+            <Button loading={assigning} onClick={onAssignShift}>Assign</Button>
+          </>
+        }
+      >
+        {assignModal && (
+          <div className="space-y-4">
+            <p className="text-sm text-[var(--gray-500)]">
+              {format(assignModal.date, 'EEEE, MMM d')} — <span className="font-semibold text-[var(--dark-950)]">{shifts.find(s => s.id === assignModal.shiftId)?.name}</span>
+            </p>
+            <Select
+              label="Employee"
+              required
+              options={users.map(u => ({ value: u.id, label: u.name }))}
+              value={assignUserId}
+              onChange={e => setAssignUserId(e.target.value)}
+              placeholder="Select employee…"
+            />
+          </div>
+        )}
+      </Modal>
+
       {/* AI Schedule Modal */}
       <Modal
         isOpen={aiOpen}
