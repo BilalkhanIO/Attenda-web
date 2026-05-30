@@ -110,6 +110,12 @@ export const attendanceApi = {
     apiClient.get('/org/qr-code'),
   regenerateQR: () =>
     apiClient.post('/org/qr-code/regenerate'),
+  startBreak: (break_type?: string) =>
+    apiClient.post('/attendance/break/start', { break_type }),
+  endBreak: () =>
+    apiClient.post('/attendance/break/end'),
+  getBreakStatus: () =>
+    apiClient.get('/attendance/break/status'),
 };
 
 // ─── LEAVE ────────────────────────────────────────────
@@ -164,6 +170,14 @@ export const shiftsApi = {
     apiClient.put(`/shifts/swaps/${id}/reject`, { reason }),
   aiSchedule: (description: string, weekStart?: string, department?: string) =>
     apiClient.post('/shifts/ai-schedule', { description, week_start: weekStart, department }),
+  getBreaks: (shiftId: string) =>
+    apiClient.get(`/shifts/${shiftId}/breaks`),
+  addBreak: (shiftId: string, data: { name: string; break_minutes: number; is_paid: boolean; after_minutes: number }) =>
+    apiClient.post(`/shifts/${shiftId}/breaks`, data),
+  updateBreak: (shiftId: string, breakId: string, data: Record<string, unknown>) =>
+    apiClient.put(`/shifts/${shiftId}/breaks/${breakId}`, data),
+  deleteBreak: (shiftId: string, breakId: string) =>
+    apiClient.delete(`/shifts/${shiftId}/breaks/${breakId}`),
 };
 
 // ─── PAYROLL ──────────────────────────────────────────
@@ -231,6 +245,20 @@ export const analyticsApi = {
     apiClient.get('/analytics/anomalies', { params: { days } }),
   getPayrollAnomalies: () =>
     apiClient.get('/analytics/payroll-anomalies'),
+};
+
+// ─── OVERTIME ─────────────────────────────────────────
+export const overtimeApi = {
+  getRules: () =>
+    apiClient.get('/overtime/rules'),
+  createRule: (data: { name: string; rule_type: string; threshold_hours: number; multiplier: number; priority?: number }) =>
+    apiClient.post('/overtime/rules', data),
+  updateRule: (id: string, data: Record<string, unknown>) =>
+    apiClient.put(`/overtime/rules/${id}`, data),
+  deleteRule: (id: string) =>
+    apiClient.delete(`/overtime/rules/${id}`),
+  getSummary: (week_start?: string) =>
+    apiClient.get('/overtime/summary', { params: week_start ? { week_start } : {} }),
 };
 
 // ─── PLATFORM ADMIN ───────────────────────────────────
