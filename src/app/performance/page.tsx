@@ -31,7 +31,7 @@ interface Goal {
 
 // ─── Schemas ────────────────────────────────────────────
 const reviewSchema = z.object({
-  score:    z.number().min(1).max(5),
+  score:    z.number().min(0).max(5),
   comments: z.string().min(10, 'Comments must be at least 10 characters'),
   month:    z.string(),
 });
