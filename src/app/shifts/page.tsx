@@ -365,7 +365,6 @@ export default function ShiftsPage() {
       overtime_multiplier: 1.5, min_rest_hours: 11, late_tolerance_mins: 15,
       auto_checkout: true, auto_checkout_buffer_mins: 30,
     },
-    defaultValues: { days_of_week: [], color: '#f15153', name: '', start_time: '', end_time: '' },
   });
 
   const fetchAll = useCallback(async () => {
@@ -522,16 +521,6 @@ export default function ShiftsPage() {
                 Publish Schedule
               </Button>
             )}
-            <Button variant="ghost" size="sm" icon={<Sparkles size={14} />} onClick={() => setAiOpen(true)}>
-              AI Schedule
-            </Button>
-            <Button variant="outline" size="sm" icon={<Plus size={14} />}
-              onClick={() => { form.reset({ days_of_week: [], color: '#f15153' }); setAddShiftOpen(true); }}>
-              New Template
-            </Button>
-            <Button size="sm" icon={<Send size={14} />} onClick={() => setPublishConfirm(true)}>
-              Publish Schedule
-            </Button>
           </div>
         }
       />
