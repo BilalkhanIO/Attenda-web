@@ -24,7 +24,7 @@ const forgotSchema = z.object({
 type LoginForm  = z.infer<typeof loginSchema>;
 type ForgotForm = z.infer<typeof forgotSchema>;
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
 
 export default function LoginPage() {
   const { login, loginWithTokens } = useAuth();

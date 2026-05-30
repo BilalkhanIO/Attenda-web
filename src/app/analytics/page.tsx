@@ -23,6 +23,15 @@ const REPORT_TYPES = [
 
 const PIE_COLORS = ['#f15153','#065F46','#5B21B6','#92400E','#7f1d1d'];
 
+function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <Card className="p-5">
+      <h3 className="text-sm font-bold text-[var(--dark-950)] mb-4">{title}</h3>
+      {children}
+    </Card>
+  );
+}
+
 export default function AnalyticsPage() {
   const [overview, setOverview]     = useState<AnalyticsOverview | null>(null);
   const [trend, setTrend]           = useState<AttendanceTrendPoint[]>([]);
@@ -102,8 +111,6 @@ export default function AnalyticsPage() {
       ]);
       if (attRes.status === 'fulfilled') setAnomalies(attRes.value.data.data?.anomalies || []);
       if (payRes.status === 'fulfilled') setPayAnomalies(payRes.value.data.data?.anomalies || []);
-    } catch (err) {
-      toast.error(getApiError(err));
     } finally {
       setAnomalyLoading(false);
     }
@@ -139,13 +146,6 @@ export default function AnalyticsPage() {
     { name: 'Checked Out', value: overview.checked_out },
   ].filter(d => d.value > 0) : [];
 
-  const ChartCard = ({ title, children }: { title: string; children: React.ReactNode }) => (
-    <Card className="p-5">
-      <h3 className="text-sm font-bold text-[var(--dark-950)] mb-4">{title}</h3>
-      {children}
-    </Card>
-  );
-
   return (
     <DashboardLayout>
       <PageHeader
@@ -166,7 +166,7 @@ export default function AnalyticsPage() {
           { id: 'ai',       label: '✦ AI Insights' },
         ] as const).map(tab => (
           <button key={tab.id}
-            onClick={() => { setActiveTab(tab.id); if (tab.id === 'ai' && anomalies.length === 0) loadAnomalies(); }}
+            onClick={() => { setActiveTab(tab.id); if (tab.id === 'ai' && anomalies.length === 0 && payAnomalies.length === 0) loadAnomalies(); }}
             className={`px-4 py-2.5 text-sm font-medium transition-colors ${
               activeTab === tab.id
                 ? 'text-[var(--primary-600)] border-b-2 border-[var(--primary-600)]'
@@ -201,8 +201,8 @@ export default function AnalyticsPage() {
                     <AreaChart data={trend} margin={{ top: 4, right: 8, bottom: 0, left: -20 }}>
                       <defs>
                         <linearGradient id="rateGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%"  stopColor="#1D4ED8" stopOpacity={0.15} />
-                          <stop offset="95%" stopColor="#1D4ED8" stopOpacity={0}    />
+                          <stop offset="5%"  stopColor="#f15153" stopOpacity={0.15} />
+                          <stop offset="95%" stopColor="#f15153" stopOpacity={0}    />
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke="var(--gray-100)" />
@@ -210,7 +210,7 @@ export default function AnalyticsPage() {
                       <YAxis tick={{ fontSize: 11 }} domain={[0, 100]} tickFormatter={v => `${v}%`} />
                       <Tooltip formatter={(v: unknown) => [`${v}%`, 'Attendance Rate']}
                         contentStyle={{ borderRadius: 10, fontSize: 12, border: '1px solid var(--gray-200)' }} />
-                      <Area type="monotone" dataKey="rate" stroke="#1D4ED8" strokeWidth={2}
+                      <Area type="monotone" dataKey="rate" stroke="#f15153" strokeWidth={2}
                         fill="url(#rateGrad)" dot={false} />
                     </AreaChart>
                   </ResponsiveContainer>
@@ -515,8 +515,11 @@ export default function AnalyticsPage() {
                           </div>
                           <p className="text-xs text-[var(--gray-500)] capitalize mb-1">{a.type?.replace(/_/g, ' ')}</p>
                           <p className="text-sm text-[var(--dark-950)] leading-snug">{a.description}</p>
-                          {(a.date || a.month) && (
-                            <p className="text-xs text-[var(--gray-500)] mt-1">{a.date || a.month}</p>
+                          {'date' in a && a.date && (
+                            <p className="text-xs text-[var(--gray-500)] mt-1">{a.date}</p>
+                          )}
+                          {'month' in a && a.month && (
+                            <p className="text-xs text-[var(--gray-500)] mt-1">{a.month}</p>
                           )}
                         </div>
                       </div>

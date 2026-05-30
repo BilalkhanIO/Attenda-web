@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 import path from "path";
 
-const BACKEND = process.env.BACKEND_API_URL || 'http://192.168.18.66:5000/api/v1';
+const BACKEND = process.env.BACKEND_API_URL || 'http://localhost:5000/api/v1';
 
 const nextConfig: NextConfig = {
   turbopack: {
