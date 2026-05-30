@@ -1,7 +1,7 @@
 'use client';
 import { ReactNode, useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { cn } from '@/lib/utils';
 import {
@@ -36,9 +36,16 @@ const navItems: NavItem[] = [
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
   const pathname = usePathname();
+  const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [dateStr, setDateStr] = useState('');
+
+  useEffect(() => {
+    if (user?.role === 'platform_admin') {
+      router.replace('/admin');
+    }
+  }, [user, router]);
 
   useEffect(() => {
     const update = () => setDateStr(new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }));

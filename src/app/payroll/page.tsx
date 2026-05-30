@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '@/lib/auth';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import {
   PageHeader, Card, Table, Avatar, Badge, Button, Modal, ConfirmDialog,
@@ -28,6 +29,7 @@ const MONTHS = Array.from({ length: 12 }, (_, i) => {
 });
 
 export default function PayrollPage() {
+  const { hasRole } = useAuth();
   const [payroll, setPayroll]       = useState<Payroll | null>(null);
   const [loading, setLoading]       = useState(true);
   const [selectedMonth, setMonth]   = useState(MONTHS[0].value);
@@ -167,8 +169,10 @@ export default function PayrollPage() {
               className="px-3 py-2 text-sm border border-[var(--gray-200)] rounded-lg outline-none focus:border-[var(--primary-600)]">
               {MONTHS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
             </select>
-            <Button variant="outline" size="sm" icon={<Download size={14} />} onClick={onExportCSV}>Export CSV</Button>
-            {!isProcessed && payroll && (
+            {hasRole('hr_admin', 'super_admin') && (
+              <Button variant="outline" size="sm" icon={<Download size={14} />} onClick={onExportCSV}>Export CSV</Button>
+            )}
+            {hasRole('hr_admin', 'super_admin') && !isProcessed && payroll && (
               <Button size="sm" icon={<Play size={14} />}
                 onClick={() => setProcess(true)}
                 disabled={hasErrors}>
@@ -253,14 +257,14 @@ export default function PayrollPage() {
                     <span className="text-sm font-bold text-[var(--dark-950)]">{formatCurrency(rec.gross_pay)}</span>
                   </td>
                   <td className="py-3 px-4">
-                    {!isProcessed ? (
+                    {!isProcessed && hasRole('hr_admin', 'super_admin') ? (
                       <Button variant="ghost" size="sm" onClick={() => { form.reset(); setAdjustRow(rec); }}>
                         Adjust
                       </Button>
-                    ) : (
+                    ) : isProcessed ? (
                       <Button variant="outline" size="sm" icon={<Download size={12} />}
                         onClick={() => onDownloadPayslip(rec.id)}>Payslip</Button>
-                    )}
+                    ) : null}
                   </td>
                 </tr>
               ))}
@@ -273,7 +277,7 @@ export default function PayrollPage() {
             icon={<Wallet size={24} />}
             title="No payroll for this period"
             description="Payroll is generated automatically at the end of each month. You can also trigger it manually."
-            action={<Button icon={<Play size={14} />} onClick={onGenerate}>Generate Payroll</Button>}
+            action={hasRole('hr_admin', 'super_admin') ? <Button icon={<Play size={14} />} onClick={onGenerate}>Generate Payroll</Button> : undefined}
           />
         </Card>
       )}

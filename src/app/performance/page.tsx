@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '@/lib/auth';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import {
   PageHeader, Card, Table, Avatar, Badge, Button, Modal, ConfirmDialog,
@@ -86,6 +87,7 @@ function CompletionBar({ value }: { value: number }) {
 
 // ─── Main Component ──────────────────────────────────────
 export default function PerformancePage() {
+  const { hasRole } = useAuth();
   const [activeTab, setActiveTab] = useState<'reviews' | 'goals'>('reviews');
 
   // Reviews state
@@ -375,15 +377,19 @@ export default function PerformancePage() {
                   </td>
                   <td className="py-3 px-4">
                     <div className="flex items-center gap-2">
-                      <Button variant="ghost" size="sm"
-                        icon={isSubmitted ? <TrendingUp size={12} /> : <Star size={12} />}
-                        onClick={() => openReview(review)}>
-                        {isSubmitted ? 'View' : 'Review'}
-                      </Button>
-                      <Button variant="ghost" size="sm" icon={<Target size={12} />}
-                        onClick={() => openAddGoal(review)}>
-                        Goal
-                      </Button>
+                      {hasRole('manager', 'hr_admin', 'super_admin') && (
+                        <Button variant="ghost" size="sm"
+                          icon={isSubmitted ? <TrendingUp size={12} /> : <Star size={12} />}
+                          onClick={() => openReview(review)}>
+                          {isSubmitted ? 'View' : 'Review'}
+                        </Button>
+                      )}
+                      {hasRole('manager', 'hr_admin', 'super_admin') && (
+                        <Button variant="ghost" size="sm" icon={<Target size={12} />}
+                          onClick={() => openAddGoal(review)}>
+                          Goal
+                        </Button>
+                      )}
                       <Button variant="ghost" size="sm" icon={<Sparkles size={12} />}
                         onClick={() => openInsights(review)}>
                         AI
@@ -448,10 +454,12 @@ export default function PerformancePage() {
                   <CompletionBar value={goal.completion} />
                 </td>
                 <td className="py-3 px-4">
-                  <Button variant="ghost" size="sm" icon={<CheckCircle size={12} />}
-                    onClick={() => openEditCompletion(goal)}>
-                    Update
-                  </Button>
+                  {hasRole('manager', 'hr_admin', 'super_admin') && (
+                    <Button variant="ghost" size="sm" icon={<CheckCircle size={12} />}
+                      onClick={() => openEditCompletion(goal)}>
+                      Update
+                    </Button>
+                  )}
                 </td>
               </tr>
             ))}
@@ -471,7 +479,9 @@ export default function PerformancePage() {
           ) : (
             <>
               <Button variant="ghost" onClick={() => setReviewUser(null)}>Cancel</Button>
-              <Button onClick={reviewForm.handleSubmit(onSubmitReviewForm)}>Submit Review</Button>
+              {hasRole('manager', 'hr_admin', 'super_admin') && (
+                <Button onClick={reviewForm.handleSubmit(onSubmitReviewForm)}>Submit Review</Button>
+              )}
             </>
           )
         }

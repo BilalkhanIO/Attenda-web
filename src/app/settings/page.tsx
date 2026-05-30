@@ -6,8 +6,10 @@ import { orgApi, attendanceApi } from '@/lib/api';
 import { getApiError } from '@/lib/utils';
 import { Wifi, Plus, Trash2, Save, QrCode, RefreshCw, Download } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useAuth } from '@/lib/auth';
 
 export default function SettingsPage() {
+  const { hasRole } = useAuth();
   const [ips, setIps]                 = useState<string[]>([]);
   const [newIp, setNewIp]             = useState('');
   const [saving, setSaving]           = useState(false);
@@ -108,7 +110,7 @@ export default function SettingsPage() {
             <QrCode size={18} className="text-[var(--primary-600)]" />
             <h3 className="text-base font-bold text-[var(--dark-950)]">Attendance QR Code</h3>
           </div>
-          {qrCode && (
+          {qrCode && hasRole('hr_admin', 'super_admin') && (
             <Button variant="danger" size="sm" icon={<RefreshCw size={14} />}
               onClick={() => setRegenConfirm(true)}>
               Regenerate
@@ -149,9 +151,11 @@ export default function SettingsPage() {
               <p className="text-xs text-[var(--gray-500)] mb-3">
                 Generate a QR code for your office entrance so employees can scan to check in.
               </p>
-              <Button icon={<QrCode size={14} />} onClick={regenQR} loading={regenerating}>
-                Generate QR Code
-              </Button>
+              {hasRole('hr_admin', 'super_admin') && (
+                <Button icon={<QrCode size={14} />} onClick={regenQR} loading={regenerating}>
+                  Generate QR Code
+                </Button>
+              )}
             </div>
           </div>
         )}
@@ -187,7 +191,9 @@ export default function SettingsPage() {
                 Employees who check in more than {lateThreshold} minute{lateThreshold !== 1 ? 's' : ''} after their shift starts are marked as late.
               </p>
             </div>
-            <Button icon={<Save size={14} />} loading={saving} onClick={saveOrgSettings}>Save Settings</Button>
+            {hasRole('super_admin') && (
+              <Button icon={<Save size={14} />} loading={saving} onClick={saveOrgSettings}>Save Settings</Button>
+            )}
           </div>
         </Card>
 
@@ -210,26 +216,32 @@ export default function SettingsPage() {
             ) : ips.map(ip => (
               <div key={ip} className="flex items-center justify-between px-3 py-2 bg-[var(--gray-50)] rounded-lg">
                 <span className="text-sm font-mono text-[var(--dark-950)]">{ip}</span>
-                <button onClick={() => setDeleteIp(ip)}
-                  className="text-[var(--gray-500)] hover:text-[var(--danger-800)] transition-colors">
-                  <Trash2 size={14} />
-                </button>
+                {hasRole('super_admin') && (
+                  <button onClick={() => setDeleteIp(ip)}
+                    className="text-[var(--gray-500)] hover:text-[var(--danger-800)] transition-colors">
+                    <Trash2 size={14} />
+                  </button>
+                )}
               </div>
             ))}
           </div>
 
-          <div className="flex gap-2 mb-4">
-            <input value={newIp} onChange={e => setNewIp(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && addIp()}
-              placeholder="e.g. 192.168.1.1"
-              className="flex-1 px-3 py-2 text-sm border border-[var(--gray-200)] rounded-lg font-mono outline-none focus:border-[var(--primary-600)]"
-            />
-            <Button variant="outline" size="sm" icon={<Plus size={14} />} onClick={addIp}>Add</Button>
-          </div>
+          {hasRole('super_admin') && (
+            <div className="flex gap-2 mb-4">
+              <input value={newIp} onChange={e => setNewIp(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && addIp()}
+                placeholder="e.g. 192.168.1.1"
+                className="flex-1 px-3 py-2 text-sm border border-[var(--gray-200)] rounded-lg font-mono outline-none focus:border-[var(--primary-600)]"
+              />
+              <Button variant="outline" size="sm" icon={<Plus size={14} />} onClick={addIp}>Add</Button>
+            </div>
+          )}
 
-          <Button icon={<Save size={14} />} loading={saving} onClick={saveIPs} className="w-full">
-            Save IP Addresses
-          </Button>
+          {hasRole('super_admin') && (
+            <Button icon={<Save size={14} />} loading={saving} onClick={saveIPs} className="w-full">
+              Save IP Addresses
+            </Button>
+          )}
         </Card>
       </div>
 

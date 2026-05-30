@@ -2,9 +2,10 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import Cookies from 'js-cookie';
 import { jwtDecode } from 'jwt-decode';
+import { useRouter } from 'next/navigation';
 import { authApi } from './api';
 
-export type UserRole = 'super_admin' | 'hr_admin' | 'manager' | 'employee';
+export type UserRole = 'super_admin' | 'hr_admin' | 'manager' | 'employee' | 'platform_admin';
 
 export interface AuthUser {
   sub: string;
@@ -30,6 +31,7 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     const token = Cookies.get('access_token');
@@ -55,6 +57,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     Cookies.set('refresh_token', refresh_token, { expires: 30 });
     const decoded = jwtDecode<AuthUser>(access_token);
     setUser(decoded);
+    if (decoded.role === 'platform_admin') {
+      router.push('/admin');
+    }
   };
 
   const loginWithTokens = (accessToken: string, refreshToken: string) => {

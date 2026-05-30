@@ -233,6 +233,18 @@ export const analyticsApi = {
     apiClient.get('/analytics/payroll-anomalies'),
 };
 
+// ─── PLATFORM ADMIN ───────────────────────────────────
+export const adminApi = {
+  getStats: () =>
+    apiClient.get('/admin/stats'),
+  getOrgs: () =>
+    apiClient.get('/admin/orgs'),
+  getOrg: (id: string) =>
+    apiClient.get(`/admin/orgs/${id}`),
+  updatePlan: (id: string, plan: string) =>
+    apiClient.patch(`/admin/orgs/${id}/plan`, { plan }),
+};
+
 // ─── ORG SETTINGS ─────────────────────────────────────
 export const orgApi = {
   getSettings: () =>

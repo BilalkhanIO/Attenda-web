@@ -14,6 +14,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
+import { useAuth } from '@/lib/auth';
 
 const overrideSchema = z.object({
   check_in_at:  z.string().optional(),
@@ -23,6 +24,7 @@ const overrideSchema = z.object({
 type OverrideForm = z.infer<typeof overrideSchema>;
 
 export default function AttendancePage() {
+  const { hasRole } = useAuth();
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [overrideRecord, setOverrideRecord] = useState<AttendanceRecord | null>(null);
@@ -85,7 +87,7 @@ export default function AttendancePage() {
         title="Attendance"
         subtitle="Track and manage daily attendance records"
         actions={
-          <Button variant="outline" size="sm" icon={<Download size={14} />} onClick={async () => {
+          hasRole('hr_admin', 'super_admin') && <Button variant="outline" size="sm" icon={<Download size={14} />} onClick={async () => {
             try {
               const { data } = await attendanceApi.getReport({ start_date: selectedDate, end_date: selectedDate });
               const rows = data.data || records;
@@ -187,9 +189,11 @@ export default function AttendancePage() {
                   <span className="text-xs text-[var(--gray-500)]">{typeLabel[record.type] || record.type}</span>
                 </td>
                 <td className="py-3 px-4">
-                  <Button variant="ghost" size="sm" icon={<Edit2 size={12} />} onClick={() => openOverride(record)}>
-                    Override
-                  </Button>
+                  {hasRole('manager', 'hr_admin', 'super_admin') && (
+                    <Button variant="ghost" size="sm" icon={<Edit2 size={12} />} onClick={() => openOverride(record)}>
+                      Override
+                    </Button>
+                  )}
                 </td>
               </tr>
             );

@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '@/lib/auth';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import {
   PageHeader, Card, Button, Modal, ConfirmDialog, Input, Select,
@@ -79,6 +80,7 @@ function ShiftFormFields({ form }: { form: UseFormReturn<ShiftForm> }) {
 }
 
 export default function ShiftsPage() {
+  const { hasRole } = useAuth();
   const [shifts, setShifts]         = useState<Shift[]>([]);
   const [assignments, setAssignments] = useState<ShiftAssignment[]>([]);
   const [swapRequests, setSwapRequests] = useState<SwapRequest[]>([]);
@@ -226,16 +228,22 @@ export default function ShiftsPage() {
         subtitle="Manage weekly schedules and shift templates"
         actions={
           <div className="flex gap-3">
-            <Button variant="ghost" size="sm" icon={<Sparkles size={14} />} onClick={() => setAiOpen(true)}>
-              AI Schedule
-            </Button>
-            <Button variant="outline" size="sm" icon={<Plus size={14} />}
-              onClick={() => { form.reset({ days_of_week: [], color: '#f15153' }); setAddShiftOpen(true); }}>
-              New Template
-            </Button>
-            <Button size="sm" icon={<Send size={14} />} onClick={() => setPublishConfirm(true)}>
-              Publish Schedule
-            </Button>
+            {hasRole('manager', 'hr_admin', 'super_admin') && (
+              <Button variant="ghost" size="sm" icon={<Sparkles size={14} />} onClick={() => setAiOpen(true)}>
+                AI Schedule
+              </Button>
+            )}
+            {hasRole('manager', 'hr_admin', 'super_admin') && (
+              <Button variant="outline" size="sm" icon={<Plus size={14} />}
+                onClick={() => { form.reset({ days_of_week: [], color: '#f15153' }); setAddShiftOpen(true); }}>
+                New Template
+              </Button>
+            )}
+            {hasRole('manager', 'hr_admin', 'super_admin') && (
+              <Button size="sm" icon={<Send size={14} />} onClick={() => setPublishConfirm(true)}>
+                Publish Schedule
+              </Button>
+            )}
           </div>
         }
       />
@@ -375,14 +383,18 @@ export default function ShiftsPage() {
                   </div>
                 </div>
                 <div className="flex gap-1">
-                  <button onClick={() => { form.reset({ name: shift.name, start_time: shift.start_time, end_time: shift.end_time, color: shift.color, days_of_week: shift.days_of_week }); setEditShift(shift); }}
-                    className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-[var(--gray-100)] text-[var(--gray-500)]">
-                    <Edit2 size={13} />
-                  </button>
-                  <button onClick={() => setDeleteShift(shift)}
-                    className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-[var(--danger-100)] text-[var(--gray-500)] hover:text-[var(--danger-800)]">
-                    <Trash2 size={13} />
-                  </button>
+                  {hasRole('manager', 'hr_admin', 'super_admin') && (
+                    <button onClick={() => { form.reset({ name: shift.name, start_time: shift.start_time, end_time: shift.end_time, color: shift.color, days_of_week: shift.days_of_week }); setEditShift(shift); }}
+                      className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-[var(--gray-100)] text-[var(--gray-500)]">
+                      <Edit2 size={13} />
+                    </button>
+                  )}
+                  {hasRole('manager', 'hr_admin', 'super_admin') && (
+                    <button onClick={() => setDeleteShift(shift)}
+                      className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-[var(--danger-100)] text-[var(--gray-500)] hover:text-[var(--danger-800)]">
+                      <Trash2 size={13} />
+                    </button>
+                  )}
                 </div>
               </div>
               <div className="flex gap-1">
@@ -445,7 +457,7 @@ export default function ShiftsPage() {
                   />
                 </td>
                 <td className="py-3 px-4">
-                  {req.status === 'pending' && (
+                  {req.status === 'pending' && hasRole('manager', 'hr_admin', 'super_admin') && (
                     <div className="flex gap-2">
                       <Button variant="success" size="sm" icon={<Check size={12} />} onClick={() => setApproveSwap(req)}>Approve</Button>
                       <Button variant="danger" size="sm" icon={<X size={12} />} onClick={() => { setRejectSwap(req); setRejectReason(''); }}>Reject</Button>
