@@ -102,6 +102,7 @@ export interface Shift {
   overtime_multiplier?: number;
   min_rest_hours?: number;
   late_tolerance_mins?: number;
+  early_checkout_tolerance_mins?: number;
   auto_checkout?: boolean;
   auto_checkout_buffer_mins?: number;
 }

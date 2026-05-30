@@ -23,29 +23,19 @@ import { format, startOfWeek, addDays, addWeeks, subWeeks, isSameDay, parseISO }
 
 // ─── Schemas ──────────────────────────────────────────
 const shiftSchema = z.object({
-  name:       z.string().min(1, 'Shift name required'),
-  start_time: z.string().min(1, 'Start time required'),
-  end_time:   z.string().min(1, 'End time required'),
-  color:      z.string().min(1).default('#f15153'),
-  active_days: z.array(z.number()).min(1, 'Select at least one day'),
-  overtime_multiplier:    z.number().min(1).default(1.5),
-  min_rest_hours:         z.number().min(0).default(11),
-  late_tolerance_mins:    z.number().min(0).default(15),
-  auto_checkout:          z.boolean().default(true),
-  auto_checkout_buffer_mins: z.number().min(0).default(30),
+  name:                          z.string().min(1, 'Shift name required'),
+  start_time:                    z.string().min(1, 'Start time required'),
+  end_time:                      z.string().min(1, 'End time required'),
+  color:                         z.string().min(1, 'Color required'),
+  active_days:                   z.array(z.number()).min(1, 'Select at least one day'),
+  overtime_multiplier:           z.number().min(1),
+  min_rest_hours:                z.number().min(0),
+  late_tolerance_mins:           z.number().min(0),
+  early_checkout_tolerance_mins: z.number().min(0),
+  auto_checkout:                 z.boolean(),
+  auto_checkout_buffer_mins:     z.number().min(0),
 });
-type ShiftForm = {
-  name: string;
-  start_time: string;
-  end_time: string;
-  color: string;
-  active_days: number[];
-  overtime_multiplier: number;
-  min_rest_hours: number;
-  late_tolerance_mins: number;
-  auto_checkout: boolean;
-  auto_checkout_buffer_mins: number;
-};
+type ShiftForm = z.infer<typeof shiftSchema>;
 
 // ─── Break Types ──────────────────────────────────────
 interface ShiftBreak {
@@ -132,6 +122,14 @@ function ShiftFormFields({ form }: { form: UseFormReturn<ShiftForm> }) {
             <input
               type="number" step="1" min="0" max="120"
               {...form.register('late_tolerance_mins', { valueAsNumber: true })}
+              className="w-full rounded-lg border border-[var(--gray-200)] bg-white px-3 py-2 text-sm outline-none focus:border-[var(--primary-600)] focus:ring-2 focus:ring-[var(--primary-100)]"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-semibold text-[var(--dark-800)]">Early Checkout Tolerance (mins)</label>
+            <input
+              type="number" step="1" min="0" max="120"
+              {...form.register('early_checkout_tolerance_mins', { valueAsNumber: true })}
               className="w-full rounded-lg border border-[var(--gray-200)] bg-white px-3 py-2 text-sm outline-none focus:border-[var(--primary-600)] focus:ring-2 focus:ring-[var(--primary-100)]"
             />
           </div>
@@ -364,10 +362,11 @@ export default function ShiftsPage() {
   const [assigning, setAssigning]         = useState(false);
 
   const form = useForm<ShiftForm>({
+    resolver: zodResolver(shiftSchema),
     defaultValues: {
       active_days: [], color: '#f15153', name: '', start_time: '', end_time: '',
       overtime_multiplier: 1.5, min_rest_hours: 11, late_tolerance_mins: 15,
-      auto_checkout: true, auto_checkout_buffer_mins: 30,
+      early_checkout_tolerance_mins: 15, auto_checkout: true, auto_checkout_buffer_mins: 30,
     },
   });
 
@@ -668,7 +667,7 @@ export default function ShiftsPage() {
                 </div>
                 <div className="flex gap-1">
                   {hasRole('manager', 'hr_admin', 'super_admin') && (
-                    <button onClick={() => { form.reset({ name: shift.name, start_time: shift.start_time, end_time: shift.end_time, color: shift.color, active_days: shift.active_days ?? [], overtime_multiplier: shift.overtime_multiplier ?? 1.5, min_rest_hours: shift.min_rest_hours ?? 11, late_tolerance_mins: shift.late_tolerance_mins ?? 15, auto_checkout: shift.auto_checkout ?? true, auto_checkout_buffer_mins: shift.auto_checkout_buffer_mins ?? 30 }); setEditShift(shift); }}
+                    <button onClick={() => { form.reset({ name: shift.name, start_time: shift.start_time, end_time: shift.end_time, color: shift.color, active_days: shift.active_days ?? [], overtime_multiplier: shift.overtime_multiplier ?? 1.5, min_rest_hours: shift.min_rest_hours ?? 11, late_tolerance_mins: shift.late_tolerance_mins ?? 15, early_checkout_tolerance_mins: shift.early_checkout_tolerance_mins ?? 15, auto_checkout: shift.auto_checkout ?? true, auto_checkout_buffer_mins: shift.auto_checkout_buffer_mins ?? 30 }); setEditShift(shift); }}
                       className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-[var(--gray-100)] text-[var(--gray-500)]">
                       <Edit2 size={13} />
                     </button>
