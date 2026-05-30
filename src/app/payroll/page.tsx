@@ -120,18 +120,21 @@ export default function PayrollPage() {
   const isProcessed = payroll?.status === 'processed';
   const hasErrors   = payroll?.records.some(r => r.is_incomplete);
 
+  // Helper: Prisma Decimal fields come back as strings over JSON — always parse to number
+  const n = (v: unknown) => Number(v) || 0;
+
   const onExportCSV = () => {
     if (!payroll?.records?.length) { toast.error('No payroll data to export'); return; }
     const headers = ['Name','Department','Regular Hrs','Overtime Hrs','Hourly Rate','Adjustments','Gross Pay','Net Pay','Status'];
     const rows = payroll.records.map(r => [
       r.user?.name || '',
       r.user?.department || '',
-      r.regular_hours.toFixed(1),
-      r.overtime_hours.toFixed(1),
-      r.hourly_rate.toFixed(2),
-      r.adjustments.toFixed(2),
-      r.gross_pay.toFixed(2),
-      r.net_pay.toFixed(2),
+      n(r.regular_hours).toFixed(1),
+      n(r.overtime_hours).toFixed(1),
+      n(r.hourly_rate).toFixed(2),
+      n(((r as unknown) as Record<string, unknown>).manual_adjustment ?? r.adjustments).toFixed(2),
+      n(r.gross_pay).toFixed(2),
+      n(r.net_pay).toFixed(2),
       r.is_incomplete ? 'Incomplete' : 'OK',
     ]);
     const csv = [headers, ...rows].map(row => row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
@@ -144,9 +147,11 @@ export default function PayrollPage() {
     URL.revokeObjectURL(url);
   };
 
-  const totalGross     = payroll?.records.reduce((s, r) => s + r.gross_pay, 0) || 0;
-  const totalOT        = payroll?.records.reduce((s, r) => s + r.overtime_hours, 0) || 0;
-  const totalDeductions= payroll?.records.reduce((s, r) => s + Math.abs(r.adjustments), 0) || 0;
+  const adjustment = (r: PayrollRecord) => n(((r as unknown) as Record<string, unknown>).manual_adjustment ?? r.adjustments);
+
+  const totalGross     = payroll?.records.reduce((s, r) => s + n(r.gross_pay), 0) ?? 0;
+  const totalOT        = payroll?.records.reduce((s, r) => s + n(r.overtime_hours), 0) ?? 0;
+  const totalDeductions= payroll?.records.reduce((s, r) => s + Math.abs(adjustment(r)), 0) ?? 0;
 
   const statusBadge = (s: string) => {
     const map: Record<string, [string, string]> = {
@@ -238,23 +243,25 @@ export default function PayrollPage() {
                       </div>
                     ) : '—'}
                   </td>
-                  <td className="py-3 px-4 text-sm font-mono">{formatHours(rec.regular_hours)}</td>
+                  <td className="py-3 px-4 text-sm font-mono">{formatHours(n(rec.regular_hours))}</td>
                   <td className="py-3 px-4">
-                    <span className={`text-sm font-mono ${rec.overtime_hours > 0 ? 'text-[var(--warning-800)] font-semibold' : 'text-[var(--gray-500)]'}`}>
-                      {rec.overtime_hours > 0 ? formatHours(rec.overtime_hours) : '—'}
+                    <span className={`text-sm font-mono ${n(rec.overtime_hours) > 0 ? 'text-[var(--warning-800)] font-semibold' : 'text-[var(--gray-500)]'}`}>
+                      {n(rec.overtime_hours) > 0 ? formatHours(n(rec.overtime_hours)) : '—'}
                     </span>
                   </td>
-                  <td className="py-3 px-4 text-sm font-mono">{formatCurrency(rec.regular_hours * rec.hourly_rate)}</td>
+                  <td className="py-3 px-4 text-sm font-mono">{formatCurrency(n(rec.regular_hours) * n(rec.hourly_rate))}</td>
                   <td className="py-3 px-4 text-sm font-mono">
-                    {rec.overtime_hours > 0 ? formatCurrency(rec.overtime_hours * rec.hourly_rate * 1.5) : '—'}
+                    {n(rec.overtime_hours) > 0 ? formatCurrency(n(rec.overtime_hours) * n(rec.hourly_rate) * 1.5) : '—'}
                   </td>
                   <td className="py-3 px-4">
-                    <span className={`text-sm font-mono ${rec.adjustments < 0 ? 'text-[var(--danger-800)]' : rec.adjustments > 0 ? 'text-[var(--success-700)]' : 'text-[var(--gray-500)]'}`}>
-                      {rec.adjustments !== 0 ? formatCurrency(rec.adjustments) : '—'}
-                    </span>
+                    {(() => { const adj = adjustment(rec); return (
+                      <span className={`text-sm font-mono ${adj < 0 ? 'text-[var(--danger-800)]' : adj > 0 ? 'text-[var(--success-700)]' : 'text-[var(--gray-500)]'}`}>
+                        {adj !== 0 ? formatCurrency(adj) : '—'}
+                      </span>
+                    ); })()}
                   </td>
                   <td className="py-3 px-4">
-                    <span className="text-sm font-bold text-[var(--dark-950)]">{formatCurrency(rec.gross_pay)}</span>
+                    <span className="text-sm font-bold text-[var(--dark-950)]">{formatCurrency(n(rec.gross_pay))}</span>
                   </td>
                   <td className="py-3 px-4">
                     {!isProcessed && hasRole('hr_admin', 'super_admin') ? (
