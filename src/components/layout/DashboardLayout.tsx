@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import {
   LayoutDashboard, Clock, Calendar, CalendarClock, Wallet, Users, TrendingUp,
   BarChart2, Settings, LogOut, Bell, Menu, X, MessageSquare,
-  ChevronDown
+  ChevronDown, Home
 } from 'lucide-react';
 import { Avatar } from '@/components/ui';
 import AttendaLogo from '@/components/ui/AttendaLogo';
@@ -23,6 +23,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { label: 'Dashboard',    href: '/dashboard',    icon: <LayoutDashboard size={18} />, roles: ['super_admin','hr_admin','manager','employee'] },
   { label: 'Attendance',   href: '/attendance',   icon: <Clock size={18} />,           roles: ['super_admin','hr_admin','manager'] },
+  { label: 'Remote',       href: '/remote',       icon: <Home size={18} />,            roles: ['super_admin','hr_admin','manager'] },
   { label: 'Leave',        href: '/leave',        icon: <Calendar size={18} />,        roles: ['super_admin','hr_admin','manager','employee'] },
   { label: 'Shifts',       href: '/shifts',       icon: <CalendarClock size={18} />,   roles: ['super_admin','hr_admin','manager'] },
   { label: 'Payroll',      href: '/payroll',      icon: <Wallet size={18} />,          roles: ['super_admin','hr_admin'] },

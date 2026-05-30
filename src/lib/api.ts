@@ -228,6 +228,10 @@ export const remoteApi = {
     apiClient.put(`/attendance/remote/sessions/${id}/approve`),
   rejectSession: (id: string) =>
     apiClient.put(`/attendance/remote/sessions/${id}/reject`),
+  getMonitor: () =>
+    apiClient.get('/attendance/remote/monitor'),
+  getSessionLogs: (id: string) =>
+    apiClient.get(`/attendance/remote/sessions/${id}/logs`),
 };
 
 // ─── ANALYTICS ────────────────────────────────────────
