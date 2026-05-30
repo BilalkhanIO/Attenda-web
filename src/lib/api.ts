@@ -279,10 +279,12 @@ export const orgApi = {
     apiClient.get('/org/settings'),
   updateSettings: (data: Record<string, unknown>) =>
     apiClient.put('/org/settings', data),
-  getOfficeIPs: () =>
+  getOfficeNetworks: () =>
     apiClient.get('/org/office-ips'),
   updateOfficeIPs: (ips: string[]) =>
     apiClient.put('/org/office-ips', { ips }),
+  updateOfficeSSIDs: (ssids: string[]) =>
+    apiClient.put('/org/office-ssids', { ssids }),
   getWhatsAppSettings: () =>
     apiClient.get('/org/whatsapp'),
   updateWhatsAppSettings: (data: Record<string, unknown>) =>
