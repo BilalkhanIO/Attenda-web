@@ -6,9 +6,11 @@ import {
   PageHeader, Card, Button, Modal, ConfirmDialog, Input, Select,
   Badge, Avatar, EmptyState, Table
 } from '@/components/ui';
-import { shiftsApi } from '@/lib/api';
+import { shiftsApi, usersApi } from '@/lib/api';
 import { getApiError, formatTime } from '@/lib/utils';
 import type { Shift, ShiftAssignment, SwapRequest } from '@/types';
+
+interface UserOption { id: string; name: string; }
 import {
   Plus, Calendar, ChevronLeft, ChevronRight, Send,
   Check, X, Clock, Edit2, Trash2, Sparkles, ChevronDown, ChevronUp, Coffee
@@ -351,6 +353,12 @@ export default function ShiftsPage() {
   const [aiSummary, setAiSummary]         = useState('');
   const [aiWarnings, setAiWarnings]       = useState<string[]>([]);
 
+  // Assign shift from calendar
+  const [users, setUsers]                 = useState<UserOption[]>([]);
+  const [assignModal, setAssignModal]     = useState<{ shiftId: string; date: Date } | null>(null);
+  const [assignUserId, setAssignUserId]   = useState('');
+  const [assigning, setAssigning]         = useState(false);
+
   const form = useForm<ShiftForm>({
     defaultValues: {
       days_of_week: [], color: '#f15153', name: '', start_time: '', end_time: '',
@@ -362,20 +370,42 @@ export default function ShiftsPage() {
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [tRes, aRes, sRes] = await Promise.all([
+      const [tRes, aRes, sRes, uRes] = await Promise.all([
         shiftsApi.getTemplates(),
         shiftsApi.getAssignments({ week_start: format(weekStart, 'yyyy-MM-dd') }),
         shiftsApi.getSwapRequests(),
+        usersApi.getAll({ status: 'active', limit: 200 }),
       ]);
       setShifts(tRes.data.data || []);
       setAssignments(aRes.data.data || []);
       setSwapRequests(sRes.data.data || []);
+      setUsers((uRes.data.data || []).map((u: { id: string; name: string }) => ({ id: u.id, name: u.name })));
     } catch (err) {
       toast.error(getApiError(err));
     } finally {
       setLoading(false);
     }
   }, [weekStart]);
+
+  const onAssignShift = async () => {
+    if (!assignModal || !assignUserId) { toast.error('Select an employee'); return; }
+    setAssigning(true);
+    try {
+      await shiftsApi.assignShift({
+        user_id:  assignUserId,
+        shift_id: assignModal.shiftId,
+        date:     format(assignModal.date, 'yyyy-MM-dd'),
+      });
+      toast.success('Shift assigned');
+      setAssignModal(null);
+      setAssignUserId('');
+      fetchAll();
+    } catch (err) {
+      toast.error(getApiError(err));
+    } finally {
+      setAssigning(false);
+    }
+  };
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
@@ -586,8 +616,11 @@ export default function ShiftsPage() {
                             {a.user.name.split(' ')[0]}
                           </div>
                         ))}
-                        {isActiveDay && (
-                          <button className="w-full mt-1 text-xs text-[var(--gray-500)] hover:text-[var(--primary-600)] hover:bg-[var(--primary-100)] rounded-lg py-1 transition-colors">
+                        {isActiveDay && hasRole('manager', 'hr_admin', 'super_admin') && (
+                          <button
+                            onClick={() => { setAssignUserId(''); setAssignModal({ shiftId: shift.id, date: day }); }}
+                            className="w-full mt-1 text-xs text-[var(--gray-500)] hover:text-[var(--primary-600)] hover:bg-[var(--primary-100)] rounded-lg py-1 transition-colors"
+                          >
                             + Add
                           </button>
                         )}
@@ -814,6 +847,36 @@ export default function ShiftsPage() {
           />
         </div>
       </Modal>
+      {/* Assign shift modal */}
+      <Modal
+        isOpen={!!assignModal}
+        onClose={() => { setAssignModal(null); setAssignUserId(''); }}
+        title="Assign Shift"
+        size="sm"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => { setAssignModal(null); setAssignUserId(''); }}>Cancel</Button>
+            <Button loading={assigning} onClick={onAssignShift}>Assign</Button>
+          </>
+        }
+      >
+        {assignModal && (
+          <div className="space-y-4">
+            <p className="text-sm text-[var(--gray-500)]">
+              {format(assignModal.date, 'EEEE, MMM d')} — <span className="font-semibold text-[var(--dark-950)]">{shifts.find(s => s.id === assignModal.shiftId)?.name}</span>
+            </p>
+            <Select
+              label="Employee"
+              required
+              options={users.map(u => ({ value: u.id, label: u.name }))}
+              value={assignUserId}
+              onChange={e => setAssignUserId(e.target.value)}
+              placeholder="Select employee…"
+            />
+          </div>
+        )}
+      </Modal>
+
       {/* AI Schedule Modal */}
       <Modal
         isOpen={aiOpen}

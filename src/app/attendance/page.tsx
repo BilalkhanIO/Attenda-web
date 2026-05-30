@@ -158,7 +158,7 @@ export default function AttendancePage() {
           hasRole('hr_admin', 'super_admin') && <Button variant="outline" size="sm" icon={<Download size={14} />} onClick={async () => {
             try {
               const { data } = await attendanceApi.getReport({ start_date: selectedDate, end_date: selectedDate });
-              const rows = data.data || records;
+              const rows: AttendanceRecord[] = data.data || [];
               const csv = ['Employee,Status,Check In,Check Out,Hours,Type',
                 ...rows.map((r: AttendanceRecord) => [
                   r.user?.name || '',
