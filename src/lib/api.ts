@@ -310,3 +310,16 @@ export const orgApi = {
   getDepartments: () =>
     apiClient.get('/org/departments'),
 };
+
+export const notificationApi = {
+  getAll: (page = 1, limit = 20, unread?: boolean) =>
+    apiClient.get('/notifications', { params: { page, limit, ...(unread ? { unread: 'true' } : {}) } }),
+  getCount: () =>
+    apiClient.get('/notifications/count'),
+  markRead: (id: string) =>
+    apiClient.put(`/notifications/${id}/read`),
+  markAllRead: () =>
+    apiClient.put('/notifications/read-all'),
+  delete: (id: string) =>
+    apiClient.delete(`/notifications/${id}`),
+};

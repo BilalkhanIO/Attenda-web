@@ -197,3 +197,27 @@ export interface AttendanceTrendPoint {
   late: number;
   rate: number;
 }
+
+
+// ─── Notifications ────────────────────────────────────
+export interface InAppNotification {
+  id:          string;
+  user_id:     string;
+  org_id:      string;
+  type:        string;
+  title:       string;
+  body:        string;
+  action_type: string | null;
+  action_id:   string | null;
+  metadata:    Record<string, unknown> | null;
+  read_at:     string | null;
+  created_at:  string;
+}
+
+export interface NotificationList {
+  items:        InAppNotification[];
+  total:        number;
+  page:         number;
+  limit:        number;
+  unread_count: number;
+}
