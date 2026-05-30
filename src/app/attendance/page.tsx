@@ -5,16 +5,25 @@ import {
   PageHeader, Card, Table, Avatar, Badge, Button, Modal, Input, Textarea,
   EmptyState
 } from '@/components/ui';
-import { attendanceApi } from '@/lib/api';
+import { attendanceApi, remoteApi } from '@/lib/api';
 import { statusConfig, formatTime, formatDate, getApiError } from '@/lib/utils';
 import type { AttendanceRecord } from '@/types';
-import { Clock, Edit2, Download, Calendar, Coffee, PlayCircle, StopCircle } from 'lucide-react';
+import { Clock, Edit2, Download, Calendar, Coffee, PlayCircle, StopCircle, Home, Check, X } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { useAuth } from '@/lib/auth';
+
+interface RemoteSession {
+  id: string;
+  status: 'pending' | 'approved' | 'rejected';
+  duration_type: string;
+  created_at: string;
+  user?: { id: string; name: string; department?: string; avatar_url?: string };
+  attendance?: { date: string };
+}
 
 interface BreakStatus {
   on_break: boolean;
@@ -49,6 +58,10 @@ export default function AttendancePage() {
   const [breakLoading, setBreakLoading] = useState(false);
   const [todayRecord, setTodayRecord] = useState<TodayRecord | null>(null);
 
+  // Remote session requests (managers)
+  const [remoteSessions, setRemoteSessions] = useState<RemoteSession[]>([]);
+  const [remoteActionId, setRemoteActionId] = useState<string | null>(null);
+
   const form = useForm<OverrideForm>({ resolver: zodResolver(overrideSchema) });
 
   const fetchAttendance = useCallback(async () => {
@@ -71,6 +84,44 @@ export default function AttendancePage() {
       // break endpoint may not exist yet — silently ignore
     }
   }, []);
+
+  const loadRemoteSessions = useCallback(async () => {
+    if (!hasRole('manager', 'hr_admin', 'super_admin')) return;
+    try {
+      const { data } = await remoteApi.getSessions({ status: 'pending' });
+      setRemoteSessions(data.data || []);
+    } catch {
+      // ignore
+    }
+  }, [hasRole]);
+
+  const handleApproveRemote = async (id: string) => {
+    setRemoteActionId(id);
+    try {
+      await remoteApi.approveSession(id);
+      toast.success('Remote session approved');
+      loadRemoteSessions();
+      fetchAttendance();
+    } catch (err) {
+      toast.error(getApiError(err));
+    } finally {
+      setRemoteActionId(null);
+    }
+  };
+
+  const handleRejectRemote = async (id: string) => {
+    setRemoteActionId(id);
+    try {
+      await remoteApi.rejectSession(id);
+      toast.success('Remote session rejected');
+      loadRemoteSessions();
+      fetchAttendance();
+    } catch (err) {
+      toast.error(getApiError(err));
+    } finally {
+      setRemoteActionId(null);
+    }
+  };
 
   const loadTodayRecord = useCallback(async () => {
     try {
@@ -113,7 +164,8 @@ export default function AttendancePage() {
   useEffect(() => {
     loadBreakStatus();
     loadTodayRecord();
-  }, [loadBreakStatus, loadTodayRecord]);
+    loadRemoteSessions();
+  }, [loadBreakStatus, loadTodayRecord, loadRemoteSessions]);
 
   const openOverride = (record: AttendanceRecord) => {
     form.reset({
@@ -268,6 +320,55 @@ export default function AttendancePage() {
               ))}
             </div>
           )}
+        </Card>
+      )}
+
+      {/* ── Remote Work Requests (managers only) ────────────────────────────── */}
+      {hasRole('manager', 'hr_admin', 'super_admin') && remoteSessions.length > 0 && (
+        <Card className="p-5 mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Home size={16} className="text-[var(--purple-700)]" />
+            <h3 className="text-sm font-bold text-[var(--dark-950)]">Pending Remote Work Requests</h3>
+            <span className="ml-auto px-2 py-0.5 text-xs font-bold bg-[var(--warning-100)] text-[var(--warning-800)] rounded-full">
+              {remoteSessions.length}
+            </span>
+          </div>
+          <div className="space-y-3">
+            {remoteSessions.map((session) => (
+              <div key={session.id} className="flex items-center gap-3 p-3 rounded-xl bg-[var(--gray-50)] border border-[var(--gray-100)]">
+                {session.user && (
+                  <Avatar name={session.user.name} imageUrl={session.user.avatar_url} size="sm" />
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-[var(--dark-950)] truncate">{session.user?.name || '—'}</p>
+                  <p className="text-xs text-[var(--gray-500)]">
+                    {session.attendance?.date ? formatDate(session.attendance.date) : '—'}
+                    {' · '}
+                    {session.duration_type.replace(/_/g, ' ')}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Button
+                    size="sm"
+                    icon={<Check size={13} />}
+                    loading={remoteActionId === session.id}
+                    onClick={() => handleApproveRemote(session.id)}
+                  >
+                    Approve
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    icon={<X size={13} />}
+                    loading={remoteActionId === session.id}
+                    onClick={() => handleRejectRemote(session.id)}
+                  >
+                    Reject
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
         </Card>
       )}
 

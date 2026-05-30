@@ -218,6 +218,18 @@ export const performanceApi = {
     apiClient.get(`/performance/reviews/${userId}/insights`),
 };
 
+// ─── REMOTE SESSIONS ──────────────────────────────────
+export const remoteApi = {
+  getSessions: (params?: { status?: string }) =>
+    apiClient.get('/attendance/remote/sessions', { params }),
+  getMySessions: () =>
+    apiClient.get('/attendance/remote/sessions/me'),
+  approveSession: (id: string) =>
+    apiClient.put(`/attendance/remote/sessions/${id}/approve`),
+  rejectSession: (id: string) =>
+    apiClient.put(`/attendance/remote/sessions/${id}/reject`),
+};
+
 // ─── ANALYTICS ────────────────────────────────────────
 export const analyticsApi = {
   getOverview: () =>
