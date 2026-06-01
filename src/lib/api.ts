@@ -301,6 +301,8 @@ export const orgApi = {
     apiClient.put('/org/office-ips', { ips }),
   updateOfficeSSIDs: (ssids: string[]) =>
     apiClient.put('/org/office-ssids', { ssids }),
+  detectMyIp: () =>
+    apiClient.get('/org/my-ip'),
   getWhatsAppSettings: () =>
     apiClient.get('/org/whatsapp'),
   updateWhatsAppSettings: (data: Record<string, unknown>) =>
