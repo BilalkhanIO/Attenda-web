@@ -54,6 +54,8 @@ export interface AttendanceRecord {
   paid_break_minutes?: number;
   is_overridden: boolean;
   override_reason?: string;
+  late_notice_id?: string;
+  is_on_approved_leave?: boolean;
   created_at: string;
 }
 

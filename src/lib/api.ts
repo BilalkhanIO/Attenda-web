@@ -116,6 +116,18 @@ export const attendanceApi = {
     apiClient.post('/attendance/break/end'),
   getBreakStatus: () =>
     apiClient.get('/attendance/break/status'),
+  getLeaveCheck: () =>
+    apiClient.get('/attendance/leave-check'),
+  submitLateNotice: (data: { date: string; expected_time: string; reason: string }) =>
+    apiClient.post('/attendance/late-notice', data),
+  getMyLateNotices: (params?: { days?: number }) =>
+    apiClient.get('/attendance/late-notice/me', { params }),
+  getLateNotices: (params?: { status?: string }) =>
+    apiClient.get('/attendance/late-notices', { params }),
+  acknowledgeLateNotice: (id: string) =>
+    apiClient.put(`/attendance/late-notice/${id}/acknowledge`),
+  cancelLateNotice: (id: string) =>
+    apiClient.delete(`/attendance/late-notice/${id}`),
 };
 
 // ─── LEAVE ────────────────────────────────────────────
