@@ -39,7 +39,8 @@ export interface AttendanceRecord {
   check_in_at?: string;
   check_out_at?: string;
   status: AttendanceStatus;
-  type: CheckInType;
+  check_in_type: CheckInType;
+  type?: CheckInType;          // legacy alias — prefer check_in_type
   hours_worked?: number;
   shift_id?: string;
   is_overridden: boolean;

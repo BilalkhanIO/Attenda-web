@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import {
   PageHeader, Card, Table, Avatar, Badge, Button, Modal, Input, Textarea,
@@ -8,14 +8,18 @@ import {
 import { attendanceApi, remoteApi } from '@/lib/api';
 import { statusConfig, formatTime, formatDate, getApiError } from '@/lib/utils';
 import type { AttendanceRecord } from '@/types';
-import { Clock, Edit2, Download, Calendar, Coffee, PlayCircle, StopCircle, Home, Check, X } from 'lucide-react';
+import {
+  Clock, Edit2, Download, Calendar, Coffee, PlayCircle, StopCircle,
+  Home, Check, X, LogIn, LogOut, Wifi, WifiOff, AlertTriangle,
+} from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
-import { format } from 'date-fns';
+import { format, formatDuration, intervalToDuration } from 'date-fns';
 import { useAuth } from '@/lib/auth';
 
+// ─── local types ──────────────────────────────────────
 interface RemoteSession {
   id: string;
   status: 'pending' | 'approved' | 'rejected';
@@ -33,106 +37,148 @@ interface BreakStatus {
   breaks?: { break_type: string; started_at: string; ended_at?: string; minutes?: number }[];
 }
 
-interface TodayRecord {
-  check_in_at?: string;
-  check_out_at?: string;
-}
+// ─── helpers ──────────────────────────────────────────
+const n = (v: unknown) => Number(v) || 0;
+
+const typeLabel: Record<string, string> = {
+  auto_ip: 'Auto (WiFi)',
+  qr:      'QR Scan',
+  manual:  'Manual',
+  remote:  'Remote',
+};
 
 const overrideSchema = z.object({
   check_in_at:  z.string().optional(),
   check_out_at: z.string().optional(),
-  reason:       z.string().min(5, 'Please provide a reason (min 5 characters)'),
+  reason:       z.string().min(5, 'Reason must be at least 5 characters'),
 });
 type OverrideForm = z.infer<typeof overrideSchema>;
 
+// ─── Elapsed timer hook ────────────────────────────────
+function useElapsed(checkInAt: string | undefined, checkOutAt: string | undefined) {
+  const [elapsed, setElapsed] = useState('');
+  useEffect(() => {
+    if (!checkInAt || checkOutAt) { setElapsed(''); return; }
+    const tick = () => {
+      const dur = intervalToDuration({ start: new Date(checkInAt), end: new Date() });
+      const h = dur.hours ?? 0;
+      const m = dur.minutes ?? 0;
+      const s = dur.seconds ?? 0;
+      setElapsed(h > 0 ? `${h}h ${m}m` : m > 0 ? `${m}m ${s}s` : `${s}s`);
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [checkInAt, checkOutAt]);
+  return elapsed;
+}
+
 export default function AttendancePage() {
   const { hasRole } = useAuth();
-  const [records, setRecords] = useState<AttendanceRecord[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [overrideRecord, setOverrideRecord] = useState<AttendanceRecord | null>(null);
+
+  // My own today's record
+  const [myRecord, setMyRecord]     = useState<AttendanceRecord | null>(null);
+  const [checkInLoading, setCheckInLoading]   = useState(false);
+  const [checkOutLoading, setCheckOutLoading] = useState(false);
+  const elapsed = useElapsed(myRecord?.check_in_at, myRecord?.check_out_at);
+
+  // Org-wide table (managers / HR)
+  const [records, setRecords]         = useState<AttendanceRecord[]>([]);
+  const [tableLoading, setTableLoading] = useState(false);
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [statusFilter, setStatusFilter] = useState('');
 
-  // Break tracking (employee self-service)
+  // Break tracking
   const [breakStatus, setBreakStatus] = useState<BreakStatus | null>(null);
   const [breakLoading, setBreakLoading] = useState(false);
-  const [todayRecord, setTodayRecord] = useState<TodayRecord | null>(null);
 
-  // Remote session requests (managers)
+  // Remote requests (managers)
   const [remoteSessions, setRemoteSessions] = useState<RemoteSession[]>([]);
-  const [remoteActionId, setRemoteActionId] = useState<string | null>(null);
+  const [remoteActionId, setRemoteActionId]  = useState<string | null>(null);
 
+  // Override modal
+  const [overrideRecord, setOverrideRecord] = useState<AttendanceRecord | null>(null);
   const form = useForm<OverrideForm>({ resolver: zodResolver(overrideSchema) });
 
-  const fetchAttendance = useCallback(async () => {
-    setLoading(true);
+  // ─── Data loaders ──────────────────────────────────────
+  const loadMyRecord = useCallback(async () => {
+    try {
+      const { data } = await attendanceApi.getMe({ days: 1 });
+      const rows: AttendanceRecord[] = data.data || [];
+      const today = format(new Date(), 'yyyy-MM-dd');
+      const todayRow = rows.find(r => r.date?.startsWith(today)) ?? null;
+      setMyRecord(todayRow);
+    } catch { /* ignore */ }
+  }, []);
+
+  const loadBreakStatus = useCallback(async () => {
+    try {
+      const { data } = await attendanceApi.getBreakStatus();
+      setBreakStatus(data.data || null);
+    } catch { /* break endpoint may not be live */ }
+  }, []);
+
+  const fetchOrgAttendance = useCallback(async () => {
+    if (!hasRole('manager', 'hr_admin', 'super_admin')) return;
+    setTableLoading(true);
     try {
       const { data } = await attendanceApi.getToday({ date: selectedDate });
       setRecords(data.data || []);
     } catch (err) {
       toast.error(getApiError(err));
     } finally {
-      setLoading(false);
+      setTableLoading(false);
     }
-  }, [selectedDate]);
-
-  const loadBreakStatus = useCallback(async () => {
-    try {
-      const { data } = await attendanceApi.getBreakStatus();
-      setBreakStatus(data.data || null);
-    } catch {
-      // break endpoint may not exist yet — silently ignore
-    }
-  }, []);
+  }, [selectedDate, hasRole]);
 
   const loadRemoteSessions = useCallback(async () => {
     if (!hasRole('manager', 'hr_admin', 'super_admin')) return;
     try {
       const { data } = await remoteApi.getSessions({ status: 'pending' });
       setRemoteSessions(data.data || []);
-    } catch {
-      // ignore
-    }
+    } catch { /* ignore */ }
   }, [hasRole]);
 
-  const handleApproveRemote = async (id: string) => {
-    setRemoteActionId(id);
+  useEffect(() => {
+    loadMyRecord();
+    loadBreakStatus();
+    loadRemoteSessions();
+  }, [loadMyRecord, loadBreakStatus, loadRemoteSessions]);
+
+  useEffect(() => { fetchOrgAttendance(); }, [fetchOrgAttendance]);
+
+  // ─── Check-in / Check-out ─────────────────────────────
+  const handleCheckIn = async () => {
+    setCheckInLoading(true);
     try {
-      await remoteApi.approveSession(id);
-      toast.success('Remote session approved');
-      loadRemoteSessions();
-      fetchAttendance();
+      await attendanceApi.checkIn({ type: 'manual' });
+      toast.success('Checked in successfully');
+      loadMyRecord();
+      loadBreakStatus();
+      fetchOrgAttendance();
     } catch (err) {
       toast.error(getApiError(err));
     } finally {
-      setRemoteActionId(null);
+      setCheckInLoading(false);
     }
   };
 
-  const handleRejectRemote = async (id: string) => {
-    setRemoteActionId(id);
+  const handleCheckOut = async () => {
+    setCheckOutLoading(true);
     try {
-      await remoteApi.rejectSession(id);
-      toast.success('Remote session rejected');
-      loadRemoteSessions();
-      fetchAttendance();
+      await attendanceApi.checkOut();
+      toast.success('Checked out successfully');
+      loadMyRecord();
+      loadBreakStatus();
+      fetchOrgAttendance();
     } catch (err) {
       toast.error(getApiError(err));
     } finally {
-      setRemoteActionId(null);
+      setCheckOutLoading(false);
     }
   };
 
-  const loadTodayRecord = useCallback(async () => {
-    try {
-      const { data } = await attendanceApi.getMe({ days: 1 });
-      const rows: TodayRecord[] = data.data || [];
-      setTodayRecord(rows[0] || null);
-    } catch {
-      // ignore
-    }
-  }, []);
-
+  // ─── Break actions ─────────────────────────────────────
   const handleStartBreak = async (breakType: string) => {
     setBreakLoading(true);
     try {
@@ -159,17 +205,39 @@ export default function AttendancePage() {
     }
   };
 
-  useEffect(() => { fetchAttendance(); }, [fetchAttendance]);
+  // ─── Remote session actions ────────────────────────────
+  const handleApproveRemote = async (id: string) => {
+    setRemoteActionId(id);
+    try {
+      await remoteApi.approveSession(id);
+      toast.success('Remote session approved');
+      loadRemoteSessions();
+      fetchOrgAttendance();
+    } catch (err) {
+      toast.error(getApiError(err));
+    } finally {
+      setRemoteActionId(null);
+    }
+  };
 
-  useEffect(() => {
-    loadBreakStatus();
-    loadTodayRecord();
-    loadRemoteSessions();
-  }, [loadBreakStatus, loadTodayRecord, loadRemoteSessions]);
+  const handleRejectRemote = async (id: string) => {
+    setRemoteActionId(id);
+    try {
+      await remoteApi.rejectSession(id);
+      toast.success('Remote session rejected');
+      loadRemoteSessions();
+      fetchOrgAttendance();
+    } catch (err) {
+      toast.error(getApiError(err));
+    } finally {
+      setRemoteActionId(null);
+    }
+  };
 
+  // ─── Override ──────────────────────────────────────────
   const openOverride = (record: AttendanceRecord) => {
     form.reset({
-      check_in_at:  record.check_in_at ? format(new Date(record.check_in_at), "yyyy-MM-dd'T'HH:mm") : '',
+      check_in_at:  record.check_in_at  ? format(new Date(record.check_in_at),  "yyyy-MM-dd'T'HH:mm") : '',
       check_out_at: record.check_out_at ? format(new Date(record.check_out_at), "yyyy-MM-dd'T'HH:mm") : '',
       reason: '',
     });
@@ -180,65 +248,167 @@ export default function AttendancePage() {
     if (!overrideRecord) return;
     try {
       await attendanceApi.override(overrideRecord.id, {
-        check_in_at:  data.check_in_at || undefined,
+        check_in_at:  data.check_in_at  || undefined,
         check_out_at: data.check_out_at || undefined,
         reason:       data.reason,
       });
       toast.success('Attendance record updated');
       setOverrideRecord(null);
-      fetchAttendance();
+      fetchOrgAttendance();
     } catch (err) {
       toast.error(getApiError(err));
     }
   };
 
-  const filtered = records.filter(r => !statusFilter || r.status === statusFilter);
+  // ─── Derived values ────────────────────────────────────
+  const filtered    = records.filter(r => !statusFilter || r.status === statusFilter);
+  const isCheckedIn  = myRecord?.check_in_at && !myRecord?.check_out_at;
+  const isCheckedOut = !!myRecord?.check_out_at;
 
-  const typeLabel: Record<string, string> = {
-    auto_ip: 'Auto (IP)',
-    qr:      'QR Scan',
-    manual:  'Manual',
-    remote:  'Remote',
-  };
+  const myStatusConfig = myRecord
+    ? statusConfig[myRecord.status] ?? statusConfig['in']
+    : null;
 
+  // ─── Render ────────────────────────────────────────────
   return (
     <DashboardLayout>
       <PageHeader
         title="Attendance"
-        subtitle="Track and manage daily attendance records"
+        subtitle="Track and manage daily attendance"
         actions={
-          hasRole('hr_admin', 'super_admin') && <Button variant="outline" size="sm" icon={<Download size={14} />} onClick={async () => {
-            try {
-              const { data } = await attendanceApi.getReport({ start_date: selectedDate, end_date: selectedDate });
-              const rows: AttendanceRecord[] = data.data || [];
-              const csv = ['Employee,Status,Check In,Check Out,Hours,Type',
-                ...rows.map((r: AttendanceRecord) => [
-                  r.user?.name || '',
-                  r.status,
-                  r.check_in_at ? format(new Date(r.check_in_at), 'HH:mm') : '',
-                  r.check_out_at ? format(new Date(r.check_out_at), 'HH:mm') : '',
-                  r.hours_worked?.toFixed(1) || '',
-                  r.type,
-                ].join(','))
-              ].join('\n');
-              const a = document.createElement('a');
-              a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
-              a.download = `attendance-${selectedDate}.csv`;
-              a.click();
-            } catch (err) { toast.error(getApiError(err)); }
-          }}>Export CSV</Button>
+          hasRole('hr_admin', 'super_admin') && (
+            <Button
+              variant="outline"
+              size="sm"
+              icon={<Download size={14} />}
+              onClick={async () => {
+                try {
+                  const { data } = await attendanceApi.getReport({ start_date: selectedDate, end_date: selectedDate });
+                  const rows: AttendanceRecord[] = data.data || [];
+                  const csv = [
+                    'Employee,Status,Check In,Check Out,Hours,Type',
+                    ...rows.map(r => [
+                      r.user?.name || '',
+                      r.status,
+                      r.check_in_at  ? format(new Date(r.check_in_at),  'HH:mm') : '',
+                      r.check_out_at ? format(new Date(r.check_out_at), 'HH:mm') : '',
+                      r.hours_worked ? n(r.hours_worked).toFixed(1) : '',
+                      r.check_in_type || r.type || '',
+                    ].join(','))
+                  ].join('\n');
+                  const a = document.createElement('a');
+                  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+                  a.download = `attendance-${selectedDate}.csv`;
+                  a.click();
+                } catch (err) { toast.error(getApiError(err)); }
+              }}
+            >
+              Export CSV
+            </Button>
+          )
         }
       />
 
-      {/* ── Break Tracking Card (employee self-service, only when checked in) ── */}
-      {todayRecord?.check_in_at && !todayRecord?.check_out_at && (
+      {/* ── My Attendance Today ───────────────────────────── */}
+      <Card className="p-5 mb-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Clock size={16} className="text-[var(--primary-600)]" />
+          <h3 className="text-sm font-bold text-[var(--dark-950)]">My Attendance Today</h3>
+          <div className="ml-auto">
+            {myStatusConfig ? (
+              <Badge label={myStatusConfig.label} color={myStatusConfig.color} bg={myStatusConfig.bg} />
+            ) : (
+              <Badge label="Not Checked In" color="var(--gray-500)" bg="var(--gray-100)" />
+            )}
+          </div>
+        </div>
+
+        {/* Status info strip */}
+        {myRecord?.check_in_at && (
+          <div className="flex flex-wrap items-center gap-5 mb-4 p-3 rounded-xl bg-[var(--gray-50)]">
+            <div className="flex items-center gap-2">
+              <LogIn size={14} className="text-[var(--success-600)]" />
+              <div>
+                <p className="text-[10px] font-semibold text-[var(--gray-500)] uppercase tracking-wide">Check In</p>
+                <p className="text-sm font-bold text-[var(--dark-950)] font-mono">{formatTime(myRecord.check_in_at)}</p>
+              </div>
+            </div>
+
+            {myRecord.check_out_at ? (
+              <div className="flex items-center gap-2">
+                <LogOut size={14} className="text-[var(--gray-500)]" />
+                <div>
+                  <p className="text-[10px] font-semibold text-[var(--gray-500)] uppercase tracking-wide">Check Out</p>
+                  <p className="text-sm font-bold text-[var(--dark-950)] font-mono">{formatTime(myRecord.check_out_at)}</p>
+                </div>
+              </div>
+            ) : elapsed ? (
+              <div className="flex items-center gap-2">
+                <Clock size={14} className="text-[var(--primary-600)]" />
+                <div>
+                  <p className="text-[10px] font-semibold text-[var(--gray-500)] uppercase tracking-wide">Elapsed</p>
+                  <p className="text-sm font-bold text-[var(--primary-600)] font-mono">{elapsed}</p>
+                </div>
+              </div>
+            ) : null}
+
+            {myRecord.check_out_at && myRecord.hours_worked != null && (
+              <div className="flex items-center gap-2">
+                <Clock size={14} className="text-[var(--gray-500)]" />
+                <div>
+                  <p className="text-[10px] font-semibold text-[var(--gray-500)] uppercase tracking-wide">Hours</p>
+                  <p className="text-sm font-bold text-[var(--dark-950)]">{n(myRecord.hours_worked).toFixed(1)}h</p>
+                </div>
+              </div>
+            )}
+
+            {(myRecord.check_in_type || myRecord.type) && (
+              <div className="flex items-center gap-2 ml-auto">
+                <Wifi size={14} className="text-[var(--gray-400)]" />
+                <span className="text-xs text-[var(--gray-500)]">
+                  {typeLabel[myRecord.check_in_type || myRecord.type!] || myRecord.check_in_type || myRecord.type}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Actions */}
+        <div className="flex flex-wrap items-center gap-3">
+          {!myRecord?.check_in_at && (
+            <Button
+              icon={<LogIn size={14} />}
+              loading={checkInLoading}
+              onClick={handleCheckIn}
+            >
+              Check In
+            </Button>
+          )}
+          {isCheckedIn && !isCheckedOut && (
+            <Button
+              variant="outline"
+              icon={<LogOut size={14} />}
+              loading={checkOutLoading}
+              onClick={handleCheckOut}
+            >
+              Check Out
+            </Button>
+          )}
+          {isCheckedOut && (
+            <p className="text-sm text-[var(--gray-500)]">Work day complete · Have a great evening!</p>
+          )}
+        </div>
+      </Card>
+
+      {/* ── Break Tracking (only while checked in) ───────── */}
+      {isCheckedIn && (
         <Card className="p-5 mb-6">
           <div className="flex items-center gap-2 mb-4">
             <Coffee size={16} className="text-[var(--primary-600)]" />
             <h3 className="text-sm font-bold text-[var(--dark-950)]">Break Tracking</h3>
             {breakStatus?.total_break_minutes != null && breakStatus.total_break_minutes > 0 && (
               <span className="ml-auto text-xs text-[var(--gray-500)]">
-                {breakStatus.total_break_minutes} min total break today
+                {breakStatus.total_break_minutes} min total today
               </span>
             )}
           </div>
@@ -257,41 +427,22 @@ export default function AttendancePage() {
                     </span>
                   )}
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  icon={<StopCircle size={14} />}
-                  loading={breakLoading}
-                  onClick={handleEndBreak}
-                >
+                <Button variant="outline" size="sm" icon={<StopCircle size={14} />} loading={breakLoading} onClick={handleEndBreak}>
                   End Break
                 </Button>
               </>
             ) : (
               <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  icon={<PlayCircle size={14} />}
-                  loading={breakLoading}
-                  onClick={() => handleStartBreak('rest')}
-                >
+                <Button variant="outline" size="sm" icon={<PlayCircle size={14} />} loading={breakLoading} onClick={() => handleStartBreak('rest')}>
                   Rest Break
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  icon={<Coffee size={14} />}
-                  loading={breakLoading}
-                  onClick={() => handleStartBreak('meal')}
-                >
+                <Button variant="outline" size="sm" icon={<Coffee size={14} />} loading={breakLoading} onClick={() => handleStartBreak('meal')}>
                   Meal Break
                 </Button>
               </>
             )}
           </div>
 
-          {/* Break history for today */}
           {breakStatus?.breaks && breakStatus.breaks.length > 0 && (
             <div className="mt-4 space-y-1">
               <p className="text-xs font-semibold text-[var(--gray-500)] uppercase tracking-wide mb-2">Today&apos;s Breaks</p>
@@ -309,12 +460,8 @@ export default function AttendancePage() {
                         <span className="text-xs text-[var(--gray-500)] font-mono">{formatTime(b.ended_at)}</span>
                       </>
                     )}
-                    {b.minutes != null && (
-                      <span className="text-xs text-[var(--gray-500)]">{b.minutes} min</span>
-                    )}
-                    {!b.ended_at && (
-                      <Badge label="Active" color="var(--warning-800)" bg="var(--warning-100)" size="sm" />
-                    )}
+                    {b.minutes != null && <span className="text-xs text-[var(--gray-500)]">{b.minutes} min</span>}
+                    {!b.ended_at && <Badge label="Active" color="var(--warning-800)" bg="var(--warning-100)" size="sm" />}
                   </div>
                 </div>
               ))}
@@ -323,7 +470,7 @@ export default function AttendancePage() {
         </Card>
       )}
 
-      {/* ── Remote Work Requests (managers only) ────────────────────────────── */}
+      {/* ── Remote Work Requests (managers only) ─────────── */}
       {hasRole('manager', 'hr_admin', 'super_admin') && remoteSessions.length > 0 && (
         <Card className="p-5 mb-6">
           <div className="flex items-center gap-2 mb-4">
@@ -336,9 +483,7 @@ export default function AttendancePage() {
           <div className="space-y-3">
             {remoteSessions.map((session) => (
               <div key={session.id} className="flex items-center gap-3 p-3 rounded-xl bg-[var(--gray-50)] border border-[var(--gray-100)]">
-                {session.user && (
-                  <Avatar name={session.user.name} imageUrl={session.user.avatar_url} size="sm" />
-                )}
+                {session.user && <Avatar name={session.user.name} imageUrl={session.user.avatar_url} size="sm" />}
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-[var(--dark-950)] truncate">{session.user?.name || '—'}</p>
                   <p className="text-xs text-[var(--gray-500)]">
@@ -348,21 +493,10 @@ export default function AttendancePage() {
                   </p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <Button
-                    size="sm"
-                    icon={<Check size={13} />}
-                    loading={remoteActionId === session.id}
-                    onClick={() => handleApproveRemote(session.id)}
-                  >
+                  <Button size="sm" icon={<Check size={13} />} loading={remoteActionId === session.id} onClick={() => handleApproveRemote(session.id)}>
                     Approve
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    icon={<X size={13} />}
-                    loading={remoteActionId === session.id}
-                    onClick={() => handleRejectRemote(session.id)}
-                  >
+                  <Button variant="outline" size="sm" icon={<X size={13} />} loading={remoteActionId === session.id} onClick={() => handleRejectRemote(session.id)}>
                     Reject
                   </Button>
                 </div>
@@ -372,96 +506,99 @@ export default function AttendancePage() {
         </Card>
       )}
 
-      <Card>
-        {/* Filter bar */}
-        <div className="flex flex-wrap items-center gap-3 p-5 border-b border-[var(--gray-100)]">
-          <div className="flex items-center gap-2">
-            <Calendar size={16} className="text-[var(--gray-500)]" />
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={e => setSelectedDate(e.target.value)}
-              className="px-3 py-2 text-sm border border-[var(--gray-200)] rounded-lg outline-none focus:border-[var(--primary-600)]"
-            />
+      {/* ── Org-wide Attendance Table (managers / HR) ─────── */}
+      {hasRole('manager', 'hr_admin', 'super_admin') && (
+        <Card>
+          <div className="flex flex-wrap items-center gap-3 p-5 border-b border-[var(--gray-100)]">
+            <div className="flex items-center gap-2">
+              <Calendar size={16} className="text-[var(--gray-500)]" />
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={e => setSelectedDate(e.target.value)}
+                className="px-3 py-2 text-sm border border-[var(--gray-200)] rounded-lg outline-none focus:border-[var(--primary-600)]"
+              />
+            </div>
+            <select
+              value={statusFilter}
+              onChange={e => setStatusFilter(e.target.value)}
+              className="px-3 py-2 text-sm border border-[var(--gray-200)] rounded-lg outline-none"
+            >
+              <option value="">All Statuses</option>
+              {Object.entries(statusConfig).map(([key, cfg]) => (
+                <option key={key} value={key}>{cfg.label}</option>
+              ))}
+            </select>
+            <span className="text-sm text-[var(--gray-500)] ml-auto">{filtered.length} records</span>
           </div>
-          <select
-            value={statusFilter}
-            onChange={e => setStatusFilter(e.target.value)}
-            className="px-3 py-2 text-sm border border-[var(--gray-200)] rounded-lg outline-none"
-          >
-            <option value="">All Statuses</option>
-            {Object.entries(statusConfig).map(([key, cfg]) => (
-              <option key={key} value={key}>{cfg.label}</option>
-            ))}
-          </select>
-          <span className="text-sm text-[var(--gray-500)] ml-auto">{filtered.length} records</span>
-        </div>
 
-        <Table
-          headers={['Employee', 'Status', 'Check In', 'Check Out', 'Hours', 'Type', 'Actions']}
-          loading={loading}
-          emptyState={
-            <EmptyState
-              icon={<Clock size={24} />}
-              title="No attendance records"
-              description="No records found for the selected date and filters."
-            />
-          }
-        >
-          {filtered.map((record) => {
-            const user = record.user;
-            const cfg  = statusConfig[record.status];
-            return (
-              <tr key={record.id} className="border-b border-[var(--gray-100)] hover:bg-[var(--gray-50)] transition-colors">
-                <td className="py-3 px-4">
-                  {user ? (
-                    <div className="flex items-center gap-3">
-                      <Avatar name={user.name} imageUrl={user.avatar_url} size="sm" />
-                      <div>
-                        <p className="text-sm font-semibold text-[var(--dark-950)]">{user.name}</p>
-                        <p className="text-xs text-[var(--gray-500)]">{user.department}</p>
+          <Table
+            headers={['Employee', 'Status', 'Check In', 'Check Out', 'Hours', 'Type', 'Actions']}
+            loading={tableLoading}
+            emptyState={
+              <EmptyState
+                icon={<Clock size={24} />}
+                title="No attendance records"
+                description="No records found for the selected date and filters."
+              />
+            }
+          >
+            {filtered.map((record) => {
+              const user = record.user;
+              const cfg  = statusConfig[record.status] ?? statusConfig['in'];
+              const cit  = record.check_in_type || record.type;
+              return (
+                <tr key={record.id} className="border-b border-[var(--gray-100)] hover:bg-[var(--gray-50)] transition-colors">
+                  <td className="py-3 px-4">
+                    {user ? (
+                      <div className="flex items-center gap-3">
+                        <Avatar name={user.name} imageUrl={user.avatar_url} size="sm" />
+                        <div>
+                          <p className="text-sm font-semibold text-[var(--dark-950)]">{user.name}</p>
+                          <p className="text-xs text-[var(--gray-500)]">{user.department}</p>
+                        </div>
                       </div>
+                    ) : <span className="text-xs text-[var(--gray-500)]">—</span>}
+                  </td>
+                  <td className="py-3 px-4">
+                    <div className="flex items-center gap-1.5">
+                      <Badge label={cfg.label} color={cfg.color} bg={cfg.bg} />
+                      {record.is_overridden && (
+                        <span className="text-xs text-[var(--primary-600)] font-medium">edited</span>
+                      )}
                     </div>
-                  ) : <span className="text-xs text-[var(--gray-500)]">—</span>}
-                </td>
-                <td className="py-3 px-4">
-                  <div className="flex items-center gap-1.5">
-                    <Badge label={cfg.label} color={cfg.color} bg={cfg.bg} />
-                    {record.is_overridden && (
-                      <span className="text-xs text-[var(--primary-600)] font-medium">edited</span>
+                  </td>
+                  <td className="py-3 px-4">
+                    <span className="text-sm font-mono text-[var(--dark-950)]">
+                      {record.check_in_at ? formatTime(record.check_in_at) : '—'}
+                    </span>
+                  </td>
+                  <td className="py-3 px-4">
+                    <span className="text-sm font-mono text-[var(--dark-950)]">
+                      {record.check_out_at ? formatTime(record.check_out_at) : '—'}
+                    </span>
+                  </td>
+                  <td className="py-3 px-4">
+                    <span className="text-sm text-[var(--gray-500)]">
+                      {record.hours_worked != null ? `${n(record.hours_worked).toFixed(1)}h` : '—'}
+                    </span>
+                  </td>
+                  <td className="py-3 px-4">
+                    <span className="text-xs text-[var(--gray-500)]">{cit ? (typeLabel[cit] || cit) : '—'}</span>
+                  </td>
+                  <td className="py-3 px-4">
+                    {hasRole('manager', 'hr_admin', 'super_admin') && (
+                      <Button variant="ghost" size="sm" icon={<Edit2 size={12} />} onClick={() => openOverride(record)}>
+                        Override
+                      </Button>
                     )}
-                  </div>
-                </td>
-                <td className="py-3 px-4">
-                  <span className="text-sm font-mono text-[var(--dark-950)]">
-                    {record.check_in_at ? formatTime(record.check_in_at) : '—'}
-                  </span>
-                </td>
-                <td className="py-3 px-4">
-                  <span className="text-sm font-mono text-[var(--dark-950)]">
-                    {record.check_out_at ? formatTime(record.check_out_at) : '—'}
-                  </span>
-                </td>
-                <td className="py-3 px-4">
-                  <span className="text-sm text-[var(--gray-500)]">
-                    {record.hours_worked ? `${record.hours_worked.toFixed(1)}h` : '—'}
-                  </span>
-                </td>
-                <td className="py-3 px-4">
-                  <span className="text-xs text-[var(--gray-500)]">{typeLabel[record.type] || record.type}</span>
-                </td>
-                <td className="py-3 px-4">
-                  {hasRole('manager', 'hr_admin', 'super_admin') && (
-                    <Button variant="ghost" size="sm" icon={<Edit2 size={12} />} onClick={() => openOverride(record)}>
-                      Override
-                    </Button>
-                  )}
-                </td>
-              </tr>
-            );
-          })}
-        </Table>
-      </Card>
+                  </td>
+                </tr>
+              );
+            })}
+          </Table>
+        </Card>
+      )}
 
       {/* Override Modal */}
       <Modal
@@ -487,22 +624,15 @@ export default function AttendancePage() {
                   <p className="text-sm font-semibold">{overrideRecord.user.name}</p>
                   <p className="text-xs text-[var(--gray-500)]">{formatDate(overrideRecord.date)}</p>
                 </div>
-                <Badge label={statusConfig[overrideRecord.status].label} color={statusConfig[overrideRecord.status].color} bg={statusConfig[overrideRecord.status].bg} />
+                {(() => {
+                  const cfg = statusConfig[overrideRecord.status] ?? statusConfig['in'];
+                  return <Badge label={cfg.label} color={cfg.color} bg={cfg.bg} />;
+                })()}
               </div>
             )}
             <div className="grid grid-cols-2 gap-4">
-              <Input
-                label="Check In Time"
-                type="datetime-local"
-                error={form.formState.errors.check_in_at?.message}
-                {...form.register('check_in_at')}
-              />
-              <Input
-                label="Check Out Time"
-                type="datetime-local"
-                error={form.formState.errors.check_out_at?.message}
-                {...form.register('check_out_at')}
-              />
+              <Input label="Check In Time" type="datetime-local" error={form.formState.errors.check_in_at?.message} {...form.register('check_in_at')} />
+              <Input label="Check Out Time" type="datetime-local" error={form.formState.errors.check_out_at?.message} {...form.register('check_out_at')} />
             </div>
             <Textarea
               label="Reason for Override"
