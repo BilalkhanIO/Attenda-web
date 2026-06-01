@@ -39,7 +39,18 @@ export default function WhatsAppSettingsPage() {
   const [newGroup, setNewGroup] = useState({ name: '', phone: '' });
 
   useEffect(() => {
-    orgApi.getWhatsAppSettings().then(r => setSettings(r.data.data || settings)).catch(() => {});
+    orgApi.getWhatsAppSettings().then(r => {
+      const d = r.data.data || {};
+      setSettings({
+        enabled:         d.enabled ?? false,
+        phone_number_id: d.phone_number_id || '',
+        access_token:    d.access_token || '',
+        groups:          Array.isArray(d.groups) ? d.groups : [],
+        events:          (d.events && typeof d.events === 'object' && Object.keys(d.events).length > 0)
+                           ? d.events as Record<string, boolean>
+                           : Object.fromEntries(Object.keys(EVENT_LABELS).map(k => [k, true])),
+      });
+    }).catch(() => {});
   }, []);
 
   const save = async () => {
