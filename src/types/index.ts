@@ -42,7 +42,16 @@ export interface AttendanceRecord {
   check_in_type: CheckInType;
   type?: CheckInType;          // legacy alias — prefer check_in_type
   hours_worked?: number;
+  net_hours_worked?: number;
   shift_id?: string;
+  scheduled_start?: string;
+  scheduled_end?: string;
+  late_minutes?: number;
+  early_out_minutes?: number;
+  adherence_score?: number;
+  auto_checked_out?: boolean;
+  break_minutes?: number;
+  paid_break_minutes?: number;
   is_overridden: boolean;
   override_reason?: string;
   created_at: string;

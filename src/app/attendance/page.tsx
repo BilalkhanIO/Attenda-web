@@ -10,7 +10,7 @@ import { statusConfig, formatTime, formatDate, getApiError } from '@/lib/utils';
 import type { AttendanceRecord } from '@/types';
 import {
   Clock, Edit2, Download, Calendar, Coffee, PlayCircle, StopCircle,
-  Home, Check, X, LogIn, LogOut, Wifi, WifiOff, AlertTriangle,
+  Home, Check, X, LogIn, LogOut, Wifi, WifiOff, AlertTriangle, CheckCircle2,
 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -357,7 +357,12 @@ export default function AttendancePage() {
                 <Clock size={14} className="text-[var(--gray-500)]" />
                 <div>
                   <p className="text-[10px] font-semibold text-[var(--gray-500)] uppercase tracking-wide">Hours</p>
-                  <p className="text-sm font-bold text-[var(--dark-950)]">{n(myRecord.hours_worked).toFixed(1)}h</p>
+                  <p className="text-sm font-bold text-[var(--dark-950)]">
+                    {n(myRecord.hours_worked).toFixed(1)}h
+                    {myRecord.net_hours_worked != null && myRecord.net_hours_worked !== myRecord.hours_worked && (
+                      <span className="text-xs font-normal text-[var(--gray-500)]"> · {n(myRecord.net_hours_worked).toFixed(1)}h net</span>
+                    )}
+                  </p>
                 </div>
               </div>
             )}
@@ -367,8 +372,38 @@ export default function AttendancePage() {
                 <Wifi size={14} className="text-[var(--gray-400)]" />
                 <span className="text-xs text-[var(--gray-500)]">
                   {typeLabel[myRecord.check_in_type || myRecord.type!] || myRecord.check_in_type || myRecord.type}
+                  {myRecord.auto_checked_out && ' · auto out'}
                 </span>
               </div>
+            )}
+          </div>
+        )}
+
+        {/* Compliance chips */}
+        {myRecord?.check_in_at && (
+          (myRecord.late_minutes ?? 0) > 0 ||
+          (myRecord.early_out_minutes ?? 0) > 0 ||
+          myRecord.adherence_score != null
+        ) && (
+          <div className="flex flex-wrap items-center gap-2 mb-4">
+            {(myRecord.late_minutes ?? 0) > 0 && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-full bg-[var(--warning-100)] text-[var(--warning-800)]">
+                <AlertTriangle size={11} /> {myRecord.late_minutes} min late
+              </span>
+            )}
+            {(myRecord.early_out_minutes ?? 0) > 0 && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-full bg-[var(--warning-100)] text-[var(--warning-800)]">
+                <LogOut size={11} /> Left {myRecord.early_out_minutes} min early
+              </span>
+            )}
+            {myRecord.adherence_score != null && (
+              <span className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-full ${
+                myRecord.adherence_score >= 90 ? 'bg-[var(--success-100)] text-[var(--success-700)]'
+                : myRecord.adherence_score >= 70 ? 'bg-[var(--warning-100)] text-[var(--warning-800)]'
+                : 'bg-[var(--danger-100)] text-[var(--danger-700)]'
+              }`}>
+                <CheckCircle2 size={11} /> {myRecord.adherence_score}% adherence
+              </span>
             )}
           </div>
         )}
@@ -572,11 +607,17 @@ export default function AttendancePage() {
                     <span className="text-sm font-mono text-[var(--dark-950)]">
                       {record.check_in_at ? formatTime(record.check_in_at) : '—'}
                     </span>
+                    {(record.late_minutes ?? 0) > 0 && (
+                      <span className="block text-[10px] font-semibold text-[var(--warning-800)]">+{record.late_minutes}m late</span>
+                    )}
                   </td>
                   <td className="py-3 px-4">
                     <span className="text-sm font-mono text-[var(--dark-950)]">
                       {record.check_out_at ? formatTime(record.check_out_at) : '—'}
                     </span>
+                    {record.auto_checked_out && (
+                      <span className="block text-[10px] text-[var(--gray-400)]">auto</span>
+                    )}
                   </td>
                   <td className="py-3 px-4">
                     <span className="text-sm text-[var(--gray-500)]">
