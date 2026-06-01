@@ -100,16 +100,44 @@ export default function AttendancePage() {
   const [overrideRecord, setOverrideRecord] = useState<AttendanceRecord | null>(null);
   const form = useForm<OverrideForm>({ resolver: zodResolver(overrideSchema) });
 
+  // Late arrival notice + leave check
+  interface LateNoticeInfo { id: string; expected_time: string; reason: string; status: string; }
+  interface LeaveInfo { id: string; leave_type: string; start_date: string; end_date: string; }
+  const [leaveToday, setLeaveToday]   = useState<LeaveInfo | null>(null);
+  const [myLateNotice, setMyLateNotice] = useState<LateNoticeInfo | null>(null);
+  const [teamNotices, setTeamNotices]   = useState<(LateNoticeInfo & { user?: { id: string; name: string; department?: string } })[]>([]);
+  const [lateNoticeModalOpen, setLateNoticeModalOpen] = useState(false);
+  const lateNoticeForm = useForm<{ expected_time: string; reason: string }>({
+    defaultValues: { expected_time: '', reason: '' },
+  });
+
   // ─── Data loaders ──────────────────────────────────────
   const loadMyRecord = useCallback(async () => {
     try {
-      const { data } = await attendanceApi.getMe({ days: 1 });
-      const rows: AttendanceRecord[] = data.data || [];
-      const today = format(new Date(), 'yyyy-MM-dd');
-      const todayRow = rows.find(r => r.date?.startsWith(today)) ?? null;
-      setMyRecord(todayRow);
+      const [recRes, checkRes] = await Promise.allSettled([
+        attendanceApi.getMe({ days: 1 }),
+        attendanceApi.getLeaveCheck(),
+      ]);
+      if (recRes.status === 'fulfilled') {
+        const rows: AttendanceRecord[] = recRes.value.data.data || [];
+        const today = format(new Date(), 'yyyy-MM-dd');
+        setMyRecord(rows.find(r => r.date?.startsWith(today)) ?? null);
+      }
+      if (checkRes.status === 'fulfilled') {
+        const info = checkRes.value.data.data;
+        setLeaveToday(info.leave ?? null);
+        setMyLateNotice(info.late_notice?.status !== 'cancelled' ? (info.late_notice ?? null) : null);
+      }
     } catch { /* ignore */ }
   }, []);
+
+  const loadTeamNotices = useCallback(async () => {
+    if (!hasRole('manager', 'hr_admin', 'super_admin')) return;
+    try {
+      const { data } = await attendanceApi.getLateNotices({ status: 'pending' });
+      setTeamNotices(data.data || []);
+    } catch { /* ignore */ }
+  }, [hasRole]);
 
   const loadBreakStatus = useCallback(async () => {
     try {
@@ -143,7 +171,8 @@ export default function AttendancePage() {
     loadMyRecord();
     loadBreakStatus();
     loadRemoteSessions();
-  }, [loadMyRecord, loadBreakStatus, loadRemoteSessions]);
+    loadTeamNotices();
+  }, [loadMyRecord, loadBreakStatus, loadRemoteSessions, loadTeamNotices]);
 
   useEffect(() => { fetchOrgAttendance(); }, [fetchOrgAttendance]);
 
@@ -260,6 +289,35 @@ export default function AttendancePage() {
     }
   };
 
+  // ─── Late Notice actions ───────────────────────────────
+  const handleSubmitLateNotice = async (values: { expected_time: string; reason: string }) => {
+    try {
+      const today = format(new Date(), 'yyyy-MM-dd');
+      const { data } = await attendanceApi.submitLateNotice({ date: today, expected_time: values.expected_time, reason: values.reason });
+      setMyLateNotice(data.data);
+      setLateNoticeModalOpen(false);
+      lateNoticeForm.reset();
+      toast.success('Late arrival notice submitted');
+    } catch (err) { toast.error(getApiError(err)); }
+  };
+
+  const handleAcknowledgeNotice = async (id: string) => {
+    try {
+      await attendanceApi.acknowledgeLateNotice(id);
+      toast.success('Notice acknowledged');
+      loadTeamNotices();
+    } catch (err) { toast.error(getApiError(err)); }
+  };
+
+  const handleCancelMyNotice = async () => {
+    if (!myLateNotice) return;
+    try {
+      await attendanceApi.cancelLateNotice(myLateNotice.id);
+      setMyLateNotice(null);
+      toast.success('Late notice cancelled');
+    } catch (err) { toast.error(getApiError(err)); }
+  };
+
   // ─── Derived values ────────────────────────────────────
   const filtered    = records.filter(r => !statusFilter || r.status === statusFilter);
   const isCheckedIn  = myRecord?.check_in_at && !myRecord?.check_out_at;
@@ -308,6 +366,27 @@ export default function AttendancePage() {
           )
         }
       />
+
+      {/* ── On approved leave today banner ───────────────── */}
+      {leaveToday && !myRecord?.check_in_at && (
+        <div className="mb-4 flex items-center gap-3 rounded-xl border border-[var(--primary-200)] bg-[var(--primary-50)] px-4 py-3 text-sm text-[var(--primary-700)]">
+          <Calendar size={16} className="shrink-0" />
+          <span>You have approved <strong>{leaveToday.leave_type.replace(/_/g, ' ')}</strong> today — no check-in required.</span>
+        </div>
+      )}
+
+      {/* ── Late notice banner ────────────────────────────── */}
+      {myLateNotice && !myRecord?.check_in_at && (
+        <div className={`mb-4 flex items-center gap-3 rounded-xl border px-4 py-3 text-sm ${myLateNotice.status === 'acknowledged' ? 'border-[var(--success-300)] bg-[var(--success-50)] text-[var(--success-700)]' : 'border-[var(--warning-300)] bg-[var(--warning-50)] text-[var(--warning-700)]'}`}>
+          <AlertTriangle size={16} className="shrink-0" />
+          <span className="flex-1">
+            {myLateNotice.status === 'acknowledged' ? 'Manager acknowledged your late notice' : 'Late arrival notice submitted'} — expected at <strong>{myLateNotice.expected_time}</strong>.
+          </span>
+          <button onClick={handleCancelMyNotice} className="ml-2 rounded p-0.5 hover:bg-black/10">
+            <X size={14} />
+          </button>
+        </div>
+      )}
 
       {/* ── My Attendance Today ───────────────────────────── */}
       <Card className="p-5 mb-6">
@@ -411,13 +490,26 @@ export default function AttendancePage() {
         {/* Actions */}
         <div className="flex flex-wrap items-center gap-3">
           {!myRecord?.check_in_at && (
-            <Button
-              icon={<LogIn size={14} />}
-              loading={checkInLoading}
-              onClick={handleCheckIn}
-            >
-              Check In
-            </Button>
+            <>
+              <Button
+                icon={<LogIn size={14} />}
+                loading={checkInLoading}
+                onClick={handleCheckIn}
+              >
+                Check In
+              </Button>
+              {/* Report Late — show if no active notice yet */}
+              {!myLateNotice && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  icon={<AlertTriangle size={14} />}
+                  onClick={() => setLateNoticeModalOpen(true)}
+                >
+                  Report Late Arrival
+                </Button>
+              )}
+            </>
           )}
           {isCheckedIn && !isCheckedOut && (
             <Button
@@ -428,6 +520,12 @@ export default function AttendancePage() {
             >
               Check Out
             </Button>
+          )}
+          {/* Pre-announced late badge */}
+          {isCheckedIn && myRecord?.late_notice_id && (
+            <span className="flex items-center gap-1 rounded-full bg-[var(--warning-100)] px-2.5 py-1 text-xs font-semibold text-[var(--warning-800)]">
+              <AlertTriangle size={11} /> Pre-announced late
+            </span>
           )}
           {isCheckedOut && (
             <p className="text-sm text-[var(--gray-500)]">Work day complete · Have a great evening!</p>
@@ -535,6 +633,45 @@ export default function AttendancePage() {
                     Reject
                   </Button>
                 </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {/* ── Team Late Notices (pending, for managers) ────── */}
+      {hasRole('manager', 'hr_admin', 'super_admin') && teamNotices.length > 0 && (
+        <Card className="p-5 mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <AlertTriangle size={16} className="text-[var(--warning-600)]" />
+            <h3 className="text-sm font-bold text-[var(--dark-950)]">Pending Late Arrival Notices</h3>
+            <span className="ml-auto rounded-full bg-[var(--warning-100)] px-2 py-0.5 text-xs font-semibold text-[var(--warning-800)]">
+              {teamNotices.length}
+            </span>
+          </div>
+          <div className="flex flex-col gap-3">
+            {teamNotices.map((notice) => (
+              <div key={notice.id} className="flex items-center gap-3 rounded-xl border border-[var(--warning-200)] bg-[var(--warning-50)] p-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    {notice.user && <Avatar name={notice.user.name} size="xs" />}
+                    <span className="text-sm font-semibold text-[var(--dark-950)]">{notice.user?.name ?? '—'}</span>
+                    {notice.user?.department && (
+                      <span className="text-xs text-[var(--gray-500)]">· {notice.user.department}</span>
+                    )}
+                  </div>
+                  <p className="mt-1 text-xs text-[var(--gray-500)]">
+                    Expected at <strong>{notice.expected_time}</strong> · {notice.reason}
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  icon={<Check size={13} />}
+                  onClick={() => handleAcknowledgeNotice(notice.id)}
+                >
+                  Acknowledge
+                </Button>
               </div>
             ))}
           </div>
@@ -687,6 +824,38 @@ export default function AttendancePage() {
             </p>
           </div>
         )}
+      </Modal>
+
+      {/* ── Late Arrival Notice Modal ─────────────────────── */}
+      <Modal
+        isOpen={lateNoticeModalOpen}
+        onClose={() => { setLateNoticeModalOpen(false); lateNoticeForm.reset(); }}
+        title="Report Late Arrival"
+        footer={
+          <div className="flex gap-2 justify-end">
+            <Button variant="outline" onClick={() => setLateNoticeModalOpen(false)}>Cancel</Button>
+            <Button onClick={lateNoticeForm.handleSubmit(handleSubmitLateNotice)}>Submit Notice</Button>
+          </div>
+        }
+      >
+        <div className="flex flex-col gap-4">
+          <p className="text-sm text-[var(--gray-500)]">
+            Let your manager know you'll be arriving late. They'll be notified immediately and will not receive a late alert until your expected arrival time passes.
+          </p>
+          <Input
+            label="Expected Arrival Time"
+            type="time"
+            error={lateNoticeForm.formState.errors.expected_time?.message}
+            {...lateNoticeForm.register('expected_time', { required: 'Required' })}
+          />
+          <Textarea
+            label="Reason"
+            placeholder="e.g. Medical appointment, traffic delay…"
+            rows={3}
+            error={lateNoticeForm.formState.errors.reason?.message}
+            {...lateNoticeForm.register('reason', { required: 'Required', minLength: { value: 5, message: 'At least 5 characters' } })}
+          />
+        </div>
       </Modal>
     </DashboardLayout>
   );

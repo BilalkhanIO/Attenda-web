@@ -34,8 +34,9 @@ export const statusConfig: Record<AttendanceStatus, { label: string; color: stri
   out:    { label: 'Checked Out', color: 'var(--gray-500)',    bg: 'var(--gray-100)'    },
   late:   { label: 'Late',        color: 'var(--warning-800)', bg: 'var(--warning-100)' },
   absent: { label: 'Absent',      color: 'var(--danger-800)',  bg: 'var(--danger-100)'  },
-  leave:  { label: 'On Leave',    color: 'var(--primary-600)', bg: 'var(--primary-100)' },
-  remote: { label: 'Remote',      color: 'var(--purple-700)',  bg: 'var(--purple-100)'  },
+  leave:      { label: 'On Leave',      color: 'var(--primary-600)', bg: 'var(--primary-100)' },
+  half_leave: { label: 'Half-Day Leave', color: 'var(--teal-700)',   bg: 'var(--teal-100)'    },
+  remote:     { label: 'Remote',         color: 'var(--purple-700)', bg: 'var(--purple-100)'  },
 };
 
 export const leaveStatusConfig: Record<LeaveStatus, { label: string; color: string; bg: string }> = {
