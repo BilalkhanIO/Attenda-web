@@ -172,7 +172,7 @@ export const shiftsApi = {
     apiClient.post('/shifts/ai-schedule', { description, week_start: weekStart, department }),
   getBreaks: (shiftId: string) =>
     apiClient.get(`/shifts/${shiftId}/breaks`),
-  addBreak: (shiftId: string, data: { name: string; break_minutes: number; is_paid: boolean; after_minutes: number }) =>
+  addBreak: (shiftId: string, data: { name: string; start_time: string; end_time: string; is_paid: boolean }) =>
     apiClient.post(`/shifts/${shiftId}/breaks`, data),
   updateBreak: (shiftId: string, breakId: string, data: Record<string, unknown>) =>
     apiClient.put(`/shifts/${shiftId}/breaks/${breakId}`, data),

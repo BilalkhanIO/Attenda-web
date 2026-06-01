@@ -98,7 +98,13 @@ export interface Shift {
   start_time: string;
   end_time: string;
   color: string;
-  days_of_week: number[];
+  active_days: number[];
+  overtime_multiplier?: number;
+  min_rest_hours?: number;
+  late_tolerance_mins?: number;
+  early_checkout_tolerance_mins?: number;
+  auto_checkout?: boolean;
+  auto_checkout_buffer_mins?: number;
 }
 
 export interface ShiftAssignment {
