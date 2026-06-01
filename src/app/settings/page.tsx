@@ -49,6 +49,25 @@ function toSubnet24(ip: string): string {
   return p.length === 4 ? `${p[0]}.${p[1]}.${p[2]}.0/24` : ip;
 }
 
+/**
+ * Full IANA timezone list (every region/country) via the Intl API, so late /
+ * auto-checkout math on the server matches the org's real wall clock. Falls
+ * back to a curated list on the rare browser without supportedValuesOf.
+ */
+function allTimezones(): string[] {
+  try {
+    const intl = Intl as unknown as { supportedValuesOf?: (k: string) => string[] };
+    if (typeof intl.supportedValuesOf === 'function') {
+      return ['UTC', ...intl.supportedValuesOf('timeZone').filter(tz => tz !== 'UTC')];
+    }
+  } catch { /* fall through */ }
+  return ['UTC','Africa/Nairobi','Africa/Lagos','Africa/Cairo','America/New_York',
+    'America/Chicago','America/Los_Angeles','America/Sao_Paulo','Europe/London',
+    'Europe/Paris','Europe/Berlin','Asia/Dubai','Asia/Karachi','Asia/Kolkata',
+    'Asia/Dhaka','Asia/Singapore','Asia/Shanghai','Asia/Tokyo','Australia/Sydney'];
+}
+const TIMEZONES = allTimezones();
+
 // ─── Types ────────────────────────────────────────────
 type NetworkEntry = { type: 'ssid'; value: string } | { type: 'ip'; value: string };
 interface DetectedIp { ip: string; label: string; }
@@ -413,8 +432,8 @@ export default function SettingsPage() {
               onChange={e => setTimezone(e.target.value)}
               className="w-full px-3 py-2 text-sm border border-[var(--gray-200)] rounded-lg outline-none focus:border-[var(--primary-600)]"
             >
-              {['UTC','Africa/Nairobi','Africa/Lagos','America/New_York','Europe/London','Asia/Dubai','Asia/Karachi','Asia/Kolkata'].map(tz => (
-                <option key={tz} value={tz}>{tz}</option>
+              {TIMEZONES.map(tz => (
+                <option key={tz} value={tz}>{tz.replace(/_/g, ' ')}</option>
               ))}
             </select>
           </div>
