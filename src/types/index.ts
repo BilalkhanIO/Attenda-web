@@ -28,7 +28,7 @@ export interface User {
 }
 
 // ─── Attendance ───────────────────────────────────────
-export type AttendanceStatus = 'in' | 'out' | 'late' | 'absent' | 'leave' | 'remote';
+export type AttendanceStatus = 'in' | 'out' | 'late' | 'absent' | 'leave' | 'half_leave' | 'remote';
 export type CheckInType = 'auto_ip' | 'qr' | 'manual' | 'remote';
 
 export interface AttendanceRecord {
@@ -87,6 +87,8 @@ export interface LeaveRequest {
   start_date: string;
   end_date: string;
   working_days: number;
+  is_half_day?: boolean;
+  half_day_period?: 'morning' | 'afternoon';
   reason: string;
   status: LeaveStatus;
   approved_by?: string;
