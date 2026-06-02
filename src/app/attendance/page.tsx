@@ -54,6 +54,38 @@ const overrideSchema = z.object({
 });
 type OverrideForm = z.infer<typeof overrideSchema>;
 
+// ─── helpers ──────────────────────────────────────────
+function formatHours(hours: number): string {
+  const totalMins = Math.round(hours * 60);
+  const h = Math.floor(totalMins / 60);
+  const m = totalMins % 60;
+  if (h === 0) return `${m}m`;
+  if (m === 0) return `${h}h`;
+  return `${h}h ${m}m`;
+}
+
+function LiveDuration({ checkInAt }: { checkInAt: string }) {
+  const calc = () => {
+    const ms = Date.now() - new Date(checkInAt).getTime();
+    const totalMins = Math.floor(ms / 60000);
+    const h = Math.floor(totalMins / 60);
+    const m = totalMins % 60;
+    return h > 0 ? `${h}h ${m}m` : `${m}m`;
+  };
+  const [dur, setDur] = useState(calc);
+  useEffect(() => {
+    const id = setInterval(() => setDur(calc()), 60000);
+    return () => clearInterval(id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [checkInAt]);
+  return (
+    <div>
+      <span className="text-sm font-medium text-[var(--primary-600)]">{dur}</span>
+      <span className="block text-[10px] text-[var(--primary-400)]">in progress</span>
+    </div>
+  );
+}
+
 // ─── Elapsed timer hook ────────────────────────────────
 function useElapsed(checkInAt: string | undefined, checkOutAt: string | undefined) {
   const [elapsed, setElapsed] = useState('');
@@ -705,7 +737,7 @@ export default function AttendancePage() {
           </div>
 
           <Table
-            headers={['Employee', 'Status', 'Check In', 'Check Out', 'Hours', 'Type', 'Actions']}
+            headers={['Employee', 'Status', 'Check In', 'Check Out', 'Work Time', 'Type', 'Actions']}
             loading={tableLoading}
             emptyState={
               <EmptyState
@@ -757,9 +789,21 @@ export default function AttendancePage() {
                     )}
                   </td>
                   <td className="py-3 px-4">
-                    <span className="text-sm text-[var(--gray-500)]">
-                      {record.hours_worked != null ? `${n(record.hours_worked).toFixed(1)}h` : '—'}
-                    </span>
+                    {record.hours_worked != null ? (
+                      <div>
+                        <span className="text-sm text-[var(--dark-950)]">{formatHours(n(record.hours_worked))}</span>
+                        {record.net_hours_worked != null &&
+                         Math.abs(n(record.net_hours_worked) - n(record.hours_worked)) >= 0.05 && (
+                          <span className="block text-[10px] text-[var(--gray-400)]">
+                            {formatHours(n(record.net_hours_worked))} net
+                          </span>
+                        )}
+                      </div>
+                    ) : record.check_in_at && !record.check_out_at ? (
+                      <LiveDuration checkInAt={record.check_in_at} />
+                    ) : (
+                      <span className="text-sm text-[var(--gray-400)]">—</span>
+                    )}
                   </td>
                   <td className="py-3 px-4">
                     <span className="text-xs text-[var(--gray-500)]">{cit ? (typeLabel[cit] || cit) : '—'}</span>
