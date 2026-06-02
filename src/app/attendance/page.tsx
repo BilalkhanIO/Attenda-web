@@ -737,7 +737,7 @@ export default function AttendancePage() {
           </div>
 
           <Table
-            headers={['Employee', 'Status', 'Check In', 'Check Out', 'Work Time', 'Type', 'Actions']}
+            headers={['Employee', 'Status', 'Check In', 'Check Out', 'Work Time', 'Method', 'Actions']}
             loading={tableLoading}
             emptyState={
               <EmptyState
@@ -779,13 +779,26 @@ export default function AttendancePage() {
                     {(record.late_minutes ?? 0) > 0 && (
                       <span className="block text-[10px] font-semibold text-[var(--warning-800)]">+{record.late_minutes}m late</span>
                     )}
+                    {(record.early_checkin_minutes ?? 0) > 0 && (
+                      <span className="block text-[10px] font-semibold text-[var(--primary-600)]">
+                        {record.early_checkin_minutes}m early
+                      </span>
+                    )}
+                    {record.ip_detected && (
+                      <span className="block text-[10px] text-[var(--gray-400)] font-mono" title="Detected IP">
+                        {record.ip_detected}
+                      </span>
+                    )}
                   </td>
                   <td className="py-3 px-4">
                     <span className="text-sm font-mono text-[var(--dark-950)]">
                       {record.check_out_at ? formatTime(record.check_out_at) : '—'}
                     </span>
+                    {(record.early_out_minutes ?? 0) > 0 && (
+                      <span className="block text-[10px] font-semibold text-[var(--warning-700)]">-{record.early_out_minutes}m early</span>
+                    )}
                     {record.auto_checked_out && (
-                      <span className="block text-[10px] text-[var(--gray-400)]">auto</span>
+                      <span className="block text-[10px] text-[var(--gray-400)]">auto checkout</span>
                     )}
                   </td>
                   <td className="py-3 px-4">

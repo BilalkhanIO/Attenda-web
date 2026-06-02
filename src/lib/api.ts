@@ -299,6 +299,12 @@ export const adminApi = {
     apiClient.get(`/admin/orgs/${id}`),
   updatePlan: (id: string, plan: string) =>
     apiClient.patch(`/admin/orgs/${id}/plan`, { plan }),
+  suspendOrg: (id: string) =>
+    apiClient.patch(`/admin/orgs/${id}/suspend`),
+  createOrg: (data: { name: string; timezone?: string; currency?: string; plan?: string }) =>
+    apiClient.post('/admin/orgs', data),
+  getOrgUsers: (id: string) =>
+    apiClient.get(`/admin/orgs/${id}/users`),
 };
 
 // ─── ORG SETTINGS ─────────────────────────────────────

@@ -46,8 +46,10 @@ export interface AttendanceRecord {
   shift_id?: string;
   scheduled_start?: string;
   scheduled_end?: string;
+  ip_detected?: string;
   late_minutes?: number;
   early_out_minutes?: number;
+  early_checkin_minutes?: number;
   adherence_score?: number;
   auto_checked_out?: boolean;
   break_minutes?: number;
