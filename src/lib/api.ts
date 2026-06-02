@@ -289,12 +289,22 @@ export const overtimeApi = {
     apiClient.get('/overtime/summary', { params: week_start ? { week_start } : {} }),
 };
 
+// ─── PUBLIC (no auth) ─────────────────────────────────
+export const publicApi = {
+  onboard: (data: {
+    company_name: string; contact_name: string; contact_email: string;
+    phone?: string; timezone?: string; company_size?: string;
+  }) => apiClient.post('/public/onboard', data),
+};
+
 // ─── PLATFORM ADMIN ───────────────────────────────────
 export const adminApi = {
   getStats: () =>
     apiClient.get('/admin/stats'),
   getOrgs: () =>
     apiClient.get('/admin/orgs'),
+  getPendingOrgs: () =>
+    apiClient.get('/admin/orgs/pending'),
   getOrg: (id: string) =>
     apiClient.get(`/admin/orgs/${id}`),
   updatePlan: (id: string, plan: string) =>
@@ -303,6 +313,10 @@ export const adminApi = {
     apiClient.patch(`/admin/orgs/${id}/suspend`),
   createOrg: (data: { name: string; timezone?: string; currency?: string; plan?: string }) =>
     apiClient.post('/admin/orgs', data),
+  approveOrg: (id: string) =>
+    apiClient.post(`/admin/orgs/${id}/approve`),
+  rejectOrg: (id: string) =>
+    apiClient.post(`/admin/orgs/${id}/reject`),
   getOrgUsers: (id: string) =>
     apiClient.get(`/admin/orgs/${id}/users`),
 };
