@@ -4,12 +4,39 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import { KPICard, Card, Avatar, Badge, Skeleton, PageHeader, Button } from '@/components/ui';
 import { attendanceApi } from '@/lib/api';
 import { statusConfig, formatTime, getApiError } from '@/lib/utils';
-import type { LiveAttendance } from '@/types';
-import { Users, Clock, Wifi, Calendar, AlertTriangle, RefreshCw } from 'lucide-react';
+import type { AttendanceRecord } from '@/types';
+import { Users, Clock, Wifi, Calendar, AlertTriangle, RefreshCw, LogIn, LogOut } from 'lucide-react';
 import toast from 'react-hot-toast';
 
+const n = (v: unknown) => Number(v) || 0;
+
+function fmtHours(hours: number): string {
+  const m = Math.round(hours * 60);
+  const h = Math.floor(m / 60);
+  const mins = m % 60;
+  if (h === 0) return `${mins}m`;
+  if (mins === 0) return `${h}h`;
+  return `${h}h ${mins}m`;
+}
+
+function CardElapsed({ checkInAt }: { checkInAt: string }) {
+  const calc = () => {
+    const ms = Date.now() - new Date(checkInAt).getTime();
+    const m = Math.floor(ms / 60000);
+    const h = Math.floor(m / 60);
+    return h > 0 ? `${h}h ${m % 60}m` : `${m}m`;
+  };
+  const [dur, setDur] = useState(calc);
+  useEffect(() => {
+    const id = setInterval(() => setDur(calc()), 60000);
+    return () => clearInterval(id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [checkInAt]);
+  return <span className="font-medium text-[var(--primary-600)]">{dur}</span>;
+}
+
 export default function DashboardPage() {
-  const [live, setLive] = useState<LiveAttendance[]>([]);
+  const [live, setLive] = useState<AttendanceRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [filter, setFilter] = useState<string>('all');
@@ -43,7 +70,12 @@ export default function DashboardPage() {
     total:  live.length,
   };
 
-  const alerts = live.filter(e => e.status === 'absent' || e.status === 'late');
+  const alerts = live.filter(e =>
+    e.status === 'absent' ||
+    (e.status === 'late' && !e.check_in_at) ||
+    (e.check_in_at && (e.late_minutes ?? 0) > 0) ||
+    (e.check_out_at && (e.early_out_minutes ?? 0) > 0)
+  );
   const filtered = filter === 'all' ? live : live.filter(e => e.status === filter);
 
   const secondsAgo = Math.round((new Date().getTime() - lastUpdated.getTime()) / 1000);
@@ -66,16 +98,20 @@ export default function DashboardPage() {
       />
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-6 gap-4 mb-6">
         {loading ? (
-          Array.from({length:5}).map((_,i) => <Skeleton key={i} className="h-28 rounded-xl" />)
+          Array.from({length:6}).map((_,i) => <Skeleton key={i} className="h-28 rounded-xl" />)
         ) : (<>
-          <KPICard title="Checked In"  value={counts.in}  icon={<Wifi size={20} />}  color="var(--success-700)" bg="var(--success-100)" />
-          <KPICard title="Checked Out" value={counts.out} icon={<Clock size={20} />} color="var(--gray-500)"    bg="var(--gray-100)" />
+          <KPICard title="In Office"   value={counts.in}     icon={<Wifi size={20} />}           color="var(--success-700)" bg="var(--success-100)" />
+          <KPICard title="Late"        value={counts.late}   icon={<AlertTriangle size={20} />}  color="var(--warning-800)" bg="var(--warning-100)"
+            delta={counts.late > 0 ? `${live.filter(e => e.status === 'late' && e.check_in_at).length} arrived` : undefined}
+            deltaPositive={false}
+          />
+          <KPICard title="Checked Out" value={counts.out}    icon={<Clock size={20} />}          color="var(--gray-500)"    bg="var(--gray-100)" />
           <KPICard title="Remote"      value={counts.remote} icon={<Wifi size={20} />}           color="var(--purple-700)" bg="var(--purple-100)" />
           <KPICard title="On Leave"    value={counts.leave}  icon={<Calendar size={20} />}       color="var(--primary-600)" bg="var(--primary-100)" />
           <KPICard title="Absent"      value={counts.absent} icon={<AlertTriangle size={20} />}  color="var(--danger-800)" bg="var(--danger-100)"
-            delta={counts.absent > 0 ? `${counts.absent} employee${counts.absent > 1 ? 's' : ''} not in` : undefined}
+            delta={counts.absent > 0 ? `${counts.absent} no-show` : undefined}
             deltaPositive={false}
           />
         </>)}
@@ -113,23 +149,47 @@ export default function DashboardPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {filtered.map((entry) => {
                     const cfg = statusConfig[entry.status];
+                    const checkedIn  = !!entry.check_in_at;
+                    const checkedOut = !!entry.check_out_at;
+                    const isActive   = checkedIn && !checkedOut;
                     return (
                       <div
-                        key={entry.user.id}
-                        className="flex items-center gap-3 p-3 rounded-xl border border-[var(--gray-100)] hover:border-[var(--gray-200)] hover:shadow-sm transition-all"
+                        key={entry.user!.id}
+                        className="flex items-start gap-3 p-3 rounded-xl border border-[var(--gray-100)] hover:border-[var(--gray-200)] hover:shadow-sm transition-all"
                       >
-                        <Avatar name={entry.user.name} imageUrl={entry.user.avatar_url} size="md" />
+                        <Avatar name={entry.user!.name} imageUrl={entry.user!.avatar_url} size="md" />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-[var(--dark-950)] truncate">{entry.user.name}</p>
-                          <p className="text-xs text-[var(--gray-500)] truncate">{entry.user.job_title || entry.user.department}</p>
-                          {entry.check_in_at && (
-                            <p className="text-xs text-[var(--gray-500)] mt-0.5">
-                              In: {formatTime(entry.check_in_at)}
-                              {entry.minutes_late != null && entry.minutes_late > 0 && (
-                                <span className="text-[var(--warning-800)] ml-1">+{entry.minutes_late}m late</span>
-                              )}
-                            </p>
-                          )}
+                          <p className="text-sm font-semibold text-[var(--dark-950)] truncate">{entry.user!.name}</p>
+                          <p className="text-xs text-[var(--gray-500)] truncate">{entry.user!.job_title || entry.user!.department}</p>
+
+                          {/* Check-in / check-out times + work duration */}
+                          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5">
+                            {checkedIn && (
+                              <span className="flex items-center gap-1 text-xs text-[var(--gray-600)]">
+                                <LogIn size={10} className="text-[var(--success-600)]" />
+                                {formatTime(entry.check_in_at!)}
+                                {(entry.late_minutes ?? 0) > 0 && (
+                                  <span className="text-[var(--warning-700)] font-medium">+{entry.late_minutes}m</span>
+                                )}
+                              </span>
+                            )}
+                            {checkedOut && (
+                              <span className="flex items-center gap-1 text-xs text-[var(--gray-600)]">
+                                <LogOut size={10} className="text-[var(--gray-400)]" />
+                                {formatTime(entry.check_out_at!)}
+                                {(entry.early_out_minutes ?? 0) > 0 && (
+                                  <span className="text-[var(--warning-700)] font-medium">-{entry.early_out_minutes}m</span>
+                                )}
+                              </span>
+                            )}
+                            {checkedIn && (
+                              <span className="text-xs text-[var(--gray-500)]">
+                                {entry.hours_worked != null
+                                  ? <span className="font-medium text-[var(--dark-950)]">{fmtHours(n(entry.hours_worked))}</span>
+                                  : isActive && <CardElapsed checkInAt={entry.check_in_at!} />}
+                              </span>
+                            )}
+                          </div>
                         </div>
                         <Badge label={cfg.label} color={cfg.color} bg={cfg.bg} size="sm" />
                       </div>
@@ -170,20 +230,23 @@ export default function DashboardPage() {
               ) : (
                 <div className="space-y-2">
                   {alerts.map((entry) => {
-                    const cfg = statusConfig[entry.status];
+                    const isAbsent    = entry.status === 'absent';
+                    const isLateNoShow = entry.status === 'late' && !entry.check_in_at;
+                    const isLateIn    = (entry.late_minutes ?? 0) > 0 && !!entry.check_in_at;
+                    const isEarlyOut  = (entry.early_out_minutes ?? 0) > 0 && !!entry.check_out_at;
+                    const alertBg     = isEarlyOut ? 'var(--warning-50)' : isAbsent ? 'var(--danger-50)' : 'var(--warning-50)';
+                    const alertColor  = isAbsent ? 'var(--danger-800)' : 'var(--warning-900)';
                     return (
-                      <div key={entry.user.id} className="flex items-start gap-3 p-3 rounded-lg" style={{ backgroundColor: cfg.bg }}>
-                        <Avatar name={entry.user.name} size="sm" />
+                      <div key={entry.user!.id} className="flex items-start gap-3 p-3 rounded-lg border" style={{ backgroundColor: alertBg, borderColor: isAbsent ? 'var(--danger-200)' : 'var(--warning-200)' }}>
+                        <Avatar name={entry.user!.name} size="sm" />
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold truncate" style={{ color: cfg.color }}>{entry.user.name}</p>
-                          <p className="text-xs mt-0.5" style={{ color: cfg.color }}>
-                            {entry.status === 'absent' ? 'Has not checked in' : `Late by ${entry.minutes_late}m`}
+                          <p className="text-xs font-semibold truncate" style={{ color: alertColor }}>{entry.user!.name}</p>
+                          <p className="text-xs mt-0.5" style={{ color: alertColor }}>
+                            {isAbsent    && 'Not checked in'}
+                            {isLateNoShow && `${entry.late_minutes}m late — no-show`}
+                            {isLateIn    && !isLateNoShow && `Arrived ${entry.late_minutes}m late${entry.check_in_at ? ` at ${formatTime(entry.check_in_at)}` : ''}`}
+                            {isEarlyOut  && `Left ${entry.early_out_minutes}m early at ${formatTime(entry.check_out_at!)}`}
                           </p>
-                          {entry.shift_start && (
-                            <p className="text-xs opacity-70" style={{ color: cfg.color }}>
-                              Shift: {formatTime(entry.shift_start)}
-                            </p>
-                          )}
                         </div>
                       </div>
                     );
