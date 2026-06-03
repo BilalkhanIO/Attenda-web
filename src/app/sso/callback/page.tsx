@@ -38,18 +38,19 @@ function SSOCallbackContent() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[var(--gray-50)] p-4">
-        <div className="w-full max-w-md text-center space-y-4">
-          <div className="flex justify-center mb-6">
-            <AttendaLogo iconSize={40} variant="light" />
+      <div className="min-h-screen flex items-center justify-center bg-[var(--dark-950)] p-6">
+        <div className="w-full max-w-md text-center space-y-4 relative">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-64 bg-[var(--danger-500)]/5 blur-[80px] rounded-full pointer-events-none" />
+          <div className="flex justify-center mb-8 relative z-10">
+            <AttendaLogo iconSize={44} />
           </div>
-          <div className="bg-white rounded-2xl shadow-sm border border-[var(--gray-200)] p-8 space-y-4">
-            <div className="w-14 h-14 rounded-full bg-[var(--danger-100)] flex items-center justify-center mx-auto">
-              <AlertTriangle size={28} className="text-[var(--danger-800)]" />
+          <div className="bg-[var(--glass-05)] backdrop-blur-2xl rounded-[3rem] border border-[var(--glass-border)] p-10 md:p-12 shadow-2xl relative z-10">
+            <div className="w-20 h-20 rounded-[2rem] bg-[var(--danger-500)]/20 border border-[var(--danger-500)]/30 flex items-center justify-center mx-auto mb-8">
+              <AlertTriangle size={36} className="text-[var(--danger-500)]" />
             </div>
-            <h1 className="text-xl font-bold text-[var(--dark-950)]">Sign-in failed</h1>
-            <p className="text-sm text-[var(--gray-500)]">{error}</p>
-            <Button className="w-full" onClick={() => router.push('/login')}>Back to Sign In</Button>
+            <h1 className="text-2xl font-black text-white mb-4 tracking-tight">Sign-in failed</h1>
+            <p className="text-sm font-medium text-[var(--on-glass-muted)] leading-relaxed mb-10">{error}</p>
+            <Button className="w-full py-4 text-[11px] font-black uppercase tracking-[0.2em]" onClick={() => router.push('/login')}>Back to Sign In</Button>
           </div>
         </div>
       </div>
@@ -57,11 +58,14 @@ function SSOCallbackContent() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--gray-50)]">
-      <div className="flex flex-col items-center gap-4">
-        <AttendaLogo iconSize={44} variant="light" />
-        <div className="w-6 h-6 border-2 border-[var(--primary-600)] border-t-transparent rounded-full animate-spin mt-2" />
-        <p className="text-sm text-[var(--gray-500)]">Completing sign-in…</p>
+    <div className="min-h-screen flex items-center justify-center bg-[var(--dark-950)] selection:bg-[var(--primary-600)]">
+      <div className="flex flex-col items-center gap-6 relative">
+        <div className="absolute inset-0 bg-[var(--primary-600)]/10 blur-[60px] rounded-full pointer-events-none" />
+        <AttendaLogo iconSize={56} className="relative z-10" />
+        <div className="flex flex-col items-center gap-3 relative z-10">
+           <div className="w-8 h-8 border-4 border-[var(--primary-600)] border-t-transparent rounded-full animate-spin" />
+           <p className="text-[10px] font-black text-[var(--primary-600)] uppercase tracking-[0.3em] mt-2">Authenticating</p>
+        </div>
       </div>
     </div>
   );
@@ -69,8 +73,8 @@ function SSOCallbackContent() {
 
 function PageFallback() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--gray-50)]">
-      <div className="w-8 h-8 border-2 border-[var(--primary-600)] border-t-transparent rounded-full animate-spin" />
+    <div className="min-h-screen flex items-center justify-center bg-[var(--dark-950)]">
+      <div className="w-10 h-10 border-4 border-[var(--primary-600)] border-t-transparent rounded-full animate-spin" />
     </div>
   );
 }

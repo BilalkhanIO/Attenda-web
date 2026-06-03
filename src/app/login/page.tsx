@@ -9,7 +9,7 @@ import { authApi } from '@/lib/api';
 import { getApiError } from '@/lib/utils';
 import { Button, Input, Modal } from '@/components/ui';
 import AttendaLogo from '@/components/ui/AttendaLogo';
-import { Eye, EyeOff, Mail, Shield, MapPin, MessageCircle, Bot, Banknote, Sparkles } from 'lucide-react';
+import { Eye, EyeOff, Mail, Shield, MapPin, MessageCircle, Bot, Banknote } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 
@@ -100,23 +100,20 @@ export default function LoginPage() {
         {/* Feature highlights */}
         <div className="space-y-12 relative z-10 max-w-lg">
           <div className="slide-in-left">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-[var(--primary-600)]/10 border border-[var(--primary-600)]/20 rounded-full text-[9px] font-black text-[var(--primary-600)] uppercase tracking-[0.2em] mb-6">
-               <Sparkles size={10} /> Secure Identification Portal
-            </div>
             <h1 className="text-6xl font-black text-white leading-[1.05] mb-8 tracking-tighter">
-              Your Team,<br />Autonomous &<br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--primary-600)] to-[var(--secondary)]">Connected.</span>
+              Your team,<br />always accounted<br /><span className="text-[var(--primary-600)]">for.</span>
             </h1>
             <p className="text-lg font-medium text-[var(--on-glass-muted)] leading-relaxed">
-              Authenticate to your organisation&apos;s Attenda ecosystem. Manage attendance, shifts, and payroll with Aurora Liquid Glass precision.
+              Automated attendance, payroll, leave and performance — all in one dashboard built for modern businesses.
             </p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 slide-in-left delay-150">
             {[
-              { icon: <MapPin size={20} />, text: 'Network Presence Verification' },
-              { icon: <MessageCircle size={20} />, text: 'WhatsApp Signal Intelligence' },
-              { icon: <Bot size={20} />, text: 'Aurora AI Workforce Routing' },
-              { icon: <Banknote size={20} />, text: 'Real-time Fiscal Processing' },
+              { icon: <MapPin size={20} />, text: 'Auto check-in via office WiFi' },
+              { icon: <MessageCircle size={20} />, text: 'Real-time WhatsApp alerts' },
+              { icon: <Bot size={20} />, text: 'AI-powered remote check-ins' },
+              { icon: <Banknote size={20} />, text: 'One-click payroll processing' },
             ].map((f) => (
               <div key={f.text} className="flex items-center gap-4 group">
                 <div className="w-11 h-11 flex items-center justify-center rounded-2xl bg-[var(--glass-10)] border border-[var(--glass-border)] text-[var(--primary-600)] transition-all group-hover:scale-110 group-hover:border-[var(--primary-600)]/50">
@@ -129,7 +126,7 @@ export default function LoginPage() {
         </div>
 
         <div className="relative z-10">
-           <p className="text-[10px] font-black text-[var(--on-glass-dim)] uppercase tracking-[0.2em]">&copy; ATTENDA TECHNOLOGIES 2026 &middot; SECURE ENVIRONMENT</p>
+           <p className="text-[10px] font-black text-[var(--on-glass-dim)] uppercase tracking-[0.2em]">&copy; {new Date().getFullYear()} Attenda. All rights reserved.</p>
         </div>
       </div>
 
@@ -149,18 +146,17 @@ export default function LoginPage() {
                /* ── 2FA Step ─────────────────────────────── */
                <div className="space-y-8">
                  <div>
-                   <p className="text-[10px] font-black text-[var(--primary-600)] uppercase tracking-[0.3em] mb-4">Security</p>
-                   <h2 className="text-3xl font-black text-white mb-2 tracking-tight">Identity Vault</h2>
-                   <p className="text-sm font-medium text-[var(--on-glass-muted)]">Transmit the 6-digit verification code from your authenticator.</p>
+                   <h2 className="text-3xl font-black text-white mb-2 tracking-tight">Two-factor verification</h2>
+                   <p className="text-sm font-medium text-[var(--on-glass-muted)]">Enter the 6-digit code from your authenticator app.</p>
                  </div>
 
                  <div className="flex items-center gap-4 p-4 rounded-2xl bg-[var(--primary-600)]/10 border border-[var(--primary-600)]/20">
                    <Shield size={20} className="text-[var(--primary-600)] flex-shrink-0" />
-                   <p className="text-[11px] font-bold text-[var(--primary-600)] uppercase tracking-widest leading-relaxed">Multifactor Identification Active</p>
+                   <p className="text-[11px] font-bold text-[var(--primary-600)] uppercase tracking-widest leading-relaxed">Your account has 2FA enabled</p>
                  </div>
 
                  <Input
-                   label="Verification Code"
+                   label="Authenticator Code"
                    type="text"
                    inputMode="numeric"
                    maxLength={6}
@@ -171,24 +167,23 @@ export default function LoginPage() {
                  />
 
                  <Button className="w-full py-4 text-[13px] font-black uppercase tracking-[0.2em]" size="lg" loading={submitting2FA} onClick={onVerify2FA}>
-                   Verify Identity
+                   Verify
                  </Button>
 
                  <button
                    type="button"
                    onClick={() => { setRequires2FA(false); setTwoFACode(''); setPartialToken(''); }}
-                   className="w-full text-[10px] font-black text-[var(--on-glass-dim)] hover:text-white uppercase tracking-widest transition-colors"
+                   className="w-full text-xs font-bold text-[var(--on-glass-dim)] hover:text-white transition-colors"
                  >
-                   ← Terminate Session
+                   ← Back to sign in
                  </button>
                </div>
              ) : (
                /* ── Login Form ───────────────────────────── */
                <>
                  <div className="mb-10">
-                   <p className="text-[10px] font-black text-[var(--primary-600)] uppercase tracking-[0.3em] mb-4">Identification</p>
-                   <h2 className="text-3xl font-black text-white mb-2 tracking-tight">Welcome Back.</h2>
-                   <p className="text-sm font-medium text-[var(--on-glass-muted)]">Resume your workspace operation.</p>
+                   <h2 className="text-3xl font-black text-white mb-2 tracking-tight">Welcome back</h2>
+                   <p className="text-sm font-medium text-[var(--on-glass-muted)]">Sign in to your workspace</p>
                  </div>
 
                  {/* SSO */}
@@ -203,7 +198,7 @@ export default function LoginPage() {
                         <path d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FFFFFF" opacity="0.4"/>
                         <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#FFFFFF" opacity="0.2"/>
                       </svg>
-                      <span className="text-[13px] font-black text-white uppercase tracking-widest">Identify with Google</span>
+                      <span className="text-[13px] font-black text-white uppercase tracking-widest">Sign in with Google</span>
                     </a>
                  </div>
 
@@ -215,7 +210,7 @@ export default function LoginPage() {
 
                  <form onSubmit={handleSubmit(onLogin)} className="space-y-6">
                    <Input
-                     label="Secure Identifier"
+                     label="Email address"
                      type="email"
                      placeholder="you@company.com"
                      leftIcon={<Mail size={18} />}
@@ -226,9 +221,9 @@ export default function LoginPage() {
                    />
                    <div className="space-y-2">
                       <Input
-                        label="Passphrase"
+                        label="Password"
                         type={showPassword ? 'text' : 'password'}
-                        placeholder="••••••••"
+                        placeholder="Enter your password"
                         error={errors.password?.message}
                         required
                         className="bg-[var(--glass-10)]"
@@ -243,24 +238,24 @@ export default function LoginPage() {
                         <button
                           type="button"
                           onClick={() => setForgotOpen(true)}
-                          className="text-[10px] font-black text-[var(--primary-600)] hover:brightness-110 uppercase tracking-widest transition-all"
+                          className="text-xs font-bold text-[var(--primary-600)] hover:underline"
                         >
-                          Lost Access?
+                          Forgot password?
                         </button>
                       </div>
                    </div>
 
                    <Button type="submit" className="w-full py-5 text-[13px] font-black uppercase tracking-[0.2em]" size="lg" loading={isSubmitting}>
-                     Initialize Session
+                     Sign In
                    </Button>
                  </form>
 
                  <div className="mt-10 text-center space-y-4">
-                    <p className="text-[10px] font-bold text-[var(--on-glass-dim)] uppercase tracking-widest">
-                      New to Attenda? <Link href="/get-started" className="text-white hover:text-[var(--primary-600)] transition-colors">Apply for Account</Link>
+                    <p className="text-xs text-[var(--on-glass-dim)]">
+                      Don&apos;t have an account? Contact your HR Admin.
                     </p>
-                    <Link href="/" className="inline-block text-[10px] font-black text-[var(--on-glass-muted)] hover:text-white uppercase tracking-widest transition-all">
-                       ← Return to Base
+                    <Link href="/" className="inline-block text-xs font-bold text-[var(--on-glass-muted)] hover:text-white transition-all">
+                       ← Back to homepage
                     </Link>
                  </div>
                </>
@@ -273,23 +268,22 @@ export default function LoginPage() {
       <Modal
         isOpen={forgotOpen}
         onClose={() => { setForgotOpen(false); setForgotSent(false); forgotForm.reset(); }}
-        title="Protocol: Access Recovery"
+        title="Reset your password"
         size="sm"
         footer={
           !forgotSent ? (
             <>
-              <Button variant="ghost" onClick={() => setForgotOpen(false)} className="text-[11px] uppercase tracking-widest">Cancel</Button>
+              <Button variant="ghost" onClick={() => setForgotOpen(false)}>Cancel</Button>
               <Button
                 onClick={forgotForm.handleSubmit(onForgotPassword)}
                 loading={forgotForm.formState.isSubmitting}
-                className="text-[11px] uppercase tracking-widest"
               >
-                Transmit Link
+                Send reset link
               </Button>
             </>
           ) : (
-            <Button onClick={() => { setForgotOpen(false); setForgotSent(false); }} className="text-[11px] uppercase tracking-widest">
-              Acknowledged
+            <Button onClick={() => { setForgotOpen(false); setForgotSent(false); }}>
+              Done
             </Button>
           )
         }
@@ -299,18 +293,18 @@ export default function LoginPage() {
             <div className="w-16 h-16 rounded-2xl bg-[var(--primary-600)]/10 border border-[var(--primary-600)]/20 flex items-center justify-center mx-auto mb-6 shadow-xl shadow-[var(--primary-600)]/10">
               <Mail size={24} className="text-[var(--primary-600)]" />
             </div>
-            <p className="text-lg font-black text-white mb-2 uppercase tracking-tight">Transmission Sent</p>
+            <p className="text-lg font-black text-white mb-2 tracking-tight">Check your email</p>
             <p className="text-sm font-medium text-[var(--on-glass-muted)] leading-relaxed">
-              We&apos;ve dispatched a recovery link to your secure endpoint. It remains active for 15 temporal minutes.
+              We&apos;ve sent a password reset link. It expires in 15 minutes.
             </p>
           </div>
         ) : (
           <div className="space-y-6">
             <p className="text-[13px] font-medium text-[var(--on-glass-muted)] leading-relaxed">
-              Identify your secure work email. We will transmit an encrypted recovery signal.
+              Enter your email address and we&apos;ll send you a reset link.
             </p>
             <Input
-              label="Secure Identifier"
+              label="Email address"
               type="email"
               placeholder="you@company.com"
               leftIcon={<Mail size={18} />}

@@ -9,7 +9,7 @@ import { useAuth } from '@/lib/auth';
 import { getApiError } from '@/lib/utils';
 import { Button, Input } from '@/components/ui';
 import AttendaLogo from '@/components/ui/AttendaLogo';
-import { Eye, EyeOff, AlertTriangle } from 'lucide-react';
+import { Eye, EyeOff, AlertTriangle, CheckCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const schema = z.object({
@@ -52,83 +52,80 @@ function SetupAccountContent() {
     }
   };
 
-  if (!token) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[var(--gray-50)] p-4">
-        <div className="w-full max-w-md">
-          <div className="flex justify-center mb-8">
-            <AttendaLogo iconSize={40} variant="light" />
-          </div>
-          <div className="bg-white rounded-2xl shadow-sm border border-[var(--gray-200)] p-8 text-center space-y-4">
-            <div className="w-14 h-14 rounded-full bg-[var(--danger-100)] flex items-center justify-center mx-auto">
-              <AlertTriangle size={28} className="text-[var(--danger-800)]" />
-            </div>
-            <h1 className="text-xl font-bold text-[var(--dark-950)]">Invalid invite link</h1>
-            <p className="text-sm text-[var(--gray-500)]">
-              This invite link is missing a token. Please use the link sent to your email by your HR administrator.
-            </p>
-            <Button variant="ghost" className="w-full" onClick={() => router.push('/login')}>
-              Go to Sign In
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--gray-50)] p-4">
-      <div className="w-full max-w-md">
-        <div className="flex justify-center mb-8">
-          <AttendaLogo iconSize={40} variant="light" />
+    <div className="min-h-screen flex items-center justify-center bg-[var(--dark-950)] p-6 selection:bg-[var(--primary-600)] selection:text-white">
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-[var(--primary-600)]/5 blur-[100px] rounded-full pointer-events-none" />
+
+      <div className="w-full max-w-md relative z-10">
+        <div className="flex justify-center mb-12">
+          <AttendaLogo iconSize={44} />
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-[var(--gray-200)] p-8">
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-[var(--dark-950)] mb-1">Welcome to Attenda</h1>
-            <p className="text-sm text-[var(--gray-500)]">
-              You&apos;ve been invited to join your team&apos;s workspace. Set a password to activate your account.
-            </p>
-          </div>
-
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <Input
-              label="Password"
-              type={showPass ? 'text' : 'password'}
-              required
-              error={errors.password?.message}
-              rightIcon={
-                <button type="button" onClick={() => setShowPass(v => !v)}>
-                  {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              }
-              {...register('password')}
-            />
-            <Input
-              label="Confirm Password"
-              type={showConf ? 'text' : 'password'}
-              required
-              error={errors.confirm?.message}
-              rightIcon={
-                <button type="button" onClick={() => setShowConf(v => !v)}>
-                  {showConf ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              }
-              {...register('confirm')}
-            />
-
-            <div className="p-3 bg-[var(--gray-50)] rounded-lg text-xs text-[var(--gray-500)] space-y-1">
-              <p className="font-semibold text-[var(--dark-950)]">Password requirements:</p>
-              <p>• At least 8 characters</p>
-              <p>• One uppercase letter (A–Z)</p>
-              <p>• One number (0–9)</p>
-              <p>• One special character (!@#$...)</p>
+        <div className="bg-[var(--glass-05)] backdrop-blur-2xl rounded-[3rem] border border-[var(--glass-border)] p-10 md:p-12 shadow-2xl">
+          {!token ? (
+            <div className="text-center page-fade-in">
+              <div className="w-20 h-20 rounded-[2rem] bg-[var(--danger-500)]/20 border border-[var(--danger-500)]/30 flex items-center justify-center mx-auto mb-8 shadow-2xl shadow-[var(--danger-500)]/10">
+                <AlertTriangle size={36} className="text-[var(--danger-500)]" />
+              </div>
+              <h1 className="text-2xl font-black text-white mb-4 tracking-tight">Invalid invite link</h1>
+              <p className="text-sm font-medium text-[var(--on-glass-muted)] leading-relaxed mb-10">
+                This invite link is missing a token. Please use the link sent to your email by your HR administrator.
+              </p>
+              <Button variant="ghost" className="w-full py-4 text-[11px] font-black uppercase tracking-[0.2em]" onClick={() => router.push('/login')}>
+                Go to Sign In
+              </Button>
             </div>
+          ) : (
+            <div className="page-fade-in">
+              <div className="mb-10">
+                <h1 className="text-3xl font-black text-white mb-2 tracking-tight">Welcome to Attenda</h1>
+                <p className="text-sm font-medium text-[var(--on-glass-muted)]">
+                  You&apos;ve been invited to join your team&apos;s workspace. Set a password to activate your account.
+                </p>
+              </div>
 
-            <Button type="submit" className="w-full" loading={isSubmitting}>
-              Activate Account
-            </Button>
-          </form>
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                <Input
+                  label="Password"
+                  type={showPass ? 'text' : 'password'}
+                  required
+                  error={errors.password?.message}
+                  className="bg-[var(--glass-10)]"
+                  rightIcon={
+                    <button type="button" onClick={() => setShowPass(v => !v)} className="hover:text-white transition-colors">
+                      {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  }
+                  {...register('password')}
+                />
+                <Input
+                  label="Confirm Password"
+                  type={showConf ? 'text' : 'password'}
+                  required
+                  error={errors.confirm?.message}
+                  className="bg-[var(--glass-10)]"
+                  rightIcon={
+                    <button type="button" onClick={() => setShowConf(v => !v)} className="hover:text-white transition-colors">
+                      {showConf ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  }
+                  {...register('confirm')}
+                />
+
+                <div className="p-4 bg-[var(--glass-10)] border border-[var(--glass-border)] rounded-2xl text-[11px] font-medium text-[var(--on-glass-muted)] space-y-2">
+                  <p className="font-bold text-white uppercase tracking-widest">Password requirements:</p>
+                  <p>• At least 8 characters</p>
+                  <p>• One uppercase letter (A–Z)</p>
+                  <p>• One number (0–9)</p>
+                  <p>• One special character (!@#$...)</p>
+                </div>
+
+                <Button type="submit" className="w-full py-4 text-[11px] font-black uppercase tracking-[0.2em] mt-4" loading={isSubmitting}>
+                  Activate Account
+                </Button>
+              </form>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -137,8 +134,8 @@ function SetupAccountContent() {
 
 function PageFallback() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--gray-50)]">
-      <div className="w-8 h-8 border-2 border-[var(--primary-600)] border-t-transparent rounded-full animate-spin" />
+    <div className="min-h-screen flex items-center justify-center bg-[var(--dark-950)]">
+       <div className="w-10 h-10 border-4 border-[var(--primary-600)] border-t-transparent rounded-full animate-spin" />
     </div>
   );
 }
