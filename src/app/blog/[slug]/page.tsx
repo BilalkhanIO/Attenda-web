@@ -63,16 +63,16 @@ function formatDate(d: string | null) {
 // Very lightweight markdown → HTML converter (headings, bold, lists, paragraphs)
 function renderMarkdown(md: string): string {
   return md
-    .replace(/^#{3} (.+)$/gm, '<h3 class="text-lg font-bold text-[var(--dark-950)] mt-6 mb-2">$1</h3>')
-    .replace(/^#{2} (.+)$/gm, '<h2 class="text-xl font-black text-[var(--dark-950)] mt-8 mb-3">$1</h2>')
-    .replace(/^#{1} (.+)$/gm, '<h1 class="text-2xl font-black text-[var(--dark-950)] mt-8 mb-4">$1</h1>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold text-[var(--dark-950)]">$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    .replace(/^- (.+)$/gm, '<li class="flex items-start gap-2 mb-1"><span class="mt-1.5 w-1.5 h-1.5 rounded-full bg-[var(--primary-600)] flex-shrink-0"></span><span>$1</span></li>')
-    .replace(/^(\d+)\. (.+)$/gm, '<li class="flex items-start gap-2 mb-1"><span class="font-bold text-[var(--primary-600)] flex-shrink-0 mt-0.5">$1.</span><span>$2</span></li>')
-    .replace(/(<li[\s\S]+?<\/li>)+/g, m => `<ul class="space-y-0.5 my-4">${m}</ul>`)
-    .replace(/\n\n/g, '</p><p class="text-[var(--gray-700)] leading-relaxed mb-4">')
-    .replace(/^(.)/m, '<p class="text-[var(--gray-700)] leading-relaxed mb-4">$&')
+    .replace(/^#{3} (.+)$/gm, '<h3 class="text-xl font-black text-white mt-12 mb-6 uppercase tracking-tight">$1</h3>')
+    .replace(/^#{2} (.+)$/gm, '<h2 class="text-3xl font-black text-white mt-16 mb-8 tracking-tighter leading-tight">$1</h2>')
+    .replace(/^#{1} (.+)$/gm, '<h1 class="text-4xl font-black text-white mt-20 mb-10 tracking-tighter leading-tight">$1</h1>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong class="font-bold text-white">$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em class="italic text-[var(--on-glass-sub)]">$1</em>')
+    .replace(/^- (.+)$/gm, '<li class="flex items-start gap-4 mb-3"><span class="mt-2.5 w-1.5 h-1.5 rounded-full bg-[var(--primary-600)] flex-shrink-0"></span><span class="text-[15px] font-medium text-[var(--on-glass-muted)]">$1</span></li>')
+    .replace(/^(\d+)\. (.+)$/gm, '<li class="flex items-start gap-4 mb-3"><span class="font-black text-[var(--primary-600)] flex-shrink-0 mt-0.5 tracking-tighter">$1.</span><span class="text-[15px] font-medium text-[var(--on-glass-muted)]">$2</span></li>')
+    .replace(/(<li[\s\S]+?<\/li>)+/g, m => `<ul class="my-8 space-y-2">${m}</ul>`)
+    .replace(/\n\n/g, '</p><p class="text-[16px] md:text-[17px] font-medium text-[var(--on-glass-muted)] leading-[1.8] mb-8">')
+    .replace(/^(.)/m, '<p class="text-[16px] md:text-[17px] font-medium text-[var(--on-glass-muted)] leading-[1.8] mb-8">$&')
     + '</p>';
 }
 
@@ -113,7 +113,7 @@ export default async function BlogPostPage({
   };
 
   return (
-    <>
+    <div className="bg-[var(--dark-950)] min-h-screen selection:bg-[var(--primary-600)] selection:text-white">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -121,46 +121,59 @@ export default async function BlogPostPage({
       <MarketingNav />
       <main>
         {/* Header */}
-        <section className="bg-[var(--dark-950)] pt-24 pb-12">
-          <div className="max-w-3xl mx-auto px-6">
-            <Link href="/blog" className="text-white/50 hover:text-white text-sm transition-colors inline-flex items-center gap-1.5 mb-8">
-              ← All articles
+        <section className="pt-44 pb-16 relative overflow-hidden">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-[var(--primary-600)]/5 blur-[120px] rounded-full pointer-events-none" />
+          <div className="max-w-4xl mx-auto px-6 relative z-10">
+            <Link href="/blog" className="text-[10px] font-black text-[var(--on-glass-dim)] hover:text-white uppercase tracking-[0.3em] transition-all inline-flex items-center gap-3 mb-10 group">
+              <span className="group-hover:-translate-x-1 transition-transform">←</span> All articles
             </Link>
 
             {post.tags?.length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-4">
+              <div className="flex flex-wrap gap-2 mb-6">
                 {post.tags.map((tag: string) => (
-                  <span key={tag} className="text-xs font-medium px-2.5 py-1 bg-white/10 text-white/70 rounded-full">{tag}</span>
+                  <span key={tag} className="text-[9px] font-black px-3 py-1 bg-[var(--glass-10)] border border-[var(--glass-border)] text-white/70 rounded-full uppercase tracking-widest">{tag}</span>
                 ))}
               </div>
             )}
 
-            <h1 className="text-3xl md:text-4xl font-black text-white leading-tight mb-4">{post.title}</h1>
+            <h1 className="text-4xl md:text-6xl font-black text-white leading-[1.1] mb-8 tracking-tighter">{post.title}</h1>
 
             {post.excerpt && (
-              <p className="text-lg text-white/60 leading-relaxed mb-6">{post.excerpt}</p>
+              <p className="text-xl text-[var(--on-glass-muted)] leading-relaxed mb-10 font-medium">{post.excerpt}</p>
             )}
 
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2.5">
+            <div className="flex flex-wrap items-center gap-8 py-8 border-y border-[var(--glass-border)]">
+              <div className="flex items-center gap-4">
                 {post.author_avatar ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={post.author_avatar} alt={post.author_name} className="w-8 h-8 rounded-full object-cover" />
+                  <img src={post.author_avatar} alt={post.author_name} className="w-10 h-10 rounded-2xl object-cover border border-[var(--glass-border)] shadow-xl" />
                 ) : (
-                  <div className="w-8 h-8 rounded-full bg-[var(--primary-600)] flex items-center justify-center">
-                    <span className="text-xs font-bold text-white">{post.author_name.charAt(0)}</span>
+                  <div className="w-10 h-10 rounded-2xl bg-[var(--glass-10)] border border-[var(--glass-border)] flex items-center justify-center">
+                    <span className="text-xs font-black text-[var(--primary-600)]">{post.author_name.charAt(0)}</span>
                   </div>
                 )}
-                <span className="text-sm text-white/70">{post.author_name}</span>
+                <div>
+                   <p className="text-[10px] font-black text-[var(--on-glass-dim)] uppercase tracking-widest mb-0.5">Author</p>
+                   <p className="text-[13px] font-bold text-white">{post.author_name}</p>
+                </div>
               </div>
               {post.published_at && (
-                <span className="text-sm text-white/40">{formatDate(post.published_at)}</span>
+                <div>
+                   <p className="text-[10px] font-black text-[var(--on-glass-dim)] uppercase tracking-widest mb-0.5">Transmitted</p>
+                   <p className="text-[13px] font-bold text-white">{formatDate(post.published_at)}</p>
+                </div>
               )}
               {post.read_time_mins && (
-                <span className="text-sm text-white/40">{post.read_time_mins} min read</span>
+                <div>
+                   <p className="text-[10px] font-black text-[var(--on-glass-dim)] uppercase tracking-widest mb-0.5">Duration</p>
+                   <p className="text-[13px] font-bold text-white">{post.read_time_mins} MIN READ</p>
+                </div>
               )}
               {post.views > 0 && (
-                <span className="text-sm text-white/40">{post.views.toLocaleString()} views</span>
+                <div>
+                   <p className="text-[10px] font-black text-[var(--on-glass-dim)] uppercase tracking-widest mb-0.5">Reach</p>
+                   <p className="text-[13px] font-bold text-white">{post.views.toLocaleString()} VIEWS</p>
+                </div>
               )}
             </div>
           </div>
@@ -168,33 +181,33 @@ export default async function BlogPostPage({
 
         {/* Cover image */}
         {post.cover_image && (
-          <div className="max-w-3xl mx-auto px-6 -mt-6 mb-0">
+          <div className="max-w-5xl mx-auto px-6 relative z-10">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={post.cover_image} alt={post.title} className="w-full h-56 md:h-72 object-cover rounded-2xl shadow-lg" />
+            <img src={post.cover_image} alt={post.title} className="w-full aspect-[21/9] object-cover rounded-[3rem] border border-[var(--glass-border)] shadow-2xl" />
           </div>
         )}
 
         {/* Content */}
-        <article className="max-w-3xl mx-auto px-6 py-12">
+        <article className="max-w-3xl mx-auto px-6 py-24 relative z-10">
           <div
-            className="prose-content text-base leading-relaxed"
+            className="prose-content selection:bg-[var(--secondary)] selection:text-[var(--dark-950)]"
             dangerouslySetInnerHTML={{ __html: renderMarkdown(post.content) }}
           />
         </article>
 
         {/* CTA */}
-        <section className="border-t border-[var(--gray-100)] py-12 bg-[var(--gray-50)]">
-          <div className="max-w-3xl mx-auto px-6 text-center">
-            <h2 className="text-xl font-black text-[var(--dark-950)] mb-2">Try Attenda free for 14 days</h2>
-            <p className="text-[var(--gray-500)] mb-5 text-sm">No credit card required. Up and running in minutes.</p>
+        <section className="py-24 px-6 relative overflow-hidden">
+          <div className="max-w-4xl mx-auto p-12 md:p-20 rounded-[4rem] bg-gradient-to-br from-[var(--dark-800)] to-[var(--dark-950)] border border-[var(--glass-border)] text-center relative z-10 group shadow-2xl">
+            <h2 className="text-3xl md:text-4xl font-black text-white mb-4 tracking-tight">Try Attenda free for 14 days</h2>
+            <p className="text-lg text-[var(--on-glass-muted)] mb-10 font-medium">No credit card required. Up and running in minutes.</p>
             <Link href="/get-started"
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-[var(--primary-600)] hover:bg-[var(--primary-900)] text-white font-bold rounded-xl text-sm transition-colors">
-              Get Started Free →
+              className="inline-flex items-center gap-3 px-10 py-5 bg-[var(--primary-600)] hover:brightness-110 text-white font-black rounded-2xl transition-all shadow-2xl shadow-[var(--primary-600)]/20 text-sm uppercase tracking-widest active:scale-95">
+              Get Started Free <span className="text-white/50">→</span>
             </Link>
           </div>
         </section>
       </main>
       <MarketingFooter />
-    </>
+    </div>
   );
 }

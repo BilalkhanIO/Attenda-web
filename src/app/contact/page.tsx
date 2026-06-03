@@ -26,10 +26,10 @@ export default function ContactPage() {
       <section className="pt-44 pb-20 px-6 relative overflow-hidden">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-[var(--primary-600)]/5 blur-[120px] rounded-full pointer-events-none" />
         <div className="max-w-4xl mx-auto text-center relative z-10">
-          <p className="text-[10px] font-black text-[var(--primary-600)] uppercase tracking-[0.4em] mb-6">Connect</p>
+          <p className="text-xs font-bold text-[var(--primary-600)] uppercase tracking-widest mb-6">Contact Us</p>
           <h1 className="text-5xl md:text-7xl font-black text-white mb-8 tracking-tighter leading-tight">We&apos;d love to <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--primary-600)] to-[var(--secondary)]">hear from you.</span></h1>
           <p className="text-lg md:text-xl text-[var(--on-glass-muted)] leading-relaxed max-w-2xl mx-auto font-medium">
-            Whether you&apos;re looking for a bespoke enterprise demo or technical support, our engineers and product experts are standing by.
+            Have a question, want a demo, or need help? Our team typically responds within 24 hours.
           </p>
         </div>
       </section>
@@ -40,12 +40,12 @@ export default function ContactPage() {
           {/* Contact info */}
           <div className="space-y-12 slide-in-left">
             <div>
-              <h2 className="text-[11px] font-black text-white uppercase tracking-[0.2em] mb-10">Direct Channels</h2>
+              <h2 className="text-xl font-bold text-white mb-10">Contact information</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-6">
                 {[
-                  { icon: Mail,          label: 'General Inquiries',   value: 'hello@attenda.app',   href: 'mailto:hello@attenda.app' },
-                  { icon: Building2,     label: 'Sales & Enterprise',  value: 'sales@attenda.app',   href: 'mailto:sales@attenda.app' },
-                  { icon: MessageSquare, label: 'Technical Support',   value: 'support@attenda.app', href: 'mailto:support@attenda.app' },
+                  { icon: Mail,          label: 'General enquiries',   value: 'hello@attenda.app',   href: 'mailto:hello@attenda.app' },
+                  { icon: Building2,     label: 'Sales & enterprise',  value: 'sales@attenda.app',   href: 'mailto:sales@attenda.app' },
+                  { icon: MessageSquare, label: 'Support',             value: 'support@attenda.app', href: 'mailto:support@attenda.app' },
                 ].map(c => (
                   <div key={c.label} className="p-6 rounded-3xl border border-[var(--glass-border)] bg-[var(--glass-05)] hover:bg-[var(--glass-10)] transition-all duration-500 group">
                     <div className="flex items-center gap-5">
@@ -53,7 +53,7 @@ export default function ContactPage() {
                         <c.icon size={20} className="text-[var(--primary-600)]" />
                       </div>
                       <div>
-                        <p className="text-[10px] text-[var(--on-glass-muted)] font-black uppercase tracking-widest mb-1">{c.label}</p>
+                        <p className="text-xs text-[var(--on-glass-muted)] font-medium mb-1">{c.label}</p>
                         <a href={c.href} className="text-[15px] font-bold text-white hover:text-[var(--primary-600)] transition-colors">{c.value}</a>
                       </div>
                     </div>
@@ -66,17 +66,17 @@ export default function ContactPage() {
             <div className="p-8 rounded-[2.5rem] bg-gradient-to-br from-[var(--glass-10)] to-transparent border border-[var(--glass-border)] shadow-xl">
               <div className="flex items-center gap-3 mb-6">
                 <Clock size={18} className="text-[var(--primary-600)]" />
-                <p className="text-[11px] font-black text-white uppercase tracking-widest">SLA Commitment</p>
+                <p className="text-sm font-bold text-white uppercase tracking-widest">Response times</p>
               </div>
               <div className="space-y-4">
                 {[
-                  ['General Response', 'Under 24 Hours'],
-                  ['Critical Support', 'Within 4 Hours'],
-                  ['Enterprise Strategy', 'Same Business Day'],
+                  ['General enquiries', 'Within 24 hours'],
+                  ['Support tickets', 'Within 4 hours (business days)'],
+                  ['Enterprise sales', 'Same business day'],
                 ].map(([label, time]) => (
                   <div key={label} className="flex justify-between items-center py-2 border-b border-[var(--glass-border)] last:border-0">
-                    <span className="text-[13px] font-medium text-[var(--on-glass-muted)]">{label}</span>
-                    <span className="text-[13px] font-black text-white">{time}</span>
+                    <span className="text-sm font-medium text-[var(--on-glass-muted)]">{label}</span>
+                    <span className="text-sm font-bold text-white">{time}</span>
                   </div>
                 ))}
               </div>
@@ -84,10 +84,10 @@ export default function ContactPage() {
 
             {/* Quick links */}
             <div>
-              <p className="text-[10px] font-black text-[var(--on-glass-dim)] uppercase tracking-[0.2em] mb-6">Resources</p>
+              <p className="text-xs font-bold text-[var(--on-glass-dim)] uppercase tracking-widest mb-6">Quick links</p>
               <div className="flex gap-4 flex-wrap">
-                {[{ label: 'Documentation', href: '#' }, { label: 'Platform Status', href: '#' }, { label: 'Security Whitepaper', href: '#' }].map(l => (
-                  <Link key={l.label} href={l.href} className="px-5 py-2.5 bg-[var(--glass-05)] border border-[var(--glass-border)] rounded-full text-[11px] font-bold text-white hover:bg-[var(--glass-10)] transition-all">
+                {[{ label: 'Apply for org', href: '/get-started' }, { label: 'Privacy Policy', href: '/privacy' }, { label: 'About us', href: '/about' }].map(l => (
+                  <Link key={l.label} href={l.href} className="px-5 py-2.5 bg-[var(--glass-05)] border border-[var(--glass-border)] rounded-full text-xs font-bold text-white hover:bg-[var(--glass-10)] transition-all">
                     {l.label}
                   </Link>
                 ))}
@@ -103,36 +103,36 @@ export default function ContactPage() {
 
                {sent ? (
                  <div className="flex flex-col items-center justify-center min-h-[400px] text-center page-fade-in">
-                   <div className="w-20 h-20 rounded-[2rem] bg-[var(--success-500)]/20 border border-[var(--success-500)]/30 flex items-center justify-center mb-8 shadow-2xl shadow-[var(--success-500)]/10 animate-bounce">
+                   <div className="w-20 h-20 rounded-[2rem] bg-[var(--success-500)]/20 border border-[var(--success-500)]/30 flex items-center justify-center mx-auto mb-8 shadow-2xl shadow-[var(--success-500)]/10 animate-bounce">
                      <CheckCircle size={36} className="text-[var(--success-500)]" />
                    </div>
-                   <h3 className="text-3xl font-black text-white mb-4 tracking-tight">Signal Received.</h3>
-                   <p className="text-[var(--on-glass-muted)] font-medium mb-10 max-w-xs mx-auto">Our team is already processing your request. Expect a response shortly.</p>
-                   <button onClick={() => setSent(false)} className="px-8 py-3 bg-[var(--glass-10)] border border-[var(--glass-border)] rounded-xl text-[11px] font-black text-white uppercase tracking-[0.2em] hover:bg-[var(--glass-20)] transition-all">
-                     Transmit Another
+                   <h3 className="text-3xl font-black text-white mb-4 tracking-tight">Message received!</h3>
+                   <p className="text-[var(--on-glass-muted)] font-medium mb-10 max-w-xs mx-auto">Thanks for reaching out. We&apos;ll get back to you within 24 hours.</p>
+                   <button onClick={() => setSent(false)} className="px-8 py-3 bg-[var(--glass-10)] border border-[var(--glass-border)] rounded-xl text-xs font-bold text-white uppercase tracking-widest hover:bg-[var(--glass-20)] transition-all">
+                     Send another message
                    </button>
                  </div>
                ) : (
                  <form onSubmit={handleSubmit} className="space-y-8 relative z-10">
                    <div className="mb-10">
-                      <h2 className="text-3xl font-black text-white mb-2 tracking-tight">Send a Transmission</h2>
-                      <p className="text-sm font-medium text-[var(--on-glass-muted)]">Experience the future of workforce management.</p>
+                      <h2 className="text-3xl font-black text-white mb-2 tracking-tight">Send us a message</h2>
+                      <p className="text-sm font-medium text-[var(--on-glass-muted)]">Tell us how we can help your team.</p>
                    </div>
 
                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                      <div className="space-y-2">
-                       <label className="text-[10px] font-black text-[var(--on-glass-muted)] uppercase tracking-widest ml-1">Identity</label>
+                       <label className="text-xs font-bold text-[var(--on-glass-muted)] uppercase tracking-widest ml-1">Your name <span className="text-[var(--primary-600)]">*</span></label>
                        <input
                          required
                          type="text"
-                         placeholder="Jane Doe"
+                         placeholder="Jane Smith"
                          value={form.name}
                          onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                          className="w-full bg-[var(--glass-10)] border border-[var(--glass-border)] rounded-2xl px-6 py-4 text-white text-sm placeholder:text-[var(--on-glass-dim)] outline-none focus:border-[var(--primary-600)] focus:ring-4 focus:ring-[var(--primary-600)]/10 transition-all font-medium"
                        />
                      </div>
                      <div className="space-y-2">
-                       <label className="text-[10px] font-black text-[var(--on-glass-muted)] uppercase tracking-widest ml-1">Secure Email</label>
+                       <label className="text-xs font-bold text-[var(--on-glass-muted)] uppercase tracking-widest ml-1">Work email <span className="text-[var(--primary-600)]">*</span></label>
                        <input
                          required
                          type="email"
@@ -145,10 +145,10 @@ export default function ContactPage() {
                    </div>
 
                    <div className="space-y-2">
-                     <label className="text-[10px] font-black text-[var(--on-glass-muted)] uppercase tracking-widest ml-1">Organisation</label>
+                     <label className="text-xs font-bold text-[var(--on-glass-muted)] uppercase tracking-widest ml-1">Company name</label>
                      <input
                        type="text"
-                       placeholder="Global Core Inc"
+                       placeholder="Acme Corp"
                        value={form.company}
                        onChange={e => setForm(f => ({ ...f, company: e.target.value }))}
                        className="w-full bg-[var(--glass-10)] border border-[var(--glass-border)] rounded-2xl px-6 py-4 text-white text-sm placeholder:text-[var(--on-glass-dim)] outline-none focus:border-[var(--primary-600)] focus:ring-4 focus:ring-[var(--primary-600)]/10 transition-all font-medium"
@@ -156,11 +156,11 @@ export default function ContactPage() {
                    </div>
 
                    <div className="space-y-2">
-                     <label className="text-[10px] font-black text-[var(--on-glass-muted)] uppercase tracking-widest ml-1">Requirement Details</label>
+                     <label className="text-xs font-bold text-[var(--on-glass-muted)] uppercase tracking-widest ml-1">Message <span className="text-[var(--primary-600)]">*</span></label>
                      <textarea
                        required
                        rows={4}
-                       placeholder="How can we help optimize your workforce?"
+                       placeholder="Tell us how we can help..."
                        value={form.message}
                        onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
                        className="w-full bg-[var(--glass-10)] border border-[var(--glass-border)] rounded-2xl px-6 py-4 text-white text-sm placeholder:text-[var(--on-glass-dim)] outline-none focus:border-[var(--primary-600)] focus:ring-4 focus:ring-[var(--primary-600)]/10 transition-all font-medium resize-none"
@@ -170,16 +170,16 @@ export default function ContactPage() {
                    <button
                      type="submit"
                      disabled={loading}
-                     className="w-full py-5 bg-[var(--primary-600)] hover:brightness-110 text-white font-black rounded-2xl transition-all shadow-2xl shadow-[var(--primary-600)]/20 text-sm uppercase tracking-[0.2em] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 active:scale-95"
+                     className="w-full py-5 bg-[var(--primary-600)] hover:brightness-110 text-white font-black rounded-2xl transition-all shadow-2xl shadow-[var(--primary-600)]/20 text-sm uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 active:scale-95"
                    >
                      {loading ? (
                        <span className="w-5 h-5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-                     ) : 'Establish Connection'}
+                     ) : 'Send Message'}
                    </button>
 
-                   <p className="text-[10px] text-center font-bold text-[var(--on-glass-dim)] uppercase tracking-widest leading-relaxed">
-                     By initiating contact, you agree to our{' '}
-                     <Link href="/privacy" className="text-[var(--primary-600)] hover:underline">Privacy & Security Protocols</Link>.
+                   <p className="text-xs text-center font-medium text-[var(--on-glass-dim)] leading-relaxed">
+                     By submitting, you agree to our{' '}
+                     <Link href="/privacy" className="text-[var(--primary-600)] hover:underline">Privacy Policy</Link>.
                    </p>
                  </form>
                )}
