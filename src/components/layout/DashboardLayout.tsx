@@ -2,11 +2,12 @@
 import { ReactNode, useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import Cookies from 'js-cookie';
 import { useAuth } from '@/lib/auth';
 import { cn } from '@/lib/utils';
 import {
   LayoutDashboard, Clock, Calendar, CalendarClock, Wallet, Users, TrendingUp,
-  BarChart2, Settings, LogOut, Bell, Menu, X, MessageSquare,
+  BarChart2, Settings, LogOut, Bell, Menu, MessageSquare,
   ChevronDown, Home, Check, Trash2
 } from 'lucide-react';
 import { Avatar } from '@/components/ui';
@@ -88,7 +89,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   // SSE: subscribe to live unread count
   useEffect(() => {
     if (!user) return;
-    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    const token = Cookies.get('access_token');
     if (!token) return;
 
     const apiBase = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1');
@@ -118,7 +119,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (bellOpen) loadNotifs();
+    if (bellOpen) {
+      loadNotifs();
+    }
   }, [bellOpen, loadNotifs]);
 
   // Close bell on outside click
@@ -165,7 +168,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   const filteredNav = navItems.filter(item => user && item.roles.includes(user.role));
 
-  const SidebarContent = () => (
+  const sidebarContent = (
     <div className="flex flex-col h-full">
       {/* Logo */}
       <div className="h-16 flex items-center px-6 border-b border-white/10 flex-shrink-0">
@@ -173,7 +176,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+      <nav className="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto custom-scrollbar">
         {filteredNav.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
           return (
@@ -182,19 +185,18 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               href={item.href}
               onClick={() => setSidebarOpen(false)}
               className={cn(
-                'relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 overflow-hidden',
+                'group flex items-center gap-3.5 px-4 py-3 rounded-2xl text-sm font-bold transition-all duration-200',
                 isActive
-                  ? 'bg-white/12 text-white'
-                  : 'text-white/60 hover:bg-white/8 hover:text-white'
+                  ? 'bg-[var(--primary-600)] text-white shadow-lg shadow-[var(--primary-600)]/20'
+                  : 'text-[var(--on-glass-muted)] hover:bg-[var(--glass-10)] hover:text-white'
               )}
             >
-              {isActive && (
-                <span className="absolute left-0 top-2 bottom-2 w-[3px] bg-white rounded-r-full" />
-              )}
-              <span className={cn('transition-colors', isActive ? 'text-white' : 'text-white/50')}>{item.icon}</span>
+              <span className={cn('transition-colors', isActive ? 'text-white' : 'text-[var(--on-glass-dim)] group-hover:text-white')}>
+                {item.icon}
+              </span>
               {item.label}
               {item.badge != null && (
-                <span className="ml-auto bg-[var(--danger-500)] text-white text-xs font-bold rounded-full px-1.5 py-0.5 min-w-[18px] text-center">
+                <span className="ml-auto bg-[var(--accent)] text-white text-[10px] font-black rounded-full px-2 py-0.5 min-w-[20px] text-center shadow-sm">
                   {item.badge}
                 </span>
               )}
@@ -205,19 +207,19 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
       {/* User profile at bottom */}
       {user && (
-        <div className="p-3 border-t border-white/10 flex-shrink-0">
-          <div className="flex items-center gap-3 px-3 py-2 rounded-lg">
+        <div className="p-4 border-t border-[var(--glass-border)] bg-[var(--glass-05)] flex-shrink-0">
+          <div className="flex items-center gap-3 px-3 py-2.5 rounded-2xl hover:bg-[var(--glass-10)] transition-colors group cursor-pointer">
             <Avatar name={user.name} size="sm" />
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-white truncate">{user.name}</p>
-              <p className="text-xs text-white/50 capitalize truncate">{user.role.replace('_', ' ')}</p>
+              <p className="text-sm font-bold text-white truncate">{user.name}</p>
+              <p className="text-[10px] text-[var(--on-glass-muted)] uppercase tracking-widest font-black truncate">{user.role.replace('_', ' ')}</p>
             </div>
             <button
               onClick={logout}
-              className="text-white/40 hover:text-white transition-colors"
+              className="text-[var(--on-glass-dim)] hover:text-[var(--danger-500)] transition-colors p-1"
               title="Logout"
             >
-              <LogOut size={15} />
+              <LogOut size={16} />
             </button>
           </div>
         </div>
@@ -226,116 +228,121 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   );
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[var(--gray-50)]">
+    <div className="flex h-screen overflow-hidden bg-[var(--dark-950)]">
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex w-60 flex-col flex-shrink-0 bg-[var(--dark-950)]">
-        <SidebarContent />
+      <aside className="hidden lg:flex w-64 flex-col flex-shrink-0 bg-[var(--dark-800)] border-r border-[var(--glass-border)]">
+        {sidebarContent}
       </aside>
 
       {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
         <div className="lg:hidden fixed inset-0 z-40 flex">
-          <div className="fixed inset-0 bg-black/50" onClick={() => setSidebarOpen(false)} />
-          <aside className="relative w-60 bg-[var(--dark-950)] flex flex-col z-50 slide-in-left">
-            <SidebarContent />
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
+          <aside className="relative w-64 bg-[var(--dark-800)] border-r border-[var(--glass-border)] flex flex-col z-50 slide-in-left">
+            {sidebarContent}
           </aside>
         </div>
       )}
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[var(--dark-950)] relative">
+        {/* Background Mesh Effect */}
+        <div className="absolute inset-0 pointer-events-none opacity-20" style={{ background: 'radial-gradient(circle at 10% 20%, var(--primary-600) 0%, transparent 40%), radial-gradient(circle at 90% 80%, var(--secondary) 0%, transparent 40%)' }} />
+
         {/* Top Header */}
-        <header className="h-16 bg-white border-b border-[var(--gray-200)] flex items-center justify-between px-6 flex-shrink-0 shadow-sm">
+        <header className="h-16 bg-[var(--dark-950)]/50 backdrop-blur-md border-b border-[var(--glass-border)] flex items-center justify-between px-6 flex-shrink-0 z-10">
           <div className="flex items-center gap-4">
             <button
-              className="lg:hidden text-[var(--gray-500)] hover:text-[var(--dark-950)]"
+              className="lg:hidden text-[var(--on-glass-sub)] hover:text-white transition-colors"
               onClick={() => setSidebarOpen(true)}
             >
               <Menu size={20} />
             </button>
             <div className="hidden lg:block">
-              <h2 className="text-sm font-semibold text-[var(--dark-950)] capitalize">
+              <h2 className="text-sm font-bold text-white uppercase tracking-wider">
                 {filteredNav.find(n => pathname === n.href || pathname.startsWith(n.href + '/'))?.label || 'Dashboard'}
               </h2>
-              {dateStr && <p className="text-xs text-[var(--gray-500)] mt-0.5">{dateStr}</p>}
+              {dateStr && <p className="text-[11px] text-[var(--on-glass-muted)] mt-0.5">{dateStr}</p>}
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
             {/* Notification bell */}
             <div ref={bellRef} className="relative">
               <button
                 onClick={() => setBellOpen(o => !o)}
-                className="relative w-9 h-9 flex items-center justify-center rounded-lg hover:bg-[var(--gray-100)] text-[var(--gray-500)] transition-colors"
+                className="relative w-9 h-9 flex items-center justify-center rounded-xl bg-[var(--glass-05)] border border-[var(--glass-border)] hover:bg-[var(--glass-10)] text-white transition-all active:scale-90"
               >
                 <Bell size={18} />
                 {unreadCount > 0 && (
-                  <span className="absolute top-1 right-1 min-w-[16px] h-4 bg-[var(--danger-500)] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-0.5">
+                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-[var(--accent)] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 shadow-lg shadow-[var(--accent)]/30">
                     {unreadCount > 99 ? '99+' : unreadCount}
                   </span>
                 )}
               </button>
 
               {bellOpen && (
-                <div className="absolute right-0 top-11 z-30 w-96 bg-white rounded-xl shadow-xl border border-[var(--gray-200)] flex flex-col max-h-[520px] fade-in-up">
+                <div className="absolute right-0 top-12 z-30 w-96 bg-[var(--dark-800)] rounded-2xl shadow-2xl border border-[var(--glass-border)] flex flex-col max-h-[520px] fade-in-up overflow-hidden">
                   {/* Header */}
-                  <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--gray-100)]">
-                    <span className="text-sm font-semibold text-[var(--dark-950)]">
-                      Notifications {unreadCount > 0 && <span className="ml-1 text-[var(--primary-600)]">({unreadCount} unread)</span>}
+                  <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--glass-border)]">
+                    <span className="text-sm font-bold text-white uppercase tracking-wide">
+                      Notifications {unreadCount > 0 && <span className="ml-1 text-[var(--primary-600)]">({unreadCount})</span>}
                     </span>
                     {unreadCount > 0 && (
                       <button
                         onClick={handleMarkAllRead}
-                        className="text-xs text-[var(--primary-600)] hover:underline flex items-center gap-1"
+                        className="text-xs text-[var(--primary-600)] hover:text-[var(--secondary)] font-bold transition-colors flex items-center gap-1"
                       >
-                        <Check size={12} /> Mark all read
+                        <Check size={14} /> Mark all read
                       </button>
                     )}
                   </div>
 
                   {/* List */}
-                  <div className="overflow-y-auto flex-1">
+                  <div className="overflow-y-auto flex-1 custom-scrollbar">
                     {notifsLoading ? (
-                      <div className="flex items-center justify-center py-12 text-[var(--gray-400)] text-sm">Loading…</div>
+                      <div className="flex items-center justify-center py-12 text-[var(--on-glass-muted)] text-sm">Loading…</div>
                     ) : notifs.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center py-12 gap-2">
-                        <Bell size={28} className="text-[var(--gray-300)]" />
-                        <p className="text-sm text-[var(--gray-400)]">No notifications yet</p>
+                      <div className="flex flex-col items-center justify-center py-12 gap-3 text-center">
+                        <div className="w-12 h-12 rounded-full bg-[var(--glass-05)] flex items-center justify-center">
+                          <Bell size={24} className="text-[var(--on-glass-dim)]" />
+                        </div>
+                        <p className="text-sm text-[var(--on-glass-muted)]">No notifications yet</p>
                       </div>
                     ) : notifs.map(n => (
                       <div
                         key={n.id}
                         className={cn(
-                          'flex gap-3 px-4 py-3 border-b border-[var(--gray-50)] hover:bg-[var(--gray-50)] transition-colors group',
-                          !n.read_at && 'bg-[var(--primary-50)]'
+                          'flex gap-4 px-5 py-4 border-b border-[var(--glass-border)] hover:bg-[var(--glass-05)] transition-colors group',
+                          !n.read_at && 'bg-[var(--primary-600)]/5'
                         )}
                       >
                         <span className="text-xl flex-shrink-0 mt-0.5">
                           {NOTIF_ICONS[n.type] ?? '🔔'}
                         </span>
                         <div className="flex-1 min-w-0">
-                          <p className={cn('text-sm leading-snug', !n.read_at ? 'font-semibold text-[var(--dark-950)]' : 'text-[var(--dark-700)]')}>
+                          <p className={cn('text-sm leading-snug', !n.read_at ? 'font-bold text-white' : 'text-[var(--on-glass-sub)]')}>
                             {n.title}
                           </p>
-                          <p className="text-xs text-[var(--gray-500)] mt-0.5 line-clamp-2">{n.body}</p>
-                          <p className="text-[10px] text-[var(--gray-400)] mt-1">{timeAgo(n.created_at)}</p>
+                          <p className="text-xs text-[var(--on-glass-muted)] mt-1 line-clamp-2">{n.body}</p>
+                          <p className="text-[10px] text-[var(--on-glass-dim)] mt-2 font-medium">{timeAgo(n.created_at)}</p>
                         </div>
-                        <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                        <div className="flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
                           {!n.read_at && (
                             <button
                               onClick={() => handleMarkRead(n.id)}
-                              className="p-1 rounded text-[var(--primary-600)] hover:bg-[var(--primary-100)] transition-colors"
+                              className="p-1.5 rounded-lg text-[var(--primary-600)] hover:bg-[var(--primary-600)]/10 transition-colors"
                               title="Mark as read"
                             >
-                              <Check size={12} />
+                              <Check size={14} />
                             </button>
                           )}
                           <button
                             onClick={() => handleDelete(n.id, !n.read_at)}
-                            className="p-1 rounded text-[var(--danger-500)] hover:bg-[var(--danger-100)] transition-colors"
+                            className="p-1.5 rounded-lg text-[var(--danger-500)] hover:bg-[var(--danger-500)]/10 transition-colors"
                             title="Delete"
                           >
-                            <Trash2 size={12} />
+                            <Trash2 size={14} />
                           </button>
                         </div>
                       </div>
@@ -343,10 +350,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                   </div>
 
                   {notifs.length > 0 && (
-                    <div className="px-4 py-2 border-t border-[var(--gray-100)] text-center">
+                    <div className="px-5 py-3 border-t border-[var(--glass-border)] text-center bg-[var(--glass-05)]">
                       <button
                         onClick={() => { loadNotifs(); }}
-                        className="text-xs text-[var(--gray-400)] hover:text-[var(--primary-600)] transition-colors"
+                        className="text-xs font-bold text-[var(--on-glass-muted)] hover:text-white transition-colors"
                       >
                         Refresh
                       </button>
@@ -361,29 +368,34 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               <div className="relative">
                 <button
                   onClick={() => setProfileOpen(!profileOpen)}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-[var(--gray-100)] transition-colors"
+                  className="flex items-center gap-2.5 px-2 py-1.5 rounded-xl hover:bg-[var(--glass-05)] transition-all border border-transparent hover:border-[var(--glass-border)]"
                 >
-                  <Avatar name={user.name} size="sm" />
-                  <span className="hidden sm:block text-sm font-medium text-[var(--dark-950)]">{user.name}</span>
-                  <ChevronDown size={14} className="text-[var(--gray-500)]" />
+                  <div className="relative">
+                    <Avatar name={user.name} size="sm" />
+                    <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[var(--primary-600)] border-2 border-[var(--dark-950)] rounded-full" />
+                  </div>
+                  <span className="hidden sm:block text-sm font-bold text-white">{user.name}</span>
+                  <ChevronDown size={14} className="text-[var(--on-glass-muted)]" />
                 </button>
 
                 {profileOpen && (
                   <>
                     <div className="fixed inset-0 z-10" onClick={() => setProfileOpen(false)} />
-                    <div className="absolute right-0 top-12 z-20 w-52 bg-white rounded-xl shadow-lg border border-[var(--gray-200)] py-1 fade-in-up">
-                      <div className="px-4 py-3 border-b border-[var(--gray-100)]">
-                        <p className="text-sm font-semibold text-[var(--dark-950)]">{user.name}</p>
-                        <p className="text-xs text-[var(--gray-500)]">{user.email}</p>
+                    <div className="absolute right-0 top-12 z-20 w-56 bg-[var(--dark-800)] rounded-2xl shadow-2xl border border-[var(--glass-border)] py-2 fade-in-up overflow-hidden">
+                      <div className="px-5 py-4 border-b border-[var(--glass-border)] bg-[var(--glass-05)]">
+                        <p className="text-sm font-bold text-white">{user.name}</p>
+                        <p className="text-[11px] text-[var(--on-glass-muted)] mt-0.5 truncate">{user.email}</p>
                       </div>
-                      <Link href="/settings/profile" onClick={() => setProfileOpen(false)}
-                        className="flex items-center gap-2 px-4 py-2 text-sm text-[var(--dark-950)] hover:bg-[var(--gray-50)]">
-                        <Settings size={14} /> Profile Settings
-                      </Link>
-                      <button onClick={logout}
-                        className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[var(--danger-800)] hover:bg-[var(--danger-100)]">
-                        <LogOut size={14} /> Sign Out
-                      </button>
+                      <div className="p-1.5">
+                        <Link href="/settings/profile" onClick={() => setProfileOpen(false)}
+                          className="flex items-center gap-3 px-3.5 py-2.5 text-sm font-medium text-white hover:bg-[var(--glass-10)] rounded-xl transition-colors">
+                          <Settings size={16} className="text-[var(--on-glass-muted)]" /> Profile Settings
+                        </Link>
+                        <button onClick={logout}
+                          className="w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-bold text-[var(--danger-500)] hover:bg-[var(--danger-500)]/10 rounded-xl transition-colors mt-1">
+                          <LogOut size={16} /> Sign Out
+                        </button>
+                      </div>
                     </div>
                   </>
                 )}
@@ -393,7 +405,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto flex flex-col">
+        <main className="flex-1 overflow-y-auto flex flex-col custom-scrollbar z-10">
           <TrialBanner />
           <div className="flex-1 p-6 page-fade-in" key={pathname}>
             {children}

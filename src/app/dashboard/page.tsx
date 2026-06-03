@@ -86,11 +86,17 @@ export default function DashboardPage() {
         title="Live Dashboard"
         subtitle={`Today's attendance overview`}
         actions={
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-[var(--gray-500)]">
-              Updated {secondsAgo}s ago
-            </span>
-            <Button variant="outline" size="sm" icon={<RefreshCw size={14} />} onClick={fetchLive}>
+          <div className="flex items-center gap-4 bg-[var(--glass-10)] p-1.5 pl-5 rounded-2xl border border-[var(--glass-border)] shadow-xl backdrop-blur-md">
+            <div className="flex items-center gap-3">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--success-500)] opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[var(--success-600)]"></span>
+              </span>
+              <span className="text-xs font-bold text-[var(--on-glass-muted)] whitespace-nowrap uppercase tracking-widest">
+                Updated {secondsAgo}s ago
+              </span>
+            </div>
+            <Button variant="ghost" size="sm" className="h-9 py-0 border-none bg-transparent hover:bg-[var(--glass-15)] active:scale-95 transition-all" icon={<RefreshCw size={14} />} onClick={fetchLive}>
               Refresh
             </Button>
           </div>
@@ -98,19 +104,19 @@ export default function DashboardPage() {
       />
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-6 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
         {loading ? (
           Array.from({length:6}).map((_,i) => <Skeleton key={i} className="h-28 rounded-xl" />)
         ) : (<>
-          <KPICard title="In Office"   value={counts.in}     icon={<Wifi size={20} />}           color="var(--success-700)" bg="var(--success-100)" />
-          <KPICard title="Late"        value={counts.late}   icon={<AlertTriangle size={20} />}  color="var(--warning-800)" bg="var(--warning-100)"
+          <KPICard title="In Office"   value={counts.in}     icon={<Wifi size={20} />}           color="var(--success-500)" bg="#10b981" />
+          <KPICard title="Late"        value={counts.late}   icon={<AlertTriangle size={20} />}  color="var(--warning-500)" bg="#f59e0b"
             delta={counts.late > 0 ? `${live.filter(e => e.status === 'late' && e.check_in_at).length} arrived` : undefined}
             deltaPositive={false}
           />
-          <KPICard title="Checked Out" value={counts.out}    icon={<Clock size={20} />}          color="var(--gray-500)"    bg="var(--gray-100)" />
-          <KPICard title="Remote"      value={counts.remote} icon={<Wifi size={20} />}           color="var(--purple-700)" bg="var(--purple-100)" />
-          <KPICard title="On Leave"    value={counts.leave}  icon={<Calendar size={20} />}       color="var(--primary-600)" bg="var(--primary-100)" />
-          <KPICard title="Absent"      value={counts.absent} icon={<AlertTriangle size={20} />}  color="var(--danger-800)" bg="var(--danger-100)"
+          <KPICard title="Checked Out" value={counts.out}    icon={<Clock size={20} />}          color="var(--on-glass-muted)" bg="#94a3b8" />
+          <KPICard title="Remote"      value={counts.remote} icon={<Wifi size={20} />}           color="#a78bfa" bg="#8b5cf6" />
+          <KPICard title="On Leave"    value={counts.leave}  icon={<Calendar size={20} />}       color="var(--primary-500)" bg="#00C896" />
+          <KPICard title="Absent"      value={counts.absent} icon={<AlertTriangle size={20} />}  color="var(--danger-500)" bg="#ef4444"
             delta={counts.absent > 0 ? `${counts.absent} no-show` : undefined}
             deltaPositive={false}
           />
@@ -122,15 +128,15 @@ export default function DashboardPage() {
         <div className="xl:col-span-3">
           <Card>
             {/* Filter tabs */}
-            <div className="flex items-center gap-1 px-5 pt-4 pb-0 border-b border-[var(--gray-100)] overflow-x-auto">
+            <div className="flex items-center gap-1 px-5 pt-4 pb-0 border-b border-[var(--glass-border)] overflow-x-auto bg-[var(--glass-05)]">
               {(['all','in','late','remote','leave','absent','out'] as const).map((s) => (
                 <button
                   key={s}
                   onClick={() => setFilter(s)}
-                  className={`px-3 py-2 text-sm font-medium rounded-t-lg transition-colors whitespace-nowrap capitalize ${
+                  className={`px-4 py-3 text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap border-b-2 ${
                     filter === s
-                      ? 'text-[var(--primary-600)] border-b-2 border-[var(--primary-600)]'
-                      : 'text-[var(--gray-500)] hover:text-[var(--dark-950)]'
+                      ? 'text-[var(--primary-600)] border-[var(--primary-600)]'
+                      : 'text-[var(--on-glass-dim)] border-transparent hover:text-white'
                   }`}
                 >
                   {s === 'all' ? `All (${counts.total})` : `${statusConfig[s as keyof typeof statusConfig]?.label ?? s}`}
@@ -155,37 +161,37 @@ export default function DashboardPage() {
                     return (
                       <div
                         key={entry.user!.id}
-                        className="flex items-start gap-3 p-3 rounded-xl border border-[var(--gray-100)] hover:border-[var(--gray-200)] hover:shadow-sm transition-all"
+                        className="flex items-start gap-3 p-4 rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-05)] hover:bg-[var(--glass-10)] hover:shadow-xl transition-all group"
                       >
                         <Avatar name={entry.user!.name} imageUrl={entry.user!.avatar_url} size="md" />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-[var(--dark-950)] truncate">{entry.user!.name}</p>
-                          <p className="text-xs text-[var(--gray-500)] truncate">{entry.user!.job_title || entry.user!.department}</p>
+                          <p className="text-sm font-bold text-white truncate group-hover:text-[var(--primary-600)] transition-colors">{entry.user!.name}</p>
+                          <p className="text-xs font-medium text-[var(--on-glass-muted)] truncate">{entry.user!.job_title || entry.user!.department}</p>
 
                           {/* Check-in / check-out times + work duration */}
-                          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5">
+                          <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
                             {checkedIn && (
-                              <span className="flex items-center gap-1 text-xs text-[var(--gray-600)]">
-                                <LogIn size={10} className="text-[var(--success-600)]" />
+                              <span className="flex items-center gap-1.5 text-[11px] font-bold text-white bg-white/5 px-2 py-0.5 rounded-lg border border-white/5">
+                                <LogIn size={11} className="text-[var(--success-500)]" />
                                 {formatTime(entry.check_in_at!)}
                                 {(entry.late_minutes ?? 0) > 0 && (
-                                  <span className="text-[var(--warning-700)] font-medium">+{entry.late_minutes}m</span>
+                                  <span className="text-[var(--warning-500)]">+{entry.late_minutes}m</span>
                                 )}
                               </span>
                             )}
                             {checkedOut && (
-                              <span className="flex items-center gap-1 text-xs text-[var(--gray-600)]">
-                                <LogOut size={10} className="text-[var(--gray-400)]" />
+                              <span className="flex items-center gap-1.5 text-[11px] font-bold text-white bg-white/5 px-2 py-0.5 rounded-lg border border-white/5">
+                                <LogOut size={11} className="text-[var(--gray-400)]" />
                                 {formatTime(entry.check_out_at!)}
                                 {(entry.early_out_minutes ?? 0) > 0 && (
-                                  <span className="text-[var(--warning-700)] font-medium">-{entry.early_out_minutes}m</span>
+                                  <span className="text-[var(--warning-500)]">-{entry.early_out_minutes}m</span>
                                 )}
                               </span>
                             )}
                             {checkedIn && (
-                              <span className="text-xs text-[var(--gray-500)]">
+                              <span className="text-[11px] font-black text-[var(--on-glass-dim)] uppercase tracking-wider">
                                 {entry.hours_worked != null
-                                  ? <span className="font-medium text-[var(--dark-950)]">{fmtHours(n(entry.hours_worked))}</span>
+                                  ? <span className="text-[var(--primary-600)]">{fmtHours(n(entry.hours_worked))}</span>
                                   : isActive && <CardElapsed checkInAt={entry.check_in_at!} />}
                               </span>
                             )}
@@ -203,13 +209,13 @@ export default function DashboardPage() {
 
         {/* Alerts panel */}
         <div className="xl:col-span-1">
-          <Card className="h-full">
-            <div className="p-5 border-b border-[var(--gray-100)]">
+          <Card className="h-full border border-[var(--danger-500)]/20 bg-[var(--danger-500)]/5 shadow-2xl shadow-[var(--danger-500)]/10">
+            <div className="p-5 border-b border-[var(--glass-border)] bg-[var(--glass-05)]">
               <div className="flex items-center gap-2">
-                <AlertTriangle size={16} className="text-[var(--warning-800)]" />
-                <h3 className="text-sm font-bold text-[var(--dark-950)]">Alerts</h3>
+                <AlertTriangle size={16} className="text-[var(--danger-500)]" />
+                <h3 className="text-xs font-black text-white uppercase tracking-widest">Alerts</h3>
                 {alerts.length > 0 && (
-                  <span className="ml-auto bg-[var(--danger-100)] text-[var(--danger-800)] text-xs font-bold rounded-full px-2 py-0.5">
+                  <span className="ml-auto bg-[var(--danger-500)] text-white text-[10px] font-black rounded-full px-2 py-0.5 shadow-lg shadow-[var(--danger-500)]/30">
                     {alerts.length}
                   </span>
                 )}
@@ -234,18 +240,19 @@ export default function DashboardPage() {
                     const isLateNoShow = entry.status === 'late' && !entry.check_in_at;
                     const isLateIn    = (entry.late_minutes ?? 0) > 0 && !!entry.check_in_at;
                     const isEarlyOut  = (entry.early_out_minutes ?? 0) > 0 && !!entry.check_out_at;
-                    const alertBg     = isEarlyOut ? 'var(--warning-50)' : isAbsent ? 'var(--danger-50)' : 'var(--warning-50)';
-                    const alertColor  = isAbsent ? 'var(--danger-800)' : 'var(--warning-900)';
+                    const alertBg     = isAbsent ? 'rgba(239, 68, 68, 0.1)' : 'rgba(245, 158, 11, 0.1)';
+                    const alertColor  = isAbsent ? '#ef4444' : '#f59e0b';
+                    const alertBorder = isAbsent ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.2)';
                     return (
-                      <div key={entry.user!.id} className="flex items-start gap-3 p-3 rounded-lg border" style={{ backgroundColor: alertBg, borderColor: isAbsent ? 'var(--danger-200)' : 'var(--warning-200)' }}>
-                        <Avatar name={entry.user!.name} size="sm" />
+                      <div key={entry.user!.id} className="flex items-start gap-3 p-3.5 rounded-2xl border transition-all hover:bg-white/5 active:scale-[0.98]" style={{ backgroundColor: alertBg, borderColor: alertBorder }}>
+                        <Avatar name={entry.user!.name} imageUrl={entry.user!.avatar_url} size="sm" />
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold truncate" style={{ color: alertColor }}>{entry.user!.name}</p>
-                          <p className="text-xs mt-0.5" style={{ color: alertColor }}>
-                            {isAbsent    && 'Not checked in'}
-                            {isLateNoShow && `${entry.late_minutes}m late — no-show`}
-                            {isLateIn    && !isLateNoShow && `Arrived ${entry.late_minutes}m late${entry.check_in_at ? ` at ${formatTime(entry.check_in_at)}` : ''}`}
-                            {isEarlyOut  && `Left ${entry.early_out_minutes}m early at ${formatTime(entry.check_out_at!)}`}
+                          <p className="text-[13px] font-bold text-white truncate">{entry.user!.name}</p>
+                          <p className="text-[11px] mt-1 font-bold leading-snug" style={{ color: alertColor }}>
+                            {isAbsent    && 'NOT CHECKED IN'}
+                            {isLateNoShow && `${entry.late_minutes}M LATE — NO-SHOW`}
+                            {isLateIn    && !isLateNoShow && `ARRIVED ${entry.late_minutes}M LATE`}
+                            {isEarlyOut  && `LEFT ${entry.early_out_minutes}M EARLY`}
                           </p>
                         </div>
                       </div>

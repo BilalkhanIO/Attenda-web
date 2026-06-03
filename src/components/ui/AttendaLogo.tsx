@@ -10,15 +10,15 @@ interface AttendaLogoProps {
   className?: string;
 }
 
-export function AttendaLogoIcon({ size = 44, variant = 'dark' }: { size?: number; variant?: 'dark' | 'light' }) {
-  const ringStroke   = variant === 'dark' ? '#1D4ED8' : '#1D4ED8';
-  const innerFill    = variant === 'dark' ? '#1D4ED8' : '#DBEAFE';
-  const innerOpacity = variant === 'dark' ? '0.15'    : '1';
-  const tickMain     = variant === 'dark' ? '#3B82F6' : '#1D4ED8';
-  const hourHand     = variant === 'dark' ? '#60A5FA' : '#1D4ED8';
-  const minuteHand   = variant === 'dark' ? '#F1F5F9' : '#0F172A';
-  const centerDot    = variant === 'dark' ? '#3B82F6' : '#1D4ED8';
-  const badgeBg      = variant === 'dark' ? '#0F172A' : '#F8FAFC';
+export function AttendaLogoIcon({ size = 44 }: { size?: number; variant?: 'dark' | 'light' }) {
+  const ringStroke   = '#00C896';
+  const innerFill    = '#00C896';
+  const innerOpacity = '0.1';
+  const tickMain     = '#00E5FF';
+  const hourHand     = '#00C896';
+  const minuteHand   = '#FFFFFF';
+  const centerDot    = '#00E5FF';
+  const badgeBg      = '#04141A';
 
   return (
     <svg width={size} height={size} viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -41,28 +41,30 @@ export function AttendaLogoIcon({ size = 44, variant = 'dark' }: { size?: number
 export default function AttendaLogo({
   iconSize = 44,
   showWordmark = true,
-  variant = 'dark',
   className,
 }: AttendaLogoProps) {
-  const attColor = variant === 'dark' ? '#F1F5F9' : '#0F172A';
-  const enColor  = variant === 'dark' ? '#3B82F6' : '#1D4ED8';
+  const attColor = '#FFFFFF';
+  const enColor  = '#00C896';
 
   return (
-    <div className={cn('flex items-center gap-3.5', className)}>
-      <AttendaLogoIcon size={iconSize} variant={variant} />
+    <div className={cn('flex items-center gap-3.5 group', className)}>
+      <div className="transition-transform duration-500 group-hover:rotate-12 group-hover:scale-110">
+        <AttendaLogoIcon size={iconSize} />
+      </div>
       {showWordmark && (
         <span
+          className="tracking-tighter"
           style={{
             fontFamily: "'Space Grotesk', 'DM Sans', sans-serif",
-            fontWeight: 700,
-            fontSize: iconSize * 0.64,
-            letterSpacing: '-0.02em',
+            fontWeight: 800,
+            fontSize: iconSize * 0.68,
             lineHeight: 1,
           }}
         >
           <span style={{ color: attColor }}>Att</span>
           <span style={{ color: enColor }}>en</span>
           <span style={{ color: attColor }}>da</span>
+          <span style={{ color: enColor }}>.</span>
         </span>
       )}
     </div>
