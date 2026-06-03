@@ -19,7 +19,7 @@ export function MarketingNav() {
           <span className="font-bold text-white text-lg tracking-tight">Attenda</span>
         </Link>
         <div className="hidden md:flex items-center gap-8">
-          {[{ label: 'Features', href: '/#features' }, { label: 'Pricing', href: '/#pricing' }, { label: 'About', href: '/about' }, { label: 'Contact', href: '/contact' }].map(l => (
+          {[{ label: 'Features', href: '/#features' }, { label: 'Pricing', href: '/#pricing' }, { label: 'Blog', href: '/blog' }, { label: 'About', href: '/about' }, { label: 'Contact', href: '/contact' }].map(l => (
             <Link key={l.label} href={l.href} className="text-sm text-white/70 hover:text-white transition-colors">{l.label}</Link>
           ))}
         </div>
@@ -35,7 +35,7 @@ export function MarketingNav() {
       </div>
       {open && (
         <div className="md:hidden bg-[var(--dark-950)] border-t border-white/10 px-6 py-4 space-y-3">
-          {[{ label: 'Features', href: '/#features' }, { label: 'Pricing', href: '/#pricing' }, { label: 'About', href: '/about' }, { label: 'Contact', href: '/contact' }, { label: 'Sign in', href: '/login' }].map(l => (
+          {[{ label: 'Features', href: '/#features' }, { label: 'Pricing', href: '/#pricing' }, { label: 'Blog', href: '/blog' }, { label: 'About', href: '/about' }, { label: 'Contact', href: '/contact' }, { label: 'Sign in', href: '/login' }].map(l => (
             <Link key={l.label} href={l.href} onClick={() => setOpen(false)} className="block text-sm text-white/70 hover:text-white py-1">{l.label}</Link>
           ))}
           <Link href="/get-started" onClick={() => setOpen(false)} className="block w-full text-center px-4 py-2.5 bg-[var(--primary-600)] text-white text-sm font-semibold rounded-lg">
@@ -73,7 +73,7 @@ export function MarketingFooter() {
           <div>
             <p className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3">Company</p>
             <ul className="space-y-2">
-              {[{ label: 'About', href: '/about' }, { label: 'Contact', href: '/contact' }].map(l => (
+              {[{ label: 'About', href: '/about' }, { label: 'Blog', href: '/blog' }, { label: 'Contact', href: '/contact' }].map(l => (
                 <li key={l.label}><Link href={l.href} className="text-sm text-white/60 hover:text-white transition-colors">{l.label}</Link></li>
               ))}
             </ul>

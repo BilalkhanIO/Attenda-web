@@ -13,6 +13,7 @@ import { Avatar } from '@/components/ui';
 import AttendaLogo from '@/components/ui/AttendaLogo';
 import { notificationApi } from '@/lib/api';
 import type { InAppNotification } from '@/types';
+import TrialBanner from '@/components/TrialBanner';
 
 interface NavItem {
   label: string;
@@ -392,8 +393,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto">
-          <div className="p-6 page-fade-in" key={pathname}>
+        <main className="flex-1 overflow-y-auto flex flex-col">
+          <TrialBanner />
+          <div className="flex-1 p-6 page-fade-in" key={pathname}>
             {children}
           </div>
         </main>
