@@ -19,11 +19,11 @@ export function Button({
 }: ButtonProps) {
   const base = 'inline-flex items-center justify-center gap-2 font-bold rounded-xl transition-all duration-200 focus-visible:ring-4 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer active:scale-95';
   const variants = {
-    primary: 'bg-[var(--primary-600)] text-white hover:bg-[var(--primary-900)] hover:shadow-lg hover:shadow-[var(--primary-600)]/20 focus-visible:ring-[var(--primary-100)]',
-    ghost:   'bg-transparent text-[var(--gray-600)] hover:bg-[var(--gray-100)] hover:text-[var(--dark-950)]',
-    danger:  'bg-[var(--danger-50)] text-[var(--danger-800)] hover:bg-[var(--danger-100)] focus-visible:ring-[var(--danger-100)]',
-    outline: 'bg-white text-[var(--dark-950)] border border-[var(--gray-200)] hover:bg-[var(--gray-50)] hover:border-[var(--gray-300)] shadow-sm',
-    success: 'bg-[var(--success-100)] text-[var(--success-700)] hover:bg-[var(--success-200)]',
+    primary: 'bg-[var(--primary-600)] text-white hover:brightness-110 hover:shadow-lg hover:shadow-[var(--primary-600)]/30 focus-visible:ring-[var(--primary-600)]/20',
+    ghost:   'bg-[var(--glass-05)] text-[var(--on-glass-sub)] hover:bg-[var(--glass-10)] hover:text-white border border-[var(--glass-border)]',
+    danger:  'bg-[var(--danger-800)]/20 text-[var(--danger-500)] hover:bg-[var(--danger-500)]/20 border border-[var(--danger-500)]/30 focus-visible:ring-[var(--danger-500)]/20',
+    outline: 'bg-transparent text-white border border-[var(--glass-border)] hover:bg-[var(--glass-05)] hover:border-[var(--glass-high)] shadow-sm',
+    success: 'bg-[var(--success-700)]/20 text-[var(--success-500)] hover:bg-[var(--success-500)]/20 border border-[var(--success-500)]/30',
   };
   const sizes = {
     sm: 'px-4 py-1.5 text-[13px]',
@@ -53,31 +53,31 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 export function Input({ label, error, hint, leftIcon, rightIcon, className, id, ...props }: InputProps) {
   const inputId = id || label?.toLowerCase().replace(/\s+/g, '-');
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-1.5">
       {label && (
-        <label htmlFor={inputId} className="text-sm font-semibold text-[var(--dark-800)]">
-          {label}{props.required && <span className="text-[var(--danger-500)] ml-0.5">*</span>}
+        <label htmlFor={inputId} className="text-[13px] font-bold text-[var(--on-glass-sub)] uppercase tracking-wide">
+          {label}{props.required && <span className="text-[var(--danger-500)] ml-1">*</span>}
         </label>
       )}
-      <div className="relative">
-        {leftIcon && <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--gray-500)]">{leftIcon}</span>}
+      <div className="relative group">
+        {leftIcon && <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--on-glass-dim)] group-focus-within:text-[var(--primary-600)] transition-colors">{leftIcon}</span>}
         <input
           id={inputId}
           className={cn(
-            'w-full rounded-lg border bg-white px-3 py-2 text-sm text-[var(--dark-950)] placeholder:text-[var(--gray-500)]',
-            'transition-colors duration-150',
-            'border-[var(--gray-200)] focus:border-[var(--primary-600)] focus:ring-2 focus:ring-[var(--primary-100)] outline-none',
-            error && 'border-[var(--danger-500)] focus:ring-[var(--danger-100)]',
-            leftIcon && 'pl-9',
-            rightIcon && 'pr-9',
+            'w-full rounded-xl border bg-[var(--glass-05)] px-4 py-3 text-sm text-white placeholder:text-[var(--on-glass-dim)]',
+            'transition-all duration-200',
+            'border-[var(--glass-border)] focus:border-[var(--primary-600)] focus:ring-4 focus:ring-[var(--primary-600)]/10 outline-none',
+            error && 'border-[var(--danger-500)] focus:ring-[var(--danger-500)]/10',
+            leftIcon && 'pl-11',
+            rightIcon && 'pr-11',
             className
           )}
           {...props}
         />
-        {rightIcon && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--gray-500)]">{rightIcon}</span>}
+        {rightIcon && <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--on-glass-dim)]">{rightIcon}</span>}
       </div>
-      {error && <p className="text-xs text-[var(--danger-800)] flex items-center gap-1"><AlertTriangle size={10} />{error}</p>}
-      {hint && !error && <p className="text-xs text-[var(--gray-500)]">{hint}</p>}
+      {error && <p className="text-xs text-[var(--danger-500)] font-medium flex items-center gap-1.5 mt-0.5"><AlertTriangle size={12} />{error}</p>}
+      {hint && !error && <p className="text-xs text-[var(--on-glass-dim)]">{hint}</p>}
     </div>
   );
 }
@@ -96,26 +96,27 @@ interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
 export function Select({ label, error, options, placeholder, className, id, ...props }: SelectProps) {
   const selectId = id || label?.toLowerCase().replace(/\s+/g, '-');
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-1.5">
       {label && (
-        <label htmlFor={selectId} className="text-sm font-semibold text-[var(--dark-800)]">
-          {label}{props.required && <span className="text-[var(--danger-500)] ml-0.5">*</span>}
+        <label htmlFor={selectId} className="text-[13px] font-bold text-[var(--on-glass-sub)] uppercase tracking-wide">
+          {label}{props.required && <span className="text-[var(--danger-500)] ml-1">*</span>}
         </label>
       )}
       <select
         id={selectId}
         className={cn(
-          'w-full rounded-lg border border-[var(--gray-200)] bg-white px-3 py-2 text-sm text-[var(--dark-950)]',
-          'focus:border-[var(--primary-600)] focus:ring-2 focus:ring-[var(--primary-100)] outline-none transition-colors',
-          error && 'border-[var(--danger-500)]',
+          'w-full rounded-xl border bg-[var(--glass-05)] px-4 py-3 text-sm text-white appearance-none cursor-pointer',
+          'transition-all duration-200',
+          'border-[var(--glass-border)] focus:border-[var(--primary-600)] focus:ring-4 focus:ring-[var(--primary-600)]/10 outline-none',
+          error && 'border-[var(--danger-500)] focus:ring-[var(--danger-500)]/10',
           className
         )}
         {...props}
       >
-        {placeholder && <option value="">{placeholder}</option>}
-        {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+        {placeholder && <option value="" className="bg-[var(--dark-950)]">{placeholder}</option>}
+        {options.map(o => <option key={o.value} value={o.value} className="bg-[var(--dark-950)]">{o.label}</option>)}
       </select>
-      {error && <p className="text-xs text-[var(--danger-800)] flex items-center gap-1"><AlertTriangle size={10} />{error}</p>}
+      {error && <p className="text-xs text-[var(--danger-500)] font-medium flex items-center gap-1.5 mt-0.5"><AlertTriangle size={12} />{error}</p>}
     </div>
   );
 }
@@ -132,24 +133,25 @@ interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
 export function Textarea({ label, error, className, id, ...props }: TextareaProps) {
   const taId = id || label?.toLowerCase().replace(/\s+/g, '-');
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-1.5">
       {label && (
-        <label htmlFor={taId} className="text-sm font-semibold text-[var(--dark-800)]">
-          {label}{props.required && <span className="text-[var(--danger-500)] ml-0.5">*</span>}
+        <label htmlFor={taId} className="text-[13px] font-bold text-[var(--on-glass-sub)] uppercase tracking-wide">
+          {label}{props.required && <span className="text-[var(--danger-500)] ml-1">*</span>}
         </label>
       )}
       <textarea
         id={taId}
         rows={3}
         className={cn(
-          'w-full rounded-lg border border-[var(--gray-200)] bg-white px-3 py-2 text-sm text-[var(--dark-950)] resize-none',
-          'focus:border-[var(--primary-600)] focus:ring-2 focus:ring-[var(--primary-100)] outline-none transition-colors',
-          error && 'border-[var(--danger-500)]',
+          'w-full rounded-xl border bg-[var(--glass-05)] px-4 py-3 text-sm text-white placeholder:text-[var(--on-glass-dim)] resize-none',
+          'transition-all duration-200',
+          'border-[var(--glass-border)] focus:border-[var(--primary-600)] focus:ring-4 focus:ring-[var(--primary-600)]/10 outline-none',
+          error && 'border-[var(--danger-500)] focus:ring-[var(--danger-500)]/10',
           className
         )}
         {...props}
       />
-      {error && <p className="text-xs text-[var(--danger-800)] flex items-center gap-1"><AlertTriangle size={10} />{error}</p>}
+      {error && <p className="text-xs text-[var(--danger-500)] font-medium flex items-center gap-1.5 mt-0.5"><AlertTriangle size={12} />{error}</p>}
     </div>
   );
 }
@@ -165,8 +167,8 @@ interface BadgeProps {
 export function Badge({ label, color, bg, size = 'md' }: BadgeProps) {
   return (
     <span
-      className={cn('inline-flex items-center font-semibold rounded-full', size === 'sm' ? 'px-2 py-0.5 text-xs' : 'px-2.5 py-1 text-xs')}
-      style={{ color, backgroundColor: bg }}
+      className={cn('inline-flex items-center font-bold rounded-full uppercase tracking-wider shadow-sm', size === 'sm' ? 'px-3 py-1 text-[10px]' : 'px-4 py-1.5 text-xs')}
+      style={{ color, backgroundColor: bg + '20', border: `1px solid ${bg}40` }}
     >
       {label}
     </span>
@@ -192,7 +194,7 @@ export function Avatar({ name, imageUrl, size = 'md' }: AvatarProps) {
 // ─── Card ─────────────────────────────────────────────
 export function Card({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <div className={cn('bg-white rounded-2xl border border-[var(--gray-200)] shadow-[0_2px_12px_rgba(0,0,0,0.04)] overflow-hidden', className)}>
+    <div className={cn('bg-[var(--glass-10)] backdrop-blur-md rounded-2xl border border-[var(--glass-border)] shadow-xl overflow-hidden', className)}>
       {children}
     </div>
   );
@@ -211,19 +213,19 @@ interface KPICardProps {
 
 export function KPICard({ title, value, icon, color, bg, delta, deltaPositive }: KPICardProps) {
   return (
-    <Card className="p-5 hover:shadow-md transition-all duration-200 group">
+    <Card className="p-5 hover:bg-[var(--glass-15)] hover:border-[var(--glass-high)] transition-all duration-300 group cursor-default">
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <p className="text-[13px] text-[var(--gray-500)] font-semibold uppercase tracking-wider">{title}</p>
-          <p className="text-3xl font-black mt-2 tracking-tight" style={{ color }}>{value}</p>
+          <p className="text-[11px] text-[var(--on-glass-muted)] font-black uppercase tracking-[0.1em]">{title}</p>
+          <p className="text-3xl font-black mt-2.5 tracking-tight text-white group-hover:text-[var(--primary-600)] transition-colors">{value}</p>
           {delta && (
-            <div className={cn('inline-flex items-center gap-1 mt-2.5 px-2 py-0.5 rounded-full text-[11px] font-bold', deltaPositive ? 'bg-[var(--success-100)] text-[var(--success-700)]' : 'bg-[var(--danger-50)] text-[var(--danger-800)]')}>
+            <div className={cn('inline-flex items-center gap-1 mt-3 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider', deltaPositive ? 'bg-[var(--success-500)]/20 text-[var(--success-500)]' : 'bg-[var(--danger-500)]/20 text-[var(--danger-500)]')}>
               <span>{deltaPositive ? '↑' : '↓'}</span>
               <span>{delta}</span>
             </div>
           )}
         </div>
-        <div className="w-12 h-12 rounded-xl flex items-center justify-center transition-transform duration-200 group-hover:scale-110 group-hover:rotate-3 shadow-sm" style={{ backgroundColor: bg, color }}>
+        <div className="w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-500 group-hover:scale-110 group-hover:rotate-6 shadow-xl" style={{ backgroundColor: bg + '20', color: bg, border: `1px solid ${bg}40` }}>
           {icon}
         </div>
       </div>
@@ -266,26 +268,26 @@ export function Modal({ isOpen, onClose, title, children, size = 'md', footer }:
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-animate"
-      style={{ backgroundColor: 'rgba(15,23,42,0.5)' }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md backdrop-animate"
+      style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
       onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}
     >
-      <div className={cn('w-full bg-white rounded-2xl shadow-2xl modal-animate flex flex-col max-h-[90vh]', sizes[size])}>
+      <div className={cn('w-full bg-[var(--dark-950)]/80 backdrop-blur-xl rounded-3xl border border-[var(--glass-border)] shadow-2xl modal-animate flex flex-col max-h-[90vh] overflow-hidden', sizes[size])}>
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-[var(--gray-200)] flex-shrink-0">
-          <h2 className="text-lg font-bold text-[var(--dark-950)]">{title}</h2>
+        <div className="flex items-center justify-between p-6 border-b border-[var(--glass-border)] flex-shrink-0">
+          <h2 className="text-xl font-black text-white tracking-tight">{title}</h2>
           <button
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--gray-500)] hover:bg-[var(--gray-100)] hover:text-[var(--dark-950)] transition-colors"
+            className="w-10 h-10 flex items-center justify-center rounded-xl text-[var(--on-glass-dim)] hover:bg-[var(--glass-10)] hover:text-white transition-all active:scale-90"
           >
-            <X size={16} />
+            <X size={20} />
           </button>
         </div>
         {/* Body */}
-        <div className="p-6 overflow-y-auto flex-1">{children}</div>
+        <div className="p-6 overflow-y-auto flex-1 custom-scrollbar">{children}</div>
         {/* Footer */}
         {footer && (
-          <div className="flex items-center justify-end gap-3 p-6 border-t border-[var(--gray-200)] flex-shrink-0">
+          <div className="flex items-center justify-end gap-4 p-6 border-t border-[var(--glass-border)] bg-[var(--glass-05)] flex-shrink-0">
             {footer}
           </div>
         )}
@@ -370,24 +372,24 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, subtitle, breadcrumb, actions }: PageHeaderProps) {
   return (
-    <div className="flex items-start justify-between mb-6">
+    <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
       <div>
         {breadcrumb && breadcrumb.length > 0 && (
-          <nav className="flex items-center gap-1 mb-1">
+          <nav className="flex items-center gap-2 mb-3">
             {breadcrumb.map((crumb, i) => (
-              <span key={crumb.label} className="flex items-center gap-1">
-                {i > 0 && <ChevronRight size={12} className="text-[var(--gray-500)]" />}
+              <span key={crumb.label} className="flex items-center gap-2">
+                {i > 0 && <ChevronRight size={14} className="text-[var(--on-glass-dim)]" />}
                 {crumb.href ? (
-                  <a href={crumb.href} className="text-xs text-[var(--primary-600)] hover:underline">{crumb.label}</a>
+                  <a href={crumb.href} className="text-xs font-bold text-[var(--primary-600)] hover:text-[var(--secondary)] transition-colors">{crumb.label}</a>
                 ) : (
-                  <span className="text-xs text-[var(--gray-500)]">{crumb.label}</span>
+                  <span className="text-xs font-bold text-[var(--on-glass-muted)]">{crumb.label}</span>
                 )}
               </span>
             ))}
           </nav>
         )}
-        <h1 className="text-2xl font-bold text-[var(--dark-950)]">{title}</h1>
-        {subtitle && <p className="text-sm text-[var(--gray-500)] mt-1">{subtitle}</p>}
+        <h1 className="text-3xl font-black text-white tracking-tight">{title}</h1>
+        {subtitle && <p className="text-sm font-medium text-[var(--on-glass-muted)] mt-1.5">{subtitle}</p>}
       </div>
       {actions && <div className="flex items-center gap-3">{actions}</div>}
     </div>
@@ -407,20 +409,20 @@ export function Table({ headers, children, loading, emptyState }: TableProps) {
     <div className="overflow-x-auto">
       <table className="w-full">
         <thead>
-          <tr className="border-b border-[var(--gray-200)]">
+          <tr className="border-b border-[var(--glass-border)]">
             {headers.map(h => (
-              <th key={h} className="text-left text-xs font-semibold text-[var(--gray-500)] uppercase tracking-wide py-3 px-4 whitespace-nowrap">
+              <th key={h} className="text-left text-[11px] font-black text-[var(--on-glass-muted)] uppercase tracking-[0.1em] py-4 px-6 whitespace-nowrap">
                 {h}
               </th>
             ))}
           </tr>
         </thead>
-        <tbody>
+        <tbody className="divide-y divide-[var(--glass-border)]">
           {loading ? (
             Array.from({ length: 5 }).map((_, i) => (
-              <tr key={i} className="border-b border-[var(--gray-100)]">
+              <tr key={i}>
                 {headers.map((h) => (
-                  <td key={h} className="py-3 px-4"><Skeleton className="h-4 w-full" /></td>
+                  <td key={h} className="py-4 px-6"><Skeleton className="h-4 w-full opacity-20" /></td>
                 ))}
               </tr>
             ))
@@ -442,16 +444,16 @@ interface ActionMenuItem {
 
 export function ActionMenu({ items }: { items: ActionMenuItem[] }) {
   return (
-    <div className="absolute right-0 top-8 z-10 min-w-[160px] bg-white rounded-xl shadow-lg border border-[var(--gray-200)] py-1 fade-in-up">
+    <div className="absolute right-0 top-10 z-10 min-w-[200px] bg-[var(--dark-950)]/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-[var(--glass-border)] py-2 fade-in-up overflow-hidden">
       {items.map((item) => (
         <button
           key={item.label}
           onClick={item.onClick}
           className={cn(
-            'w-full text-left px-4 py-2 text-sm flex items-center gap-2 transition-colors',
+            'w-full text-left px-5 py-3 text-[13px] font-bold flex items-center gap-3 transition-all active:bg-[var(--glass-10)]',
             item.danger
-              ? 'text-[var(--danger-800)] hover:bg-[var(--danger-100)]'
-              : 'text-[var(--dark-950)] hover:bg-[var(--gray-50)]'
+              ? 'text-[var(--danger-500)] hover:bg-[var(--danger-500)]/10'
+              : 'text-white hover:bg-[var(--glass-10)]'
           )}
         >
           {item.icon}{item.label}
