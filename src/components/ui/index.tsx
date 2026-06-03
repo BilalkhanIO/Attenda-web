@@ -17,22 +17,22 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 export function Button({
   variant = 'primary', size = 'md', loading, icon, children, className, disabled, ...props
 }: ButtonProps) {
-  const base = 'inline-flex items-center gap-2 font-semibold rounded-lg transition-all duration-150 focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer';
+  const base = 'inline-flex items-center justify-center gap-2 font-bold rounded-xl transition-all duration-200 focus-visible:ring-4 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer active:scale-95';
   const variants = {
-    primary: 'bg-[var(--primary-600)] text-white hover:bg-[var(--primary-900)] focus-visible:ring-[var(--primary-600)]',
-    ghost:   'bg-transparent text-[var(--gray-500)] hover:bg-[var(--gray-100)] hover:text-[var(--dark-950)] border border-[var(--gray-200)]',
-    danger:  'bg-[var(--danger-800)] text-white hover:opacity-90 focus-visible:ring-[var(--danger-500)]',
-    outline: 'bg-white text-[var(--dark-950)] border border-[var(--gray-200)] hover:bg-[var(--gray-50)]',
-    success: 'bg-[var(--success-700)] text-white hover:opacity-90',
+    primary: 'bg-[var(--primary-600)] text-white hover:bg-[var(--primary-900)] hover:shadow-lg hover:shadow-[var(--primary-600)]/20 focus-visible:ring-[var(--primary-100)]',
+    ghost:   'bg-transparent text-[var(--gray-600)] hover:bg-[var(--gray-100)] hover:text-[var(--dark-950)]',
+    danger:  'bg-[var(--danger-50)] text-[var(--danger-800)] hover:bg-[var(--danger-100)] focus-visible:ring-[var(--danger-100)]',
+    outline: 'bg-white text-[var(--dark-950)] border border-[var(--gray-200)] hover:bg-[var(--gray-50)] hover:border-[var(--gray-300)] shadow-sm',
+    success: 'bg-[var(--success-100)] text-[var(--success-700)] hover:bg-[var(--success-200)]',
   };
   const sizes = {
-    sm: 'px-3 py-1.5 text-sm',
-    md: 'px-4 py-2 text-sm',
-    lg: 'px-6 py-3 text-base',
+    sm: 'px-4 py-1.5 text-[13px]',
+    md: 'px-5 py-2.5 text-sm',
+    lg: 'px-7 py-3.5 text-base',
   };
   return (
     <button className={cn(base, variants[variant], sizes[size], className)} disabled={disabled || loading} {...props}>
-      {loading ? <Loader2 size={14} className="animate-spin" /> : icon}
+      {loading ? <Loader2 size={16} className="animate-spin" /> : icon}
       {children}
     </button>
   );
@@ -192,7 +192,7 @@ export function Avatar({ name, imageUrl, size = 'md' }: AvatarProps) {
 // ─── Card ─────────────────────────────────────────────
 export function Card({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <div className={cn('bg-white rounded-xl border border-[var(--gray-200)] shadow-sm', className)}>
+    <div className={cn('bg-white rounded-2xl border border-[var(--gray-200)] shadow-[0_2px_12px_rgba(0,0,0,0.04)] overflow-hidden', className)}>
       {children}
     </div>
   );
@@ -211,18 +211,19 @@ interface KPICardProps {
 
 export function KPICard({ title, value, icon, color, bg, delta, deltaPositive }: KPICardProps) {
   return (
-    <Card className="p-5">
+    <Card className="p-5 hover:shadow-md transition-all duration-200 group">
       <div className="flex items-start justify-between">
-        <div>
-          <p className="text-sm text-[var(--gray-500)] font-medium">{title}</p>
-          <p className="text-3xl font-bold mt-1" style={{ color }}>{value}</p>
+        <div className="flex-1">
+          <p className="text-[13px] text-[var(--gray-500)] font-semibold uppercase tracking-wider">{title}</p>
+          <p className="text-3xl font-black mt-2 tracking-tight" style={{ color }}>{value}</p>
           {delta && (
-            <p className={cn('text-xs mt-1 font-medium', deltaPositive ? 'text-[var(--success-700)]' : 'text-[var(--danger-800)]')}>
-              {deltaPositive ? '↑' : '↓'} {delta}
-            </p>
+            <div className={cn('inline-flex items-center gap-1 mt-2.5 px-2 py-0.5 rounded-full text-[11px] font-bold', deltaPositive ? 'bg-[var(--success-100)] text-[var(--success-700)]' : 'bg-[var(--danger-50)] text-[var(--danger-800)]')}>
+              <span>{deltaPositive ? '↑' : '↓'}</span>
+              <span>{delta}</span>
+            </div>
           )}
         </div>
-        <div className="w-11 h-11 rounded-lg flex items-center justify-center" style={{ backgroundColor: bg, color }}>
+        <div className="w-12 h-12 rounded-xl flex items-center justify-center transition-transform duration-200 group-hover:scale-110 group-hover:rotate-3 shadow-sm" style={{ backgroundColor: bg, color }}>
           {icon}
         </div>
       </div>

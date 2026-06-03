@@ -2,11 +2,12 @@
 import { ReactNode, useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import Cookies from 'js-cookie';
 import { useAuth } from '@/lib/auth';
 import { cn } from '@/lib/utils';
 import {
   LayoutDashboard, Clock, Calendar, CalendarClock, Wallet, Users, TrendingUp,
-  BarChart2, Settings, LogOut, Bell, Menu, X, MessageSquare,
+  BarChart2, Settings, LogOut, Bell, Menu, MessageSquare,
   ChevronDown, Home, Check, Trash2
 } from 'lucide-react';
 import { Avatar } from '@/components/ui';
@@ -88,7 +89,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   // SSE: subscribe to live unread count
   useEffect(() => {
     if (!user) return;
-    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    const token = Cookies.get('access_token');
     if (!token) return;
 
     const apiBase = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1');
@@ -118,7 +119,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (bellOpen) loadNotifs();
+    if (bellOpen) {
+      loadNotifs();
+    }
   }, [bellOpen, loadNotifs]);
 
   // Close bell on outside click
@@ -165,7 +168,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   const filteredNav = navItems.filter(item => user && item.roles.includes(user.role));
 
-  const SidebarContent = () => (
+  const sidebarContent = (
     <div className="flex flex-col h-full">
       {/* Logo */}
       <div className="h-16 flex items-center px-6 border-b border-white/10 flex-shrink-0">
@@ -229,7 +232,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     <div className="flex h-screen overflow-hidden bg-[var(--gray-50)]">
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex w-60 flex-col flex-shrink-0 bg-[var(--dark-950)]">
-        <SidebarContent />
+        {sidebarContent}
       </aside>
 
       {/* Mobile Sidebar Overlay */}
@@ -237,7 +240,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         <div className="lg:hidden fixed inset-0 z-40 flex">
           <div className="fixed inset-0 bg-black/50" onClick={() => setSidebarOpen(false)} />
           <aside className="relative w-60 bg-[var(--dark-950)] flex flex-col z-50 slide-in-left">
-            <SidebarContent />
+            {sidebarContent}
           </aside>
         </div>
       )}

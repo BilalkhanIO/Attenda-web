@@ -122,7 +122,9 @@ export default function EmployeesPage() {
   };
 
   const filtered = users.filter(u => {
-    const matchSearch = u.name.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase());
+    const matchSearch = u.name.toLowerCase().includes(search.toLowerCase()) ||
+                       u.email.toLowerCase().includes(search.toLowerCase()) ||
+                       (u.job_title?.toLowerCase().includes(search.toLowerCase()) ?? false);
     const matchDept   = !deptFilter || u.department === deptFilter;
     const matchRole   = !roleFilter || u.role === roleFilter;
     return matchSearch && matchDept && matchRole;
@@ -195,34 +197,36 @@ export default function EmployeesPage() {
 
       <Card>
         {/* Filters */}
-        <div className="flex flex-wrap items-center gap-3 p-5 border-b border-[var(--gray-100)]">
-          <div className="relative flex-1 min-w-[200px]">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--gray-500)]" />
+        <div className="flex flex-wrap items-center gap-4 p-5 border-b border-[var(--gray-100)] bg-[var(--gray-50)]/50">
+          <div className="relative flex-1 min-w-[240px]">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--gray-400)]" />
             <input
-              placeholder="Search by name or email..."
+              placeholder="Search by name, email or job title..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-sm border border-[var(--gray-200)] rounded-lg focus:border-[var(--primary-600)] focus:ring-2 focus:ring-[var(--primary-100)] outline-none"
+              className="w-full pl-10 pr-3 py-2 text-sm bg-white border border-[var(--gray-200)] rounded-xl focus:border-[var(--primary-600)] focus:ring-4 focus:ring-[var(--primary-100)] outline-none transition-all"
             />
           </div>
-          <select
-            value={deptFilter}
-            onChange={e => setDeptFilter(e.target.value)}
-            className="px-3 py-2 text-sm border border-[var(--gray-200)] rounded-lg focus:outline-none"
-          >
-            <option value="">All Departments</option>
-            {departments.map(d => <option key={d} value={d}>{d}</option>)}
-          </select>
-          <select
-            value={roleFilter}
-            onChange={e => setRoleFilter(e.target.value)}
-            className="px-3 py-2 text-sm border border-[var(--gray-200)] rounded-lg focus:outline-none"
-          >
-            <option value="">All Roles</option>
-            {(Object.keys(roleLabels) as Role[]).filter(r => r !== 'super_admin').map(r => (
-              <option key={r} value={r}>{roleLabels[r]}</option>
-            ))}
-          </select>
+          <div className="flex items-center gap-2">
+            <select
+              value={deptFilter}
+              onChange={e => setDeptFilter(e.target.value)}
+              className="px-3 py-2 text-sm bg-white border border-[var(--gray-200)] rounded-xl focus:ring-4 focus:ring-[var(--primary-100)] outline-none transition-all min-w-[140px]"
+            >
+              <option value="">All Departments</option>
+              {departments.map(d => <option key={d} value={d}>{d}</option>)}
+            </select>
+            <select
+              value={roleFilter}
+              onChange={e => setRoleFilter(e.target.value)}
+              className="px-3 py-2 text-sm bg-white border border-[var(--gray-200)] rounded-xl focus:ring-4 focus:ring-[var(--primary-100)] outline-none transition-all min-w-[140px]"
+            >
+              <option value="">All Roles</option>
+              {(Object.keys(roleLabels) as Role[]).filter(r => r !== 'super_admin').map(r => (
+                <option key={r} value={r}>{roleLabels[r]}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {/* Table */}

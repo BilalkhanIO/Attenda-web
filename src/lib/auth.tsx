@@ -67,6 +67,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     Cookies.set('refresh_token', refreshToken, { expires: 30 });
     const decoded = jwtDecode<AuthUser>(accessToken);
     setUser(decoded);
+    if (decoded.role === 'platform_admin') {
+      router.push('/admin');
+    }
   };
 
   const logout = async () => {

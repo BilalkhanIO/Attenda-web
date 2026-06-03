@@ -86,11 +86,17 @@ export default function DashboardPage() {
         title="Live Dashboard"
         subtitle={`Today's attendance overview`}
         actions={
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-[var(--gray-500)]">
-              Updated {secondsAgo}s ago
-            </span>
-            <Button variant="outline" size="sm" icon={<RefreshCw size={14} />} onClick={fetchLive}>
+          <div className="flex items-center gap-4 bg-white p-1.5 pl-4 rounded-xl border border-[var(--gray-200)] shadow-sm">
+            <div className="flex items-center gap-2">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--success-500)] opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--success-600)]"></span>
+              </span>
+              <span className="text-[11px] font-medium text-[var(--gray-500)] whitespace-nowrap">
+                Updated {secondsAgo}s ago
+              </span>
+            </div>
+            <Button variant="ghost" size="sm" className="h-8 py-0 border-none hover:bg-[var(--gray-100)] active:scale-95 transition-all" icon={<RefreshCw size={14} />} onClick={fetchLive}>
               Refresh
             </Button>
           </div>
@@ -98,7 +104,7 @@ export default function DashboardPage() {
       />
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-6 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
         {loading ? (
           Array.from({length:6}).map((_,i) => <Skeleton key={i} className="h-28 rounded-xl" />)
         ) : (<>
@@ -236,12 +242,13 @@ export default function DashboardPage() {
                     const isEarlyOut  = (entry.early_out_minutes ?? 0) > 0 && !!entry.check_out_at;
                     const alertBg     = isEarlyOut ? 'var(--warning-50)' : isAbsent ? 'var(--danger-50)' : 'var(--warning-50)';
                     const alertColor  = isAbsent ? 'var(--danger-800)' : 'var(--warning-900)';
+                    const alertBorder = isAbsent ? 'var(--danger-200)' : 'var(--warning-200)';
                     return (
-                      <div key={entry.user!.id} className="flex items-start gap-3 p-3 rounded-lg border" style={{ backgroundColor: alertBg, borderColor: isAbsent ? 'var(--danger-200)' : 'var(--warning-200)' }}>
-                        <Avatar name={entry.user!.name} size="sm" />
+                      <div key={entry.user!.id} className="flex items-start gap-3 p-3 rounded-xl border transition-all hover:shadow-sm" style={{ backgroundColor: alertBg, borderColor: alertBorder }}>
+                        <Avatar name={entry.user!.name} imageUrl={entry.user!.avatar_url} size="sm" />
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold truncate" style={{ color: alertColor }}>{entry.user!.name}</p>
-                          <p className="text-xs mt-0.5" style={{ color: alertColor }}>
+                          <p className="text-xs font-bold truncate" style={{ color: alertColor }}>{entry.user!.name}</p>
+                          <p className="text-[11px] mt-0.5 leading-tight" style={{ color: alertColor }}>
                             {isAbsent    && 'Not checked in'}
                             {isLateNoShow && `${entry.late_minutes}m late — no-show`}
                             {isLateIn    && !isLateNoShow && `Arrived ${entry.late_minutes}m late${entry.check_in_at ? ` at ${formatTime(entry.check_in_at)}` : ''}`}
