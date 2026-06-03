@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { PageHeader, Card, Button, Input, Modal, ConfirmDialog } from '@/components/ui';
 import { orgApi, attendanceApi } from '@/lib/api';
@@ -74,10 +74,10 @@ interface DetectedIp { ip: string; label: string; }
 
 // ─── Shared chip style ────────────────────────────────
 const pillClass = (active: boolean) =>
-  `px-4 py-1.5 text-sm font-semibold rounded-full cursor-pointer transition-all ${
+  `px-4 py-1.5 text-sm font-semibold rounded-full cursor-pointer transition-all border ${
     active
-      ? 'bg-[var(--primary-600)] text-white shadow-sm'
-      : 'bg-[var(--gray-100)] text-[var(--gray-600)] hover:bg-[var(--gray-200)]'
+      ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 shadow-[0_0_15px_rgba(16,185,129,0.1)]'
+      : 'bg-slate-800/40 text-slate-400 border-slate-700/50 hover:bg-slate-800/60'
   }`;
 
 // ─── Add-Network Modal ────────────────────────────────
@@ -178,11 +178,11 @@ function AddNetworkModal({ isOpen, onClose, onAdd, existingIps, existingSsids }:
 
         {tab === 'ssid' ? (
           <div className="space-y-3">
-            <div className="flex items-start gap-2 p-3 bg-[var(--primary-50)] rounded-xl border border-[var(--primary-100)]">
-              <Info size={14} className="text-[var(--primary-600)] flex-shrink-0 mt-0.5" />
-              <p className="text-xs text-[var(--primary-700)]">
-                <strong>Recommended.</strong> Works even with DHCP — the network name never changes.
-                Employees' phones detect the WiFi name and check in automatically.
+            <div className="flex items-start gap-2 p-3 bg-emerald-500/5 rounded-xl border border-emerald-500/20">
+              <Info size={14} className="text-emerald-400 flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-slate-300">
+                <strong className="text-emerald-400">Recommended.</strong> Works even with DHCP — the network name never changes.
+                Employees&apos; phones detect the WiFi name and check in automatically.
               </p>
             </div>
 
@@ -199,25 +199,25 @@ function AddNetworkModal({ isOpen, onClose, onAdd, existingIps, existingSsids }:
             <button
               type="button"
               onClick={() => setShowHelp(h => !h)}
-              className="flex items-center gap-1.5 text-xs text-[var(--primary-600)] hover:text-[var(--primary-700)] font-semibold transition-colors"
+              className="flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 font-semibold transition-colors"
             >
               {showHelp ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
               How to find your WiFi name
             </button>
 
             {showHelp && (
-              <div className="rounded-xl border border-[var(--gray-200)] overflow-hidden text-xs">
+              <div className="rounded-xl border border-glass overflow-hidden text-xs">
                 {[
                   { icon: Monitor, label: 'Windows', desc: 'Click the WiFi icon in the taskbar → the checked network is your SSID' },
                   { icon: Monitor, label: 'macOS', desc: 'Click the WiFi icon in the menu bar → the ticked network at the top' },
                   { icon: Smartphone, label: 'Android / iOS', desc: 'Settings → WiFi → the connected network name at the top' },
                   { icon: Globe, label: 'Router admin page', desc: 'Log in to 192.168.1.1 → Wireless settings → SSID field' },
                 ].map(({ icon: Icon, label, desc }) => (
-                  <div key={label} className="flex items-start gap-3 px-3 py-2.5 border-b last:border-b-0 border-[var(--gray-100)]">
-                    <Icon size={14} className="text-[var(--gray-500)] flex-shrink-0 mt-0.5" />
+                  <div key={label} className="flex items-start gap-3 px-3 py-2.5 border-b last:border-b-0 border-glass">
+                    <Icon size={14} className="text-slate-400 flex-shrink-0 mt-0.5" />
                     <div>
-                      <p className="font-semibold text-[var(--dark-800)]">{label}</p>
-                      <p className="text-[var(--gray-500)]">{desc}</p>
+                      <p className="font-semibold text-slate-200">{label}</p>
+                      <p className="text-slate-400">{desc}</p>
                     </div>
                   </div>
                 ))}
@@ -226,11 +226,11 @@ function AddNetworkModal({ isOpen, onClose, onAdd, existingIps, existingSsids }:
           </div>
         ) : (
           <div className="space-y-3">
-            <div className="flex items-start gap-2 p-3 bg-[var(--gray-50)] rounded-xl border border-[var(--gray-200)]">
-              <Info size={14} className="text-[var(--gray-500)] flex-shrink-0 mt-0.5" />
-              <p className="text-xs text-[var(--gray-600)]">
-                Use for orgs with static IPs or VPNs. Supports exact IPs (<span className="font-mono">192.168.1.5</span>) or
-                subnets (<span className="font-mono">192.168.1.0/24</span> — covers entire floor).
+            <div className="flex items-start gap-2 p-3 bg-slate-800/40 rounded-xl border border-glass">
+              <Info size={14} className="text-slate-400 flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-slate-400">
+                Use for orgs with static IPs or VPNs. Supports exact IPs (<span className="font-mono text-slate-200">192.168.1.5</span>) or
+                subnets (<span className="font-mono text-slate-200">192.168.1.0/24</span> — covers entire floor).
               </p>
             </div>
 
@@ -256,34 +256,34 @@ function AddNetworkModal({ isOpen, onClose, onAdd, existingIps, existingSsids }:
 
             {detected.length > 0 && (
               <div className="space-y-2">
-                <p className="text-xs font-semibold text-[var(--gray-500)] uppercase tracking-wide">Detected on this device</p>
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Detected on this device</p>
                 {detected.map(({ ip, label }) => (
-                  <div key={ip} className="flex items-center justify-between px-3 py-2.5 bg-white rounded-xl border border-[var(--primary-200)]">
+                  <div key={ip} className="flex items-center justify-between px-3 py-2.5 bg-slate-800/40 rounded-xl border border-emerald-500/20">
                     <div className="flex items-center gap-2 min-w-0">
-                      <Wifi size={13} className="text-[var(--primary-600)] flex-shrink-0" />
-                      <span className="text-sm font-mono font-semibold text-[var(--dark-950)] truncate">{ip}</span>
-                      <span className="text-xs text-[var(--gray-500)] whitespace-nowrap">{label}</span>
+                      <Wifi size={13} className="text-emerald-400 flex-shrink-0" />
+                      <span className="text-sm font-mono font-semibold text-slate-100 truncate">{ip}</span>
+                      <span className="text-xs text-slate-400 whitespace-nowrap">{label}</span>
                     </div>
                     <div className="flex gap-1.5 shrink-0 ml-3">
                       <button
                         type="button"
                         onClick={() => pickIp(ip)}
-                        className="px-2.5 py-1 text-xs font-semibold rounded-lg border border-[var(--primary-300)] text-[var(--primary-700)] hover:bg-[var(--primary-100)] transition-colors"
+                        className="px-2.5 py-1 text-xs font-semibold rounded-lg border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 transition-colors"
                       >
                         Exact
                       </button>
                       <button
                         type="button"
                         onClick={() => pickSubnet(ip)}
-                        className="px-2.5 py-1 text-xs font-semibold rounded-lg border border-[var(--gray-300)] text-[var(--gray-700)] hover:bg-[var(--gray-100)] transition-colors"
+                        className="px-2.5 py-1 text-xs font-semibold rounded-lg border border-slate-700 text-slate-300 hover:bg-slate-700/50 transition-colors"
                       >
                         /24 Subnet
                       </button>
                     </div>
                   </div>
                 ))}
-                <p className="text-xs text-[var(--gray-500)]">
-                  <strong>/24 subnet recommended</strong> — covers the whole floor even if DHCP rotates IPs.
+                <p className="text-xs text-slate-500">
+                  <strong className="text-slate-400">/24 subnet recommended</strong> — covers the whole floor even if DHCP rotates IPs.
                 </p>
               </div>
             )}
@@ -417,8 +417,8 @@ export default function SettingsPage() {
       <PageHeader title="Settings" subtitle="Organisation configuration" />
 
       {/* ── Organisation Settings ─────────────────────── */}
-      <Card className="p-6 mb-6">
-        <h3 className="text-base font-bold text-[var(--dark-950)] mb-4">Organisation</h3>
+      <Card className="glass-card p-6 mb-6">
+        <h3 className="text-base font-bold text-slate-100 mb-4">Organisation</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
           <Input
             label="Organisation Name"
@@ -426,26 +426,26 @@ export default function SettingsPage() {
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setOrgName(e.target.value)}
           />
           <div>
-            <label className="text-sm font-semibold text-[var(--dark-800)] block mb-1">Timezone</label>
+            <label className="text-sm font-semibold text-slate-300 block mb-1">Timezone</label>
             <select
               value={timezone}
               onChange={e => setTimezone(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-[var(--gray-200)] rounded-lg outline-none focus:border-[var(--primary-600)]"
+              className="w-full px-3 py-2 text-sm bg-slate-800/50 border border-glass rounded-lg text-slate-100 outline-none focus:border-emerald-500/50"
             >
               {TIMEZONES.map(tz => (
-                <option key={tz} value={tz}>{tz.replace(/_/g, ' ')}</option>
+                <option key={tz} value={tz} className="bg-slate-900 text-slate-100">{tz.replace(/_/g, ' ')}</option>
               ))}
             </select>
           </div>
           <div>
-            <label className="text-sm font-semibold text-[var(--dark-800)] block mb-1">
+            <label className="text-sm font-semibold text-slate-300 block mb-1">
               Late Threshold
-              <span className="font-normal text-[var(--gray-500)] ml-1">(mins after shift start)</span>
+              <span className="font-normal text-slate-500 ml-1">(mins after shift start)</span>
             </label>
             <input
               type="number" min={0} max={120} value={lateThreshold}
               onChange={e => setLateThreshold(Math.max(0, Math.min(120, parseInt(e.target.value) || 0)))}
-              className="w-full px-3 py-2 text-sm border border-[var(--gray-200)] rounded-lg outline-none focus:border-[var(--primary-600)]"
+              className="w-full px-3 py-2 text-sm bg-slate-800/50 border border-glass rounded-lg text-slate-100 outline-none focus:border-emerald-500/50"
             />
           </div>
         </div>
@@ -457,24 +457,24 @@ export default function SettingsPage() {
       </Card>
 
       {/* ── Office Networks ───────────────────────────── */}
-      <Card className="p-6 mb-6">
+      <Card className="glass-card p-6 mb-6">
         {/* Header */}
         <div className="flex flex-wrap items-start justify-between gap-3 mb-2">
           <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isConfigured ? 'bg-[var(--success-100)]' : 'bg-[var(--warning-100)]'}`}>
-              <Wifi size={18} className={isConfigured ? 'text-[var(--success-700)]' : 'text-[var(--warning-700)]'} />
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isConfigured ? 'bg-emerald-500/10' : 'bg-amber-500/10'}`}>
+              <Wifi size={18} className={isConfigured ? 'text-emerald-400' : 'text-amber-400'} />
             </div>
             <div>
-              <h3 className="text-base font-bold text-[var(--dark-950)]">Office Networks</h3>
-              <p className="text-xs text-[var(--gray-500)]">WiFi auto check-in configuration for the mobile app</p>
+              <h3 className="text-base font-bold text-slate-100">Office Networks</h3>
+              <p className="text-xs text-slate-400">WiFi auto check-in configuration for the mobile app</p>
             </div>
           </div>
 
           {/* Status pill */}
           <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${
             isConfigured
-              ? 'bg-[var(--success-100)] text-[var(--success-700)]'
-              : 'bg-[var(--warning-100)] text-[var(--warning-800)]'
+              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+              : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
           }`}>
             {isConfigured
               ? <><CheckCircle2 size={12} /> {totalNetworks} network{totalNetworks !== 1 ? 's' : ''} configured</>
@@ -484,9 +484,9 @@ export default function SettingsPage() {
         </div>
 
         {!isConfigured && (
-          <div className="flex items-start gap-2 p-3 bg-[var(--warning-50)] rounded-xl border border-[var(--warning-200)] mb-4">
-            <AlertCircle size={14} className="text-[var(--warning-700)] flex-shrink-0 mt-0.5" />
-            <p className="text-xs text-[var(--warning-800)]">
+          <div className="flex items-start gap-2 p-3 bg-amber-500/5 rounded-xl border border-amber-500/20 mb-4">
+            <AlertCircle size={14} className="text-amber-400 flex-shrink-0 mt-0.5" />
+            <p className="text-xs text-amber-200/80">
               No networks configured. Employees can&apos;t auto check-in via WiFi until you add at least one office network.
               WiFi name matching is recommended — it works even without a static IP.
             </p>
@@ -494,29 +494,29 @@ export default function SettingsPage() {
         )}
 
         {/* Network list */}
-        <div className={`rounded-xl border border-[var(--gray-200)] overflow-hidden mb-4 ${networkEntries.length === 0 ? 'hidden' : ''}`}>
+        <div className={`rounded-xl border border-glass overflow-hidden mb-4 ${networkEntries.length === 0 ? 'hidden' : ''}`}>
           {networkEntries.map((entry, i) => (
             <div
               key={`${entry.type}-${entry.value}`}
-              className={`flex items-center gap-3 px-4 py-3 ${i < networkEntries.length - 1 ? 'border-b border-[var(--gray-100)]' : ''} hover:bg-[var(--gray-50)] transition-colors group`}
+              className={`flex items-center gap-3 px-4 py-3 ${i < networkEntries.length - 1 ? 'border-b border-glass' : ''} hover:bg-white/5 transition-colors group`}
             >
               <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                entry.type === 'ssid' ? 'bg-[var(--primary-100)]' : 'bg-[var(--gray-100)]'
+                entry.type === 'ssid' ? 'bg-emerald-500/10' : 'bg-slate-700/50'
               }`}>
                 {entry.type === 'ssid'
-                  ? <Wifi size={13} className="text-[var(--primary-600)]" />
-                  : <Network size={13} className="text-[var(--gray-600)]" />
+                  ? <Wifi size={13} className="text-emerald-400" />
+                  : <Network size={13} className="text-slate-400" />
                 }
               </div>
 
               <div className="flex-1 min-w-0">
-                <span className="text-sm font-mono font-semibold text-[var(--dark-950)] truncate block">{entry.value}</span>
+                <span className="text-sm font-mono font-semibold text-slate-200 truncate block">{entry.value}</span>
               </div>
 
               <span className={`hidden sm:inline-flex text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide ${
                 entry.type === 'ssid'
-                  ? 'bg-[var(--primary-100)] text-[var(--primary-700)]'
-                  : 'bg-[var(--gray-100)] text-[var(--gray-600)]'
+                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                  : 'bg-slate-700/50 text-slate-400 border border-slate-600/50'
               }`}>
                 {entry.type === 'ssid' ? 'WiFi Name' : 'IP Range'}
               </span>
@@ -524,7 +524,7 @@ export default function SettingsPage() {
               {hasRole('super_admin') && (
                 <button
                   onClick={() => setDeleteEntry(entry)}
-                  className="opacity-0 group-hover:opacity-100 transition-opacity text-[var(--gray-400)] hover:text-[var(--danger-600)] ml-1"
+                  className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-500 hover:text-rose-400 ml-1"
                   aria-label="Remove"
                 >
                   <Trash2 size={14} />
@@ -536,10 +536,10 @@ export default function SettingsPage() {
 
         {/* Empty state */}
         {networkEntries.length === 0 && (
-          <div className="flex flex-col items-center py-8 text-center rounded-xl border border-dashed border-[var(--gray-200)] mb-4">
-            <Wifi size={28} className="text-[var(--gray-300)] mb-2" />
-            <p className="text-sm font-semibold text-[var(--gray-500)]">No office networks added yet</p>
-            <p className="text-xs text-[var(--gray-400)] mt-1">Add a WiFi name or IP range to enable auto check-in</p>
+          <div className="flex flex-col items-center py-8 text-center rounded-xl border border-dashed border-glass mb-4">
+            <Wifi size={28} className="text-slate-700 mb-2" />
+            <p className="text-sm font-semibold text-slate-500">No office networks added yet</p>
+            <p className="text-xs text-slate-600 mt-1">Add a WiFi name or IP range to enable auto check-in</p>
           </div>
         )}
 
@@ -561,20 +561,20 @@ export default function SettingsPage() {
             </Button>
           )}
           {!networksChanged && networkEntries.length > 0 && (
-            <span className="text-xs text-[var(--gray-500)] flex items-center gap-1">
-              <CheckCircle2 size={12} className="text-[var(--success-600)]" />
+            <span className="text-xs text-slate-400 flex items-center gap-1">
+              <CheckCircle2 size={12} className="text-emerald-500" />
               Saved
             </span>
           )}
 
           {/* Legend */}
-          <div className="ml-auto flex items-center gap-3 text-xs text-[var(--gray-500)]">
+          <div className="ml-auto flex items-center gap-3 text-xs text-slate-500">
             <span className="flex items-center gap-1">
-              <Wifi size={11} className="text-[var(--primary-500)]" />
+              <Wifi size={11} className="text-emerald-500/70" />
               WiFi = more reliable
             </span>
             <span className="flex items-center gap-1">
-              <Network size={11} className="text-[var(--gray-400)]" />
+              <Network size={11} className="text-slate-600" />
               IP = advanced/fallback
             </span>
           </div>
@@ -582,15 +582,15 @@ export default function SettingsPage() {
       </Card>
 
       {/* ── Attendance QR Code ────────────────────────── */}
-      <Card className="p-6 mb-6">
+      <Card className="glass-card p-6 mb-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[var(--primary-100)] flex items-center justify-center">
-              <QrCode size={18} className="text-[var(--primary-600)]" />
+            <div className="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center">
+              <QrCode size={18} className="text-cyan-400" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-[var(--dark-950)]">Attendance QR Code</h3>
-              <p className="text-xs text-[var(--gray-500)]">Display at the office entrance for manual scan check-in</p>
+              <h3 className="text-base font-bold text-slate-100">Attendance QR Code</h3>
+              <p className="text-xs text-slate-400">Display at the office entrance for manual scan check-in</p>
             </div>
           </div>
           {qrCode && hasRole('hr_admin', 'super_admin') && (
@@ -602,17 +602,17 @@ export default function SettingsPage() {
 
         {qrLoading ? (
           <div className="flex justify-center py-8">
-            <div className="w-8 h-8 border-2 border-[var(--primary-600)] border-t-transparent rounded-full animate-spin" />
+            <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
           </div>
         ) : qrCode ? (
           <div className="flex flex-col sm:flex-row items-center gap-8">
-            <div className="p-4 bg-white border-2 border-[var(--gray-200)] rounded-2xl shadow-sm flex-shrink-0">
+            <div className="p-4 bg-white border-2 border-glass rounded-2xl shadow-lg flex-shrink-0">
               <img src={qrCode} alt="Attendance QR Code" className="w-40 h-40" />
             </div>
-            <div className="space-y-2 text-sm text-[var(--gray-500)]">
-              <p className="flex items-center gap-2"><CheckCircle2 size={13} className="text-[var(--success-600)]" /> Print and display at the office entrance</p>
-              <p className="flex items-center gap-2"><CheckCircle2 size={13} className="text-[var(--success-600)]" /> Employees scan using the Attenda mobile app</p>
-              <p className="flex items-center gap-2"><CheckCircle2 size={13} className="text-[var(--success-600)]" /> Auto-rotates every 24 hours for security</p>
+            <div className="space-y-2 text-sm text-slate-400">
+              <p className="flex items-center gap-2"><CheckCircle2 size={13} className="text-emerald-500" /> Print and display at the office entrance</p>
+              <p className="flex items-center gap-2"><CheckCircle2 size={13} className="text-emerald-500" /> Employees scan using the Attenda mobile app</p>
+              <p className="flex items-center gap-2"><CheckCircle2 size={13} className="text-emerald-500" /> Auto-rotates every 24 hours for security</p>
               <div className="pt-2">
                 <a href={qrCode} download="attenda-qr.png">
                   <Button variant="outline" size="sm" icon={<Download size={13} />}>Download PNG</Button>
@@ -622,12 +622,12 @@ export default function SettingsPage() {
           </div>
         ) : (
           <div className="flex flex-col sm:flex-row items-center gap-5 py-2">
-            <div className="w-14 h-14 rounded-2xl bg-[var(--gray-100)] flex items-center justify-center flex-shrink-0">
-              <QrCode size={24} className="text-[var(--gray-400)]" />
+            <div className="w-14 h-14 rounded-2xl bg-slate-800/50 flex items-center justify-center flex-shrink-0 border border-glass">
+              <QrCode size={24} className="text-slate-600" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-[var(--dark-950)] mb-1">No QR code generated yet</p>
-              <p className="text-xs text-[var(--gray-500)] mb-3">Generate one for your office entrance.</p>
+              <p className="text-sm font-semibold text-slate-200 mb-1">No QR code generated yet</p>
+              <p className="text-xs text-slate-500 mb-3">Generate one for your office entrance.</p>
               {hasRole('hr_admin', 'super_admin') && (
                 <Button size="sm" icon={<QrCode size={13} />} onClick={regenQR} loading={regenerating}>
                   Generate QR Code
@@ -643,28 +643,28 @@ export default function SettingsPage() {
         {[
           {
             href: '/settings/overtime',
-            icon: Clock, iconBg: 'bg-[var(--warning-100)]', iconColor: 'text-[var(--warning-800)]',
+            icon: Clock, iconBg: 'bg-amber-500/10', iconColor: 'text-amber-400',
             title: 'Overtime Rules', sub: 'Multipliers & thresholds',
           },
           {
             href: '/settings/whatsapp',
-            icon: MessageSquare, iconBg: 'bg-[var(--success-100)]', iconColor: 'text-[var(--success-700)]',
+            icon: MessageSquare, iconBg: 'bg-emerald-500/10', iconColor: 'text-emerald-400',
             title: 'WhatsApp Notifications', sub: 'Alerts & integrations',
           },
         ].map(({ href, icon: Icon, iconBg, iconColor, title, sub }) => (
           <Link href={href} key={href} className="block">
-            <Card className="p-5 hover:shadow-md transition-shadow cursor-pointer group">
+            <Card className="glass-card p-5 hover:border-emerald-500/30 transition-all cursor-pointer group">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className={`w-10 h-10 rounded-xl ${iconBg} flex items-center justify-center`}>
                     <Icon size={18} className={iconColor} />
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-[var(--dark-950)]">{title}</h3>
-                    <p className="text-xs text-[var(--gray-500)]">{sub}</p>
+                    <h3 className="text-sm font-bold text-slate-100">{title}</h3>
+                    <p className="text-xs text-slate-400">{sub}</p>
                   </div>
                 </div>
-                <ChevronRight size={16} className="text-[var(--gray-400)] group-hover:text-[var(--primary-600)] transition-colors" />
+                <ChevronRight size={16} className="text-slate-600 group-hover:text-emerald-400 transition-colors" />
               </div>
             </Card>
           </Link>

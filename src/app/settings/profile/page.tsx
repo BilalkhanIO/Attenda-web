@@ -124,36 +124,36 @@ export default function ProfilePage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Avatar card */}
-        <Card className="p-6 flex flex-col items-center gap-4">
+        <Card className="glass-card p-6 flex flex-col items-center gap-4">
           {loading ? (
-            <div className="w-24 h-24 rounded-full bg-[var(--gray-200)] animate-pulse" />
+            <div className="w-24 h-24 rounded-full bg-slate-800/40 animate-pulse border border-glass" />
           ) : (
             <Avatar name={me?.name || ''} imageUrl={me?.avatar_url} size="xl" />
           )}
           <div className="text-center">
-            <p className="font-bold text-[var(--dark-950)]">{me?.name || '—'}</p>
-            <p className="text-sm text-[var(--gray-500)]">{me?.job_title || me?.role}</p>
-            <p className="text-xs text-[var(--gray-500)] mt-0.5">{me?.department}</p>
+            <p className="font-bold text-slate-100">{me?.name || '—'}</p>
+            <p className="text-sm text-slate-400">{me?.job_title || me?.role}</p>
+            <p className="text-xs text-slate-500 mt-0.5">{me?.department}</p>
           </div>
-          <button className="flex items-center gap-2 text-xs text-[var(--primary-600)] hover:underline">
+          <button className="flex items-center gap-2 text-xs text-emerald-400 hover:text-emerald-300 transition-colors">
             <Camera size={13} /> Change photo
           </button>
-          <div className="w-full pt-3 border-t border-[var(--gray-100)] space-y-2 text-sm">
+          <div className="w-full pt-3 border-t border-glass space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-[var(--gray-500)]">Email</span>
-              <span className="font-medium text-[var(--dark-950)] truncate max-w-[160px]">{me?.email}</span>
+              <span className="text-slate-500">Email</span>
+              <span className="font-medium text-slate-200 truncate max-w-[160px]">{me?.email}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-[var(--gray-500)]">Role</span>
-              <span className="font-medium text-[var(--dark-950)] capitalize">{me?.role?.replace('_', ' ')}</span>
+              <span className="text-slate-500">Role</span>
+              <span className="font-medium text-slate-200 capitalize">{me?.role?.replace('_', ' ')}</span>
             </div>
           </div>
         </Card>
 
         {/* Edit forms */}
         <div className="lg:col-span-2 space-y-6">
-          <Card className="p-6">
-            <h3 className="text-base font-bold text-[var(--dark-950)] mb-5">Personal Information</h3>
+          <Card className="glass-card p-6">
+            <h3 className="text-base font-bold text-slate-100 mb-5">Personal Information</h3>
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <Input label="Full Name" required
@@ -174,8 +174,8 @@ export default function ProfilePage() {
             </div>
           </Card>
 
-          <Card className="p-6">
-            <h3 className="text-base font-bold text-[var(--dark-950)] mb-5">Change Password</h3>
+          <Card className="glass-card p-6">
+            <h3 className="text-base font-bold text-slate-100 mb-5">Change Password</h3>
             <div className="space-y-4">
               <Input label="Current Password" type="password"
                 error={passwordForm.formState.errors.current_password?.message}
@@ -197,17 +197,17 @@ export default function ProfilePage() {
           </Card>
 
           {/* 2FA Card */}
-          <Card className="p-6">
+          <Card className="glass-card p-6">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${twoFAEnabled ? 'bg-[var(--success-100)]' : 'bg-[var(--gray-100)]'}`}>
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${twoFAEnabled ? 'bg-emerald-500/10' : 'bg-slate-800/50 border border-glass'}`}>
                   {twoFAEnabled
-                    ? <ShieldCheck size={20} className="text-[var(--success-700)]" />
-                    : <Shield size={20} className="text-[var(--gray-500)]" />}
+                    ? <ShieldCheck size={20} className="text-emerald-400" />
+                    : <Shield size={20} className="text-slate-600" />}
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-[var(--dark-950)]">Two-Factor Authentication</h3>
-                  <p className="text-sm text-[var(--gray-500)]">
+                  <h3 className="text-base font-bold text-slate-100">Two-Factor Authentication</h3>
+                  <p className="text-sm text-slate-400">
                     {twoFAEnabled ? 'Your account is secured with 2FA.' : 'Add an extra layer of security to your account.'}
                   </p>
                 </div>
@@ -246,20 +246,20 @@ export default function ProfilePage() {
         <div className="space-y-5">
           {!qrDataUrl ? (
             <div className="flex justify-center py-8">
-              <div className="w-6 h-6 border-2 border-[var(--primary-600)] border-t-transparent rounded-full animate-spin" />
+              <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
             </div>
           ) : (
             <>
-              <p className="text-sm text-[var(--gray-500)]">
+              <p className="text-sm text-slate-400">
                 Scan this QR code with your authenticator app (Google Authenticator, Authy, etc.), then enter the 6-digit code to confirm.
               </p>
               <div className="flex justify-center">
-                <img src={qrDataUrl} alt="2FA QR Code" className="w-48 h-48 border border-[var(--gray-200)] rounded-xl p-2" />
+                <img src={qrDataUrl} alt="2FA QR Code" className="w-48 h-48 border border-glass rounded-xl p-2 bg-white" />
               </div>
               {otpSecret && (
-                <div className="p-3 bg-[var(--gray-50)] rounded-lg">
-                  <p className="text-xs text-[var(--gray-500)] mb-1">Manual entry key:</p>
-                  <p className="font-mono text-sm text-[var(--dark-950)] tracking-widest break-all">{otpSecret}</p>
+                <div className="p-3 bg-slate-800/50 rounded-lg border border-glass">
+                  <p className="text-xs text-slate-500 mb-1">Manual entry key:</p>
+                  <p className="font-mono text-sm text-emerald-400 tracking-widest break-all">{otpSecret}</p>
                 </div>
               )}
               <Input
@@ -291,7 +291,7 @@ export default function ProfilePage() {
         }
       >
         <div className="space-y-4">
-          <p className="text-sm text-[var(--gray-500)]">Enter the current code from your authenticator app to disable 2FA. Your account will be less secure without it.</p>
+          <p className="text-sm text-slate-400">Enter the current code from your authenticator app to disable 2FA. Your account will be less secure without it.</p>
           <Input
             label="Authenticator Code"
             type="text"

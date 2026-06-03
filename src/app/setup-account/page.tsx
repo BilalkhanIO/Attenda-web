@@ -78,6 +78,7 @@ function SetupAccountContent() {
           ) : (
             <div className="page-fade-in">
               <div className="mb-10">
+                <p className="text-[10px] font-black text-[var(--primary-600)] uppercase tracking-[0.3em] mb-4">Activation</p>
                 <h1 className="text-3xl font-black text-white mb-2 tracking-tight">Welcome to Attenda</h1>
                 <p className="text-sm font-medium text-[var(--on-glass-muted)]">
                   You&apos;ve been invited to join your team&apos;s workspace. Set a password to activate your account.
@@ -86,7 +87,7 @@ function SetupAccountContent() {
 
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                 <Input
-                  label="Password"
+                  label="New Password"
                   type={showPass ? 'text' : 'password'}
                   required
                   error={errors.password?.message}
