@@ -15,6 +15,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
 import { format, subMonths } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 // ─── Types ──────────────────────────────────────────────
 interface Goal {
@@ -54,18 +55,22 @@ const MONTHS = Array.from({ length: 12 }, (_, i) => {
 function StarRating({ value, onChange, readonly }: { value: number; onChange?: (v: number) => void; readonly?: boolean }) {
   const [hover, setHover] = useState(0);
   return (
-    <div className="flex gap-1">
+    <div className="flex gap-2">
       {[1, 2, 3, 4, 5].map(n => (
         <button key={n} type="button"
           disabled={readonly}
           onClick={() => onChange?.(n)}
           onMouseEnter={() => !readonly && setHover(n)}
           onMouseLeave={() => !readonly && setHover(0)}
-          className={`transition-colors ${readonly ? 'cursor-default' : 'cursor-pointer hover:scale-110'}`}
+          className={cn(
+            "transition-all duration-300",
+            readonly ? "cursor-default" : "cursor-pointer hover:scale-125 active:scale-90"
+          )}
         >
-          <Star size={22}
+          <Star size={24}
             fill={(hover || value) >= n ? 'var(--warning-500)' : 'none'}
-            stroke={(hover || value) >= n ? 'var(--warning-500)' : 'var(--gray-200)'}
+            stroke={(hover || value) >= n ? 'var(--warning-500)' : 'var(--on-glass-dim)'}
+            strokeWidth={2}
           />
         </button>
       ))}
@@ -74,13 +79,13 @@ function StarRating({ value, onChange, readonly }: { value: number; onChange?: (
 }
 
 function CompletionBar({ value }: { value: number }) {
-  const color = value >= 100 ? 'var(--success-700)' : value >= 50 ? 'var(--primary-600)' : 'var(--warning-800)';
+  const color = value >= 100 ? '#10b981' : value >= 50 ? '#00C896' : '#f59e0b';
   return (
-    <div className="flex items-center gap-2">
-      <div className="flex-1 h-1.5 bg-[var(--gray-100)] rounded-full overflow-hidden">
-        <div className="h-full rounded-full transition-all" style={{ width: `${value}%`, backgroundColor: color }} />
+    <div className="flex items-center gap-3">
+      <div className="flex-1 h-1.5 bg-[var(--glass-10)] rounded-full overflow-hidden border border-white/5">
+        <div className="h-full rounded-full transition-all duration-1000" style={{ width: `${value}%`, backgroundColor: color }} />
       </div>
-      <span className="text-xs font-semibold w-8 text-right" style={{ color }}>{value}%</span>
+      <span className="text-[11px] font-black w-8 text-right uppercase tracking-tighter" style={{ color }}>{value}%</span>
     </div>
   );
 }
@@ -254,10 +259,10 @@ export default function PerformancePage() {
 
   // ── Derived ──────────────────────────────────────────
   const scoreColor = (s: number) => {
-    if (s >= 80) return ['var(--success-700)', 'var(--success-100)'];
-    if (s >= 60) return ['var(--primary-600)', 'var(--primary-100)'];
-    if (s >= 40) return ['var(--warning-800)', 'var(--warning-100)'];
-    return ['var(--danger-800)', 'var(--danger-100)'];
+    if (s >= 80) return ['var(--success-500)', '#10b981'];
+    if (s >= 60) return ['var(--primary-600)', '#00C896'];
+    if (s >= 40) return ['var(--warning-500)', '#f59e0b'];
+    return ['var(--danger-500)', '#ef4444'];
   };
   const starToScore = (stars: number) => stars * 20;
   const submitted = reviews.filter(r => r.submitted_at).length;
@@ -272,11 +277,20 @@ export default function PerformancePage() {
         title="Performance Tracking"
         subtitle="Monthly reviews and goal tracking"
         actions={
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 bg-[var(--glass-10)] p-1.5 pl-4 rounded-2xl border border-[var(--glass-border)] shadow-xl backdrop-blur-md">
             {activeTab === 'reviews' && (
               <select value={selectedMonth} onChange={e => setMth(e.target.value)}
-                className="px-3 py-2 text-sm border border-[var(--gray-200)] rounded-lg outline-none">
-                {MONTHS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
+                className="bg-transparent text-[11px] font-black text-white uppercase tracking-widest outline-none cursor-pointer pr-2">
+                {MONTHS.map(m => <option key={m.value} value={m.value} className="bg-[var(--dark-950)]">{m.label.toUpperCase()}</option>)}
+              </select>
+            )}
+            {activeTab === 'goals' && (
+              <select value={goalUserFilter} onChange={e => setGoalUserFilter(e.target.value)}
+                className="bg-transparent text-[11px] font-black text-white uppercase tracking-widest outline-none cursor-pointer pr-2">
+                <option value="" className="bg-[var(--dark-950)]">ALL EMPLOYEES</option>
+                {reviewEmployees.map(e => (
+                  <option key={e.userId} value={e.userId} className="bg-[var(--dark-950)]">{e.name.toUpperCase()}</option>
+                ))}
               </select>
             )}
           </div>
@@ -284,65 +298,77 @@ export default function PerformancePage() {
       />
 
       {/* Tabs */}
-      <div className="flex border-b border-[var(--gray-200)] mb-6">
+      <div className="flex items-center gap-1 px-5 pt-4 pb-0 mb-6 border-b border-[var(--glass-border)] overflow-x-auto bg-[var(--glass-05)] rounded-t-3xl">
         {(['reviews', 'goals'] as const).map(tab => (
           <button key={tab} onClick={() => setActiveTab(tab)}
-            className={`px-5 py-2.5 text-sm font-semibold capitalize transition-colors ${
+            className={cn(
+              "px-6 py-4 text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap border-b-2",
               activeTab === tab
-                ? 'text-[var(--primary-600)] border-b-2 border-[var(--primary-600)]'
-                : 'text-[var(--gray-500)] hover:text-[var(--dark-950)]'
-            }`}
+                ? "text-[var(--primary-600)] border-[var(--primary-600)]"
+                : "text-[var(--on-glass-dim)] border-transparent hover:text-white"
+            )}
           >
-            {tab === 'reviews' ? `Reviews${pending > 0 ? ` (${pending} pending)` : ''}` : 'Goals'}
+            {tab === 'reviews' ? `Reviews${pending > 0 ? ` (${pending})` : ''}` : tab.toUpperCase()}
           </button>
         ))}
       </div>
 
       {/* ── REVIEWS TAB ─────────────────────────────── */}
       {activeTab === 'reviews' && (<>
-        <div className="grid grid-cols-3 gap-4 mb-6">
-          {reviewLoading ? Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />) : (<>
-            <Card className="p-5 flex items-center gap-4">
-              <div className="w-11 h-11 rounded-xl bg-[var(--success-100)] flex items-center justify-center">
-                <CheckCircle size={20} className="text-[var(--success-700)]" />
-              </div>
-              <div>
-                <p className="text-xs text-[var(--gray-500)] font-medium">Reviews Submitted</p>
-                <p className="text-2xl font-bold text-[var(--success-700)]">{submitted}</p>
-              </div>
-            </Card>
-            <Card className="p-5 flex items-center gap-4">
-              <div className="w-11 h-11 rounded-xl bg-[var(--warning-100)] flex items-center justify-center">
-                <Clock size={20} className="text-[var(--warning-800)]" />
-              </div>
-              <div>
-                <p className="text-xs text-[var(--gray-500)] font-medium">Pending Reviews</p>
-                <p className="text-2xl font-bold text-[var(--warning-800)]">{pending}</p>
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+          {reviewLoading ? Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-2xl" />) : (<>
+            <Card className="p-6 relative overflow-hidden group hover:bg-[var(--glass-10)] transition-all">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-[var(--success-500)]/5 blur-[40px] rounded-full translate-x-1/2 -translate-y-1/2" />
+              <div className="flex items-center justify-between relative z-10">
+                 <div>
+                    <p className="text-[10px] font-black text-[var(--on-glass-muted)] uppercase tracking-widest mb-1">Reviews Submitted</p>
+                    <p className="text-3xl font-black text-white group-hover:text-[var(--success-500)] transition-colors">{submitted}</p>
+                 </div>
+                 <div className="w-12 h-12 rounded-2xl bg-[var(--success-500)]/10 border border-[var(--success-500)]/20 flex items-center justify-center text-[var(--success-500)] shadow-xl">
+                    <CheckCircle size={24} />
+                 </div>
               </div>
             </Card>
-            <Card className="p-5 flex items-center gap-4">
-              <div className="w-11 h-11 rounded-xl bg-[var(--primary-100)] flex items-center justify-center">
-                <TrendingUp size={20} className="text-[var(--primary-600)]" />
+            <Card className="p-6 relative overflow-hidden group hover:bg-[var(--glass-10)] transition-all">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-[var(--warning-500)]/5 blur-[40px] rounded-full translate-x-1/2 -translate-y-1/2" />
+              <div className="flex items-center justify-between relative z-10">
+                 <div>
+                    <p className="text-[10px] font-black text-[var(--on-glass-muted)] uppercase tracking-widest mb-1">Pending Reviews</p>
+                    <p className="text-3xl font-black text-white group-hover:text-[var(--warning-500)] transition-colors">{pending}</p>
+                 </div>
+                 <div className="w-12 h-12 rounded-2xl bg-[var(--warning-500)]/10 border border-[var(--warning-500)]/20 flex items-center justify-center text-[var(--warning-500)] shadow-xl">
+                    <Clock size={24} />
+                 </div>
               </div>
-              <div>
-                <p className="text-xs text-[var(--gray-500)] font-medium">Team Average</p>
-                <p className="text-2xl font-bold text-[var(--primary-600)]">
-                  {reviews.length > 0 && submitted > 0
-                    ? Math.round(reviews.filter(r => r.score > 0).reduce((s, r) => s + starToScore(r.score), 0) / submitted)
-                    : '—'}
-                </p>
+            </Card>
+            <Card className="p-6 relative overflow-hidden group hover:bg-[var(--glass-10)] transition-all lg:col-span-1 col-span-2">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-[var(--primary-600)]/5 blur-[40px] rounded-full translate-x-1/2 -translate-y-1/2" />
+              <div className="flex items-center justify-between relative z-10">
+                 <div>
+                    <p className="text-[10px] font-black text-[var(--on-glass-muted)] uppercase tracking-widest mb-1">Team Average</p>
+                    <p className="text-3xl font-black text-white group-hover:text-[var(--primary-600)] transition-colors">
+                      {reviews.length > 0 && submitted > 0
+                        ? Math.round(reviews.filter(r => r.score > 0).reduce((s, r) => s + starToScore(r.score), 0) / submitted)
+                        : '—'}
+                    </p>
+                 </div>
+                 <div className="w-12 h-12 rounded-2xl bg-[var(--primary-600)]/10 border border-[var(--primary-600)]/20 flex items-center justify-center text-[var(--primary-600)] shadow-xl">
+                    <TrendingUp size={24} />
+                 </div>
               </div>
             </Card>
           </>)}
         </div>
 
-        <Card>
+        <Card className="overflow-hidden">
           <Table
             headers={['Employee', 'Department', 'Score', 'Rating', 'Status', 'Actions']}
             loading={reviewLoading}
             emptyState={
-              <EmptyState icon={<Target size={24} />} title="No reviews for this period"
-                description="Performance reviews appear here once the month begins." />
+              <div className="py-24 text-center">
+                 <Target size={32} className="mx-auto text-[var(--on-glass-dim)] mb-4" />
+                 <p className="text-[11px] font-black text-[var(--on-glass-dim)] uppercase tracking-[0.3em]">No Reviews for this Period</p>
+              </div>
             }
           >
             {reviews.map(review => {
@@ -350,50 +376,61 @@ export default function PerformancePage() {
               const score = starToScore(review.score);
               const [c, b] = scoreColor(isSubmitted ? score : 0);
               return (
-                <tr key={review.id} className="border-b border-[var(--gray-100)] hover:bg-[var(--gray-50)]">
-                  <td className="py-3 px-4">
+                <tr key={review.id} className="hover:bg-[var(--glass-05)] transition-all group">
+                  <td className="py-4 px-6">
                     {review.user ? (
-                      <div className="flex items-center gap-3">
-                        <Avatar name={review.user.name} size="sm" />
-                        <p className="text-sm font-semibold">{review.user.name}</p>
+                      <div className="flex items-center gap-4">
+                        <Avatar name={review.user.name} size="md" />
+                        <div className="min-w-0">
+                          <p className="text-[15px] font-black text-white group-hover:text-[var(--primary-600)] transition-colors truncate">{review.user.name}</p>
+                        </div>
                       </div>
                     ) : '—'}
                   </td>
-                  <td className="py-3 px-4">
-                    <span className="text-sm text-[var(--gray-500)]">{review.user?.department || '—'}</span>
+                  <td className="py-4 px-6">
+                    <span className="text-[10px] font-bold text-[var(--on-glass-muted)] uppercase tracking-widest">{review.user?.department || 'Operations'}</span>
                   </td>
-                  <td className="py-3 px-4">
+                  <td className="py-4 px-6">
                     {isSubmitted
-                      ? <span className="text-xl font-bold" style={{ color: c }}>{score}</span>
-                      : <span className="text-sm text-[var(--gray-500)]">—</span>}
+                      ? <span className="text-xl font-black" style={{ color: c }}>{score}</span>
+                      : <span className="text-sm font-bold text-[var(--on-glass-dim)]">—</span>}
                   </td>
-                  <td className="py-3 px-4"><StarRating value={review.score} readonly /></td>
-                  <td className="py-3 px-4">
+                  <td className="py-4 px-6"><StarRating value={review.score} readonly /></td>
+                  <td className="py-4 px-6">
                     <Badge
-                      label={isSubmitted ? 'Submitted' : 'Pending'}
-                      color={isSubmitted ? 'var(--success-700)' : 'var(--warning-800)'}
-                      bg={isSubmitted ? 'var(--success-100)' : 'var(--warning-100)'}
+                      label={isSubmitted ? 'SUBMITTED' : 'PENDING'}
+                      color={isSubmitted ? 'var(--success-500)' : 'var(--warning-500)'}
+                      bg={isSubmitted ? '#10b981' : '#f59e0b'}
+                      size="sm"
                     />
                   </td>
-                  <td className="py-3 px-4">
+                  <td className="py-4 px-6">
                     <div className="flex items-center gap-2">
                       {hasRole('manager', 'hr_admin', 'super_admin') && (
-                        <Button variant="ghost" size="sm"
-                          icon={isSubmitted ? <TrendingUp size={12} /> : <Star size={12} />}
-                          onClick={() => openReview(review)}>
-                          {isSubmitted ? 'View' : 'Review'}
-                        </Button>
+                        <button
+                          onClick={() => openReview(review)}
+                          title={isSubmitted ? 'View Review' : 'Create Review'}
+                          className="w-9 h-9 flex items-center justify-center rounded-xl bg-[var(--glass-10)] text-[var(--on-glass-dim)] hover:text-white hover:bg-[var(--glass-15)] transition-all"
+                        >
+                          {isSubmitted ? <TrendingUp size={16} /> : <Star size={16} />}
+                        </button>
                       )}
                       {hasRole('manager', 'hr_admin', 'super_admin') && (
-                        <Button variant="ghost" size="sm" icon={<Target size={12} />}
-                          onClick={() => openAddGoal(review)}>
-                          Goal
-                        </Button>
+                        <button
+                          onClick={() => openAddGoal(review)}
+                          title="Assign Goal"
+                          className="w-9 h-9 flex items-center justify-center rounded-xl bg-[var(--glass-10)] text-[var(--on-glass-dim)] hover:text-[var(--primary-600)] hover:bg-[var(--glass-15)] transition-all"
+                        >
+                           <Target size={16} />
+                        </button>
                       )}
-                      <Button variant="ghost" size="sm" icon={<Sparkles size={12} />}
-                        onClick={() => openInsights(review)}>
-                        AI
-                      </Button>
+                      <button
+                        onClick={() => openInsights(review)}
+                        title="AI Analysis"
+                        className="w-9 h-9 flex items-center justify-center rounded-xl bg-[var(--glass-10)] text-[var(--on-glass-dim)] hover:text-[var(--secondary)] hover:bg-[var(--glass-15)] transition-all"
+                      >
+                         <Sparkles size={16} />
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -405,60 +442,52 @@ export default function PerformancePage() {
 
       {/* ── GOALS TAB ───────────────────────────────── */}
       {activeTab === 'goals' && (<>
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <select value={goalUserFilter} onChange={e => setGoalUserFilter(e.target.value)}
-              className="px-3 py-2 text-sm border border-[var(--gray-200)] rounded-lg outline-none">
-              <option value="">All Employees</option>
-              {reviewEmployees.map(e => (
-                <option key={e.userId} value={e.userId}>{e.name}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <Card>
+        <Card className="overflow-hidden">
           <Table
             headers={['Employee', 'Goal', 'Weight', 'Target Date', 'Progress', 'Actions']}
             loading={goalLoading}
             emptyState={
-              <EmptyState icon={<Target size={24} />} title="No goals set"
-                description="Set goals for team members from the Reviews tab by clicking the Goal button." />
+              <div className="py-24 text-center">
+                 <Target size={32} className="mx-auto text-[var(--on-glass-dim)] mb-4" />
+                 <p className="text-[11px] font-black text-[var(--on-glass-dim)] uppercase tracking-[0.3em]">No goals set</p>
+              </div>
             }
           >
             {goals.map(goal => (
-              <tr key={goal.id} className="border-b border-[var(--gray-100)] hover:bg-[var(--gray-50)]">
-                <td className="py-3 px-4">
+              <tr key={goal.id} className="hover:bg-[var(--glass-05)] transition-all group">
+                <td className="py-4 px-6">
                   {goal.user ? (
-                    <div className="flex items-center gap-3">
-                      <Avatar name={goal.user.name} size="sm" />
-                      <p className="text-sm font-semibold">{goal.user.name}</p>
+                    <div className="flex items-center gap-4">
+                      <Avatar name={goal.user.name} size="md" />
+                      <p className="text-[15px] font-black text-white group-hover:text-[var(--primary-600)] transition-colors truncate">{goal.user.name}</p>
                     </div>
                   ) : '—'}
                 </td>
-                <td className="py-3 px-4 max-w-xs">
-                  <p className="text-sm font-semibold text-[var(--dark-950)] truncate">{goal.title}</p>
+                <td className="py-4 px-6 max-w-xs">
+                  <p className="text-sm font-black text-white uppercase tracking-tight truncate">{goal.title}</p>
                   {goal.description && (
-                    <p className="text-xs text-[var(--gray-500)] truncate">{goal.description}</p>
+                    <p className="text-[10px] font-bold text-[var(--on-glass-muted)] uppercase tracking-widest mt-1 truncate">{goal.description}</p>
                   )}
                 </td>
-                <td className="py-3 px-4">
-                  <span className="text-sm font-semibold text-[var(--dark-950)]">{goal.weight}%</span>
+                <td className="py-4 px-6">
+                  <span className="text-[13px] font-black text-white">{goal.weight}%</span>
                 </td>
-                <td className="py-3 px-4">
-                  <span className="text-sm text-[var(--gray-500)]">
-                    {goal.target_date ? format(new Date(goal.target_date), 'MMM d, yyyy') : '—'}
+                <td className="py-4 px-6">
+                  <span className="text-[11px] font-black text-[var(--on-glass-dim)] uppercase tracking-widest font-mono">
+                    {goal.target_date ? format(new Date(goal.target_date), 'dd MMM yyyy').toUpperCase() : '—'}
                   </span>
                 </td>
-                <td className="py-3 px-4 min-w-[140px]">
+                <td className="py-4 px-6 min-w-[160px]">
                   <CompletionBar value={goal.completion} />
                 </td>
-                <td className="py-3 px-4">
+                <td className="py-4 px-6">
                   {hasRole('manager', 'hr_admin', 'super_admin') && (
-                    <Button variant="ghost" size="sm" icon={<CheckCircle size={12} />}
-                      onClick={() => openEditCompletion(goal)}>
-                      Update
-                    </Button>
+                    <button
+                      onClick={() => openEditCompletion(goal)}
+                      className="w-10 h-10 flex items-center justify-center rounded-xl bg-[var(--glass-10)] text-[var(--on-glass-dim)] hover:text-white hover:bg-[var(--glass-15)] transition-all"
+                    >
+                      <CheckCircle size={18} />
+                    </button>
                   )}
                 </td>
               </tr>
@@ -487,36 +516,32 @@ export default function PerformancePage() {
         }
       >
         {reviewUser && (
-          <div className="space-y-5">
+          <div className="space-y-6">
             {reviewUser.user && (
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-[var(--gray-50)]">
+              <div className="flex items-center gap-4 p-5 rounded-[2rem] bg-[var(--glass-05)] border border-[var(--glass-border)]">
                 <Avatar name={reviewUser.user.name} size="md" />
-                <div>
-                  <p className="font-bold text-[var(--dark-950)]">{reviewUser.user.name}</p>
-                  <p className="text-sm text-[var(--gray-500)]">{reviewUser.user.department}</p>
-                </div>
-                <div className="ml-auto text-right">
-                  <p className="text-xs text-[var(--gray-500)]">Period</p>
-                  <p className="text-sm font-semibold">{format(new Date(selectedMonth + '-01'), 'MMMM yyyy')}</p>
+                <div className="flex-1">
+                  <p className="text-lg font-black text-white tracking-tight">{reviewUser.user.name}</p>
+                  <p className="text-[10px] font-bold text-[var(--on-glass-muted)] uppercase tracking-widest mt-1">Period: {format(new Date(selectedMonth + '-01'), 'MMMM yyyy').toUpperCase()}</p>
                 </div>
               </div>
             )}
-            <div className="p-4 rounded-xl border border-[var(--gray-200)]">
-              <p className="text-sm font-semibold text-[var(--dark-800)] mb-3">Manager Rating</p>
-              <div className="flex items-center gap-4">
+            <div className="p-6 rounded-[2rem] border border-[var(--glass-border)] bg-[var(--glass-05)]">
+              <p className="text-[10px] font-black text-[var(--primary-600)] uppercase tracking-[0.2em] mb-4">Manager Rating</p>
+              <div className="flex items-center justify-between">
                 <StarRating
                   value={starValue}
                   onChange={reviewUser.submitted_at ? undefined : setStarValue}
                   readonly={!!reviewUser.submitted_at}
                 />
                 {starValue > 0 && (
-                  <span className="text-2xl font-bold" style={{ color: scoreColor(starToScore(starValue))[0] }}>
-                    {starToScore(starValue)}/100
+                  <span className="text-3xl font-black" style={{ color: scoreColor(starToScore(starValue))[0] }}>
+                    {starToScore(starValue)}
                   </span>
                 )}
               </div>
               {!reviewUser.submitted_at && starValue === 0 && (
-                <p className="text-xs text-[var(--gray-500)] mt-2">Click a star to rate this employee&apos;s performance</p>
+                <p className="text-[10px] font-bold text-[var(--on-glass-dim)] uppercase tracking-widest mt-4">Select Rating Identity</p>
               )}
             </div>
             <Textarea
@@ -524,12 +549,12 @@ export default function PerformancePage() {
               required={!reviewUser.submitted_at}
               placeholder="Add qualitative notes about this month's performance, achievements, and areas for improvement..."
               error={reviewForm.formState.errors.comments?.message}
-              className="h-28"
+              className="h-32"
               readOnly={!!reviewUser.submitted_at}
               {...reviewForm.register('comments')}
             />
             {reviewUser.submitted_at && (
-              <p className="text-xs text-[var(--gray-500)]">
+              <p className="text-[10px] font-bold text-[var(--on-glass-dim)] uppercase tracking-widest leading-relaxed">
                 Review submitted on {format(new Date(reviewUser.submitted_at), 'MMM d, yyyy')} by {reviewUser.reviewer?.name}
               </p>
             )}
@@ -554,18 +579,18 @@ export default function PerformancePage() {
           </>
         }
       >
-        <div className="space-y-4">
+        <div className="space-y-6">
           <Input label="Goal Title" required error={goalForm.formState.errors.title?.message}
             placeholder="e.g. Complete onboarding process" {...goalForm.register('title')} />
           <Textarea label="Description" placeholder="Optional details about this goal..."
             {...goalForm.register('description')} />
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-semibold text-[var(--dark-800)] block mb-1">
-                Weight (%) <span className="font-normal text-[var(--gray-500)]">contribution to overall</span>
+            <div className="space-y-1.5">
+              <label className="text-[13px] font-bold text-[var(--on-glass-sub)] uppercase tracking-wide">
+                Weight (%)
               </label>
               <input type="number" min={1} max={100}
-                className="w-full px-3 py-2 text-sm border border-[var(--gray-200)] rounded-lg outline-none focus:border-[var(--primary-600)]"
+                className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--glass-05)] px-4 py-3 text-sm text-white focus:border-[var(--primary-600)] outline-none transition-all"
                 {...goalForm.register('weight', { valueAsNumber: true })}
               />
             </div>
@@ -583,20 +608,20 @@ export default function PerformancePage() {
         footer={
           <>
             <Button variant="ghost" onClick={() => setCompletionEdit(null)}>Cancel</Button>
-            <Button loading={savingGoal} onClick={onUpdateCompletion}>Save Progress</Button>
+            <Button loading={savingGoal} onClick={onUpdateCompletion}>Apply Update</Button>
           </>
         }
       >
         {completionEdit && (
-          <div className="space-y-4">
-            <p className="text-sm font-semibold text-[var(--dark-950)]">{completionEdit.title}</p>
-            <div>
-              <label className="text-sm font-semibold text-[var(--dark-800)] block mb-2">
-                Completion: {newCompletion}%
+          <div className="space-y-6">
+            <p className="text-sm font-black text-white uppercase tracking-tight">{completionEdit.title}</p>
+            <div className="space-y-4">
+              <label className="text-[10px] font-black text-[var(--on-glass-muted)] uppercase tracking-[0.2em] block">
+                COMPLETION RATIO: {newCompletion}%
               </label>
               <input type="range" min={0} max={100} value={newCompletion}
                 onChange={e => setNewCompletion(parseInt(e.target.value))}
-                className="w-full accent-[var(--primary-600)]"
+                className="w-full h-1.5 bg-[var(--glass-20)] rounded-lg appearance-none cursor-pointer accent-[var(--primary-600)]"
               />
               <CompletionBar value={newCompletion} />
             </div>
@@ -613,26 +638,25 @@ export default function PerformancePage() {
         footer={<Button onClick={() => { setInsightsUser(null); setInsights(''); }}>Close</Button>}
       >
         {insightsUser && (
-          <div className="space-y-4">
+          <div className="space-y-6">
             {insightsUser.user && (
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-[var(--gray-50)]">
+              <div className="flex items-center gap-4 p-5 rounded-[2rem] bg-[var(--glass-05)] border border-[var(--glass-border)]">
                 <Avatar name={insightsUser.user.name} size="md" />
-                <div>
-                  <p className="font-bold text-[var(--dark-950)]">{insightsUser.user.name}</p>
-                  <p className="text-sm text-[var(--gray-500)]">{insightsUser.user.department}</p>
-                </div>
-                <div className="ml-auto flex items-center gap-1 text-xs text-[var(--primary-600)] font-medium">
-                  <Sparkles size={12} /> AI-generated
+                <div className="flex-1">
+                  <p className="text-lg font-black text-white tracking-tight">{insightsUser.user.name}</p>
+                  <p className="text-[10px] font-bold text-[var(--secondary)] uppercase tracking-[0.2em] mt-1 flex items-center gap-1.5">
+                    <Sparkles size={10} /> AI Performance Insights
+                  </p>
                 </div>
               </div>
             )}
             {insightsLoading ? (
-              <div className="flex flex-col items-center gap-3 py-10">
-                <div className="w-6 h-6 border-2 border-[var(--primary-600)] border-t-transparent rounded-full animate-spin" />
-                <p className="text-sm text-[var(--gray-500)]">Analysing performance data…</p>
+              <div className="flex flex-col items-center gap-4 py-16">
+                <div className="w-8 h-8 border-4 border-[var(--primary-600)] border-t-transparent rounded-full animate-spin" />
+                <p className="text-[10px] font-black text-[var(--on-glass-dim)] uppercase tracking-[0.3em]">Processing Data Stream…</p>
               </div>
             ) : (
-              <div className="prose prose-sm max-w-none text-[var(--dark-950)] leading-relaxed whitespace-pre-wrap bg-[var(--gray-50)] rounded-xl p-4 text-sm">
+              <div className="p-6 rounded-[2.5rem] bg-gradient-to-br from-[var(--primary-600)]/10 to-transparent border border-[var(--primary-600)]/20 shadow-2xl text-[var(--on-glass-sub)] text-sm leading-[1.8] font-medium whitespace-pre-wrap">
                 {insights}
               </div>
             )}

@@ -15,6 +15,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
 import { format, subMonths } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 const adjustSchema = z.object({
   field:  z.string().min(1, 'Select field to adjust'),
@@ -155,12 +156,12 @@ export default function PayrollPage() {
 
   const statusBadge = (s: string) => {
     const map: Record<string, [string, string]> = {
-      draft:      ['var(--warning-800)', 'var(--warning-100)'],
-      reviewing:  ['var(--primary-600)', 'var(--primary-100)'],
-      processed:  ['var(--success-700)', 'var(--success-100)'],
+      draft:      ['var(--warning-500)', '#f59e0b'],
+      reviewing:  ['var(--primary-600)', '#00C896'],
+      processed:  ['var(--success-500)', '#10b981'],
     };
     const [c, b] = map[s] || map.draft;
-    return <Badge label={s.charAt(0).toUpperCase() + s.slice(1)} color={c} bg={b} />;
+    return <Badge label={s.toUpperCase()} color={c} bg={b} size="sm" />;
   };
 
   return (
@@ -169,24 +170,25 @@ export default function PayrollPage() {
         title="Payroll"
         subtitle="Review, adjust and process monthly payroll"
         actions={
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 bg-[var(--glass-10)] p-1.5 pl-4 rounded-2xl border border-[var(--glass-border)] shadow-xl backdrop-blur-md">
             <select value={selectedMonth} onChange={e => setMonth(e.target.value)}
-              className="px-3 py-2 text-sm border border-[var(--gray-200)] rounded-lg outline-none focus:border-[var(--primary-600)]">
-              {MONTHS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
+              className="bg-transparent text-[11px] font-black text-white uppercase tracking-widest outline-none cursor-pointer pr-2">
+              {MONTHS.map(m => <option key={m.value} value={m.value} className="bg-[var(--dark-950)]">{m.label.toUpperCase()}</option>)}
             </select>
+            <div className="h-6 w-px bg-[var(--glass-border)]" />
             {hasRole('hr_admin', 'super_admin') && (
-              <Button variant="outline" size="sm" icon={<Download size={14} />} onClick={onExportCSV}>Export CSV</Button>
+              <Button variant="ghost" size="sm" className="h-9 py-0 border-none bg-transparent hover:bg-[var(--glass-15)]" icon={<Download size={14} />} onClick={onExportCSV}>Export CSV</Button>
             )}
             {hasRole('hr_admin', 'super_admin') && !isProcessed && payroll && (
-              <Button size="sm" icon={<Play size={14} />}
+              <Button size="sm" className="h-9 py-0 px-4" icon={<Play size={14} />}
                 onClick={() => setProcess(true)}
                 disabled={hasErrors}>
                 Process Payroll
               </Button>
             )}
             {isProcessed && (
-              <div className="flex items-center gap-2 px-3 py-2 bg-[var(--success-100)] text-[var(--success-700)] rounded-lg text-sm font-semibold">
-                <Lock size={14} /> Processed
+              <div className="flex items-center gap-2 px-3 h-9 bg-[var(--success-500)]/10 text-[var(--success-500)] rounded-xl text-[11px] font-black uppercase tracking-widest border border-[var(--success-500)]/20">
+                <Lock size={12} /> Processed
               </div>
             )}
           </div>
@@ -194,83 +196,97 @@ export default function PayrollPage() {
       />
 
       {loading ? (
-        <div className="grid grid-cols-4 gap-4 mb-6">
-          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-xl" />)}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-2xl" />)}
         </div>
       ) : payroll ? (
         <>
           {/* KPIs */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <KPICard title="Total Gross Pay"   value={formatCurrency(totalGross)}    icon={<Wallet size={20} />}       color="var(--success-700)" bg="var(--success-100)" />
-            <KPICard title="Employees"         value={payroll.records.length}        icon={<Wallet size={20} />}       color="var(--primary-600)" bg="var(--primary-100)" />
-            <KPICard title="Overtime Hours"    value={`${totalOT.toFixed(1)}h`}      icon={<AlertTriangle size={20} />} color="var(--warning-800)" bg="var(--warning-100)" />
-            <KPICard title="Total Deductions"  value={formatCurrency(totalDeductions)} icon={<Download size={20} />}  color="var(--danger-800)"  bg="var(--danger-100)"  />
+            <KPICard title="Total Gross Pay"   value={formatCurrency(totalGross)}    icon={<Wallet size={20} />}       color="var(--success-500)" bg="#10b981" />
+            <KPICard title="Employees"         value={payroll.records.length}        icon={<Wallet size={20} />}       color="var(--primary-600)" bg="#00C896" />
+            <KPICard title="Overtime Hours"    value={`${totalOT.toFixed(1)}h`}      icon={<AlertTriangle size={20} />} color="var(--warning-500)" bg="#f59e0b" />
+            <KPICard title="Total Deductions"  value={formatCurrency(totalDeductions)} icon={<Download size={20} />}  color="var(--danger-500)"  bg="#ef4444"  />
           </div>
 
           {/* Status banner */}
           {hasErrors && (
-            <div className="flex items-center gap-3 mb-4 p-4 rounded-xl bg-[var(--danger-100)] text-[var(--danger-800)]">
-              <AlertTriangle size={18} />
-              <p className="text-sm font-semibold">
+            <div className="flex items-center gap-4 mb-6 p-5 rounded-[2rem] bg-[var(--danger-500)]/10 border border-[var(--danger-500)]/20 text-[var(--danger-500)] slide-in-bottom shadow-2xl shadow-[var(--danger-500)]/10">
+              <div className="w-10 h-10 rounded-xl bg-[var(--danger-500)]/20 flex items-center justify-center flex-shrink-0">
+                 <AlertTriangle size={20} />
+              </div>
+              <p className="text-sm font-bold uppercase tracking-tight">
                 Some employees have missing hourly rates. Fix them before processing payroll.
               </p>
             </div>
           )}
 
-          <Card>
-            <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--gray-100)]">
-              <h3 className="text-sm font-bold text-[var(--dark-950)]">
-                {format(new Date(selectedMonth + '-01'), 'MMMM yyyy')} Payroll
+          <Card className="overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-5 bg-[var(--glass-05)] border-b border-[var(--glass-border)]">
+              <h3 className="text-[13px] font-black text-white uppercase tracking-widest">
+                {format(new Date(selectedMonth + '-01'), 'MMMM yyyy').toUpperCase()} Payroll
               </h3>
               {statusBadge(payroll.status)}
             </div>
             <Table
-              headers={['Employee', 'Regular Hrs', 'Overtime Hrs', 'Base Pay', 'Overtime Pay', 'Adjustments', 'Gross Pay', '']}
+              headers={['Employee', 'Regular Hrs', 'Overtime Hrs', 'Base Pay', 'Overtime Pay', 'Adjustments', 'Gross Pay', 'Actions']}
             >
               {payroll.records.map(rec => (
-                <tr key={rec.id} className={`border-b border-[var(--gray-100)] transition-colors ${rec.is_incomplete ? 'bg-[var(--danger-100)]' : 'hover:bg-[var(--gray-50)]'}`}>
-                  <td className="py-3 px-4">
+                <tr key={rec.id} className={cn(
+                  "hover:bg-[var(--glass-05)] transition-all group",
+                  rec.is_incomplete ? "bg-[var(--danger-500)]/5" : ""
+                )}>
+                  <td className="py-4 px-6">
                     {rec.user ? (
-                      <div className="flex items-center gap-3">
-                        <Avatar name={rec.user.name} size="sm" />
-                        <div>
-                          <p className="text-sm font-semibold">{rec.user.name}</p>
-                          <p className="text-xs text-[var(--gray-500)]">{rec.user.department}</p>
+                      <div className="flex items-center gap-4">
+                        <Avatar name={rec.user.name} size="md" />
+                        <div className="min-w-0">
+                          <p className="text-[15px] font-black text-white group-hover:text-[var(--primary-600)] transition-colors truncate">{rec.user.name}</p>
+                          <p className="text-[10px] font-bold text-[var(--on-glass-muted)] uppercase tracking-widest truncate">{rec.user.department || 'Operations'}</p>
                           {rec.is_incomplete && (
-                            <p className="text-xs text-[var(--danger-800)] font-semibold">Missing rate</p>
+                            <p className="text-[9px] text-[var(--danger-500)] font-black uppercase tracking-widest mt-1">MISSING RATE</p>
                           )}
                         </div>
                       </div>
                     ) : '—'}
                   </td>
-                  <td className="py-3 px-4 text-sm font-mono">{formatHours(n(rec.regular_hours))}</td>
-                  <td className="py-3 px-4">
-                    <span className={`text-sm font-mono ${n(rec.overtime_hours) > 0 ? 'text-[var(--warning-800)] font-semibold' : 'text-[var(--gray-500)]'}`}>
+                  <td className="py-4 px-6 text-sm font-black text-white font-mono">{formatHours(n(rec.regular_hours))}</td>
+                  <td className="py-4 px-6">
+                    <span className={cn(
+                      "text-sm font-black font-mono",
+                      n(rec.overtime_hours) > 0 ? "text-[var(--warning-500)]" : "text-[var(--on-glass-dim)]"
+                    )}>
                       {n(rec.overtime_hours) > 0 ? formatHours(n(rec.overtime_hours)) : '—'}
                     </span>
                   </td>
-                  <td className="py-3 px-4 text-sm font-mono">{formatCurrency(n(rec.regular_hours) * n(rec.hourly_rate))}</td>
-                  <td className="py-3 px-4 text-sm font-mono">
+                  <td className="py-4 px-6 text-sm font-black text-white/50 font-mono">{formatCurrency(n(rec.regular_hours) * n(rec.hourly_rate))}</td>
+                  <td className="py-4 px-6 text-sm font-black text-white/50 font-mono">
                     {n(rec.overtime_hours) > 0 ? formatCurrency(n(rec.overtime_hours) * n(rec.hourly_rate) * 1.5) : '—'}
                   </td>
-                  <td className="py-3 px-4">
+                  <td className="py-4 px-6">
                     {(() => { const adj = adjustment(rec); return (
-                      <span className={`text-sm font-mono ${adj < 0 ? 'text-[var(--danger-800)]' : adj > 0 ? 'text-[var(--success-700)]' : 'text-[var(--gray-500)]'}`}>
+                      <span className={cn(
+                        "text-sm font-black font-mono",
+                        adj < 0 ? "text-[var(--danger-500)]" : adj > 0 ? "text-[var(--success-500)]" : "text-[var(--on-glass-dim)]"
+                      )}>
                         {adj !== 0 ? formatCurrency(adj) : '—'}
                       </span>
                     ); })()}
                   </td>
-                  <td className="py-3 px-4">
-                    <span className="text-sm font-bold text-[var(--dark-950)]">{formatCurrency(n(rec.gross_pay))}</span>
+                  <td className="py-4 px-6">
+                    <span className="text-[15px] font-black text-[var(--primary-600)]">{formatCurrency(n(rec.gross_pay))}</span>
                   </td>
-                  <td className="py-3 px-4">
+                  <td className="py-4 px-6">
                     {!isProcessed && hasRole('hr_admin', 'super_admin') ? (
-                      <Button variant="ghost" size="sm" onClick={() => { form.reset(); setAdjustRow(rec); }}>
-                        Adjust
-                      </Button>
+                      <button
+                        onClick={() => { form.reset(); setAdjustRow(rec); }}
+                        className="w-10 h-10 flex items-center justify-center rounded-xl bg-[var(--glass-10)] text-[var(--on-glass-dim)] hover:text-white hover:bg-[var(--glass-15)] transition-all"
+                      >
+                         <ChevronDown size={18} />
+                      </button>
                     ) : isProcessed ? (
                       <Button variant="outline" size="sm" icon={<Download size={12} />}
-                        onClick={() => onDownloadPayslip(rec.id)}>Payslip</Button>
+                        onClick={() => onDownloadPayslip(rec.id)}>PAYSLIP</Button>
                     ) : null}
                   </td>
                 </tr>
@@ -282,9 +298,9 @@ export default function PayrollPage() {
         <Card>
           <EmptyState
             icon={<Wallet size={24} />}
-            title="No payroll for this period"
-            description="Payroll is generated automatically at the end of each month. You can also trigger it manually."
-            action={hasRole('hr_admin', 'super_admin') ? <Button icon={<Play size={14} />} onClick={onGenerate}>Generate Payroll</Button> : undefined}
+            title="No payroll generated for this period"
+            description="Operational payroll is generated automatically at the end of each month."
+            action={hasRole('hr_admin', 'super_admin') ? <Button icon={<Play size={14} />} onClick={onGenerate}>GENERATE NOW</Button> : undefined}
           />
         </Card>
       )}
@@ -300,13 +316,13 @@ export default function PayrollPage() {
         }
       >
         {adjustRow && (
-          <div className="space-y-4">
+          <div className="space-y-6">
             {adjustRow.user && (
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-[var(--gray-50)]">
-                <Avatar name={adjustRow.user.name} size="sm" />
+              <div className="flex items-center gap-4 p-5 rounded-[2rem] bg-[var(--glass-05)] border border-[var(--glass-border)]">
+                <Avatar name={adjustRow.user.name} size="md" />
                 <div>
-                  <p className="text-sm font-bold">{adjustRow.user.name}</p>
-                  <p className="text-xs text-[var(--gray-500)]">Current gross: {formatCurrency(adjustRow.gross_pay)}</p>
+                  <p className="text-lg font-black text-white tracking-tight">{adjustRow.user.name}</p>
+                  <p className="text-[10px] font-bold text-[var(--on-glass-muted)] uppercase tracking-widest">Current Gross: {formatCurrency(adjustRow.gross_pay)}</p>
                 </div>
               </div>
             )}
@@ -329,7 +345,7 @@ export default function PayrollPage() {
               error={form.formState.errors.reason?.message}
               {...form.register('reason')}
             />
-            <p className="text-xs text-[var(--gray-500)]">
+            <p className="text-[10px] font-bold text-[var(--on-glass-dim)] uppercase tracking-widest leading-relaxed">
               This adjustment will be logged with your name and timestamp for audit purposes.
             </p>
           </div>

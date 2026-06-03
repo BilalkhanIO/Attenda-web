@@ -18,6 +18,7 @@ import { z } from 'zod';
 import toast from 'react-hot-toast';
 import { format, formatDuration, intervalToDuration } from 'date-fns';
 import { useAuth } from '@/lib/auth';
+import { cn } from '@/lib/utils';
 
 // ─── local types ──────────────────────────────────────
 interface RemoteSession {
@@ -54,7 +55,6 @@ const overrideSchema = z.object({
 });
 type OverrideForm = z.infer<typeof overrideSchema>;
 
-// ─── helpers ──────────────────────────────────────────
 function formatHours(hours: number): string {
   const totalMins = Math.round(hours * 60);
   const h = Math.floor(totalMins / 60);
@@ -80,8 +80,8 @@ function LiveDuration({ checkInAt }: { checkInAt: string }) {
   }, [checkInAt]);
   return (
     <div>
-      <span className="text-sm font-medium text-[var(--primary-600)]">{dur}</span>
-      <span className="block text-[10px] text-[var(--primary-400)]">in progress</span>
+      <span className="text-sm font-bold text-[var(--primary-600)]">{dur}</span>
+      <span className="block text-[10px] font-black text-[var(--on-glass-dim)] uppercase tracking-widest">In Progress</span>
     </div>
   );
 }
@@ -399,352 +399,346 @@ export default function AttendancePage() {
         }
       />
 
-      {/* ── On approved leave today banner ───────────────── */}
-      {leaveToday && !myRecord?.check_in_at && (
-        <div className="mb-4 flex items-center gap-3 rounded-xl border border-[var(--primary-200)] bg-[var(--primary-50)] px-4 py-3 text-sm text-[var(--primary-700)]">
-          <Calendar size={16} className="shrink-0" />
-          <span>You have approved <strong>{leaveToday.leave_type.replace(/_/g, ' ')}</strong> today — no check-in required.</span>
-        </div>
-      )}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
+        {/* ── My Attendance Status Card ───────────────────── */}
+        <div className="xl:col-span-2">
+          <Card className="p-6 relative overflow-hidden h-full">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-[var(--primary-600)]/5 blur-[80px] rounded-full translate-x-1/2 -translate-y-1/2 pointer-events-none" />
 
-      {/* ── Late notice banner ────────────────────────────── */}
-      {myLateNotice && !myRecord?.check_in_at && (
-        <div className={`mb-4 flex items-center gap-3 rounded-xl border px-4 py-3 text-sm ${myLateNotice.status === 'acknowledged' ? 'border-[var(--success-300)] bg-[var(--success-50)] text-[var(--success-700)]' : 'border-[var(--warning-300)] bg-[var(--warning-50)] text-[var(--warning-700)]'}`}>
-          <AlertTriangle size={16} className="shrink-0" />
-          <span className="flex-1">
-            {myLateNotice.status === 'acknowledged' ? 'Manager acknowledged your late notice' : 'Late arrival notice submitted'} — expected at <strong>{myLateNotice.expected_time}</strong>.
-          </span>
-          <button onClick={handleCancelMyNotice} className="ml-2 rounded p-0.5 hover:bg-black/10">
-            <X size={14} />
-          </button>
-        </div>
-      )}
-
-      {/* ── My Attendance Today ───────────────────────────── */}
-      <Card className="p-5 mb-6">
-        <div className="flex items-center gap-2 mb-4">
-          <Clock size={16} className="text-[var(--primary-600)]" />
-          <h3 className="text-sm font-bold text-[var(--dark-950)]">My Attendance Today</h3>
-          <div className="ml-auto">
-            {myStatusConfig ? (
-              <Badge label={myStatusConfig.label} color={myStatusConfig.color} bg={myStatusConfig.bg} />
-            ) : (
-              <Badge label="Not Checked In" color="var(--gray-500)" bg="var(--gray-100)" />
-            )}
-          </div>
-        </div>
-
-        {/* Status info strip */}
-        {myRecord?.check_in_at && (
-          <div className="flex flex-wrap items-center gap-5 mb-4 p-3 rounded-xl bg-[var(--gray-50)]">
-            <div className="flex items-center gap-2">
-              <LogIn size={14} className="text-[var(--success-600)]" />
+            <div className="flex items-start justify-between mb-8 relative z-10">
               <div>
-                <p className="text-[10px] font-semibold text-[var(--gray-500)] uppercase tracking-wide">Check In</p>
-                <p className="text-sm font-bold text-[var(--dark-950)] font-mono">{formatTime(myRecord.check_in_at)}</p>
+                <p className="text-[10px] font-black text-[var(--primary-600)] uppercase tracking-[0.2em] mb-1.5">Employee Status</p>
+                <h3 className="text-2xl font-black text-white tracking-tight">My Attendance</h3>
+              </div>
+              <div className="flex flex-col items-end">
+                {myStatusConfig ? (
+                  <Badge label={myStatusConfig.label} color={myStatusConfig.color} bg={myStatusConfig.bg} />
+                ) : (
+                  <Badge label="NOT CHECKED IN" color="var(--on-glass-dim)" bg="#334155" />
+                )}
               </div>
             </div>
 
-            {myRecord.check_out_at ? (
-              <div className="flex items-center gap-2">
-                <LogOut size={14} className="text-[var(--gray-500)]" />
-                <div>
-                  <p className="text-[10px] font-semibold text-[var(--gray-500)] uppercase tracking-wide">Check Out</p>
-                  <p className="text-sm font-bold text-[var(--dark-950)] font-mono">{formatTime(myRecord.check_out_at)}</p>
-                </div>
+            {/* Content Strip */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8 relative z-10">
+              {/* Check In */}
+              <div className="p-4 rounded-2xl bg-[var(--glass-05)] border border-[var(--glass-border)]">
+                 <p className="text-[10px] font-black text-[var(--on-glass-muted)] uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                   <LogIn size={12} className="text-[var(--success-500)]" /> Check In
+                 </p>
+                 <p className="text-xl font-black text-white font-mono">
+                   {myRecord?.check_in_at ? formatTime(myRecord.check_in_at) : '--:--'}
+                 </p>
               </div>
-            ) : elapsed ? (
-              <div className="flex items-center gap-2">
-                <Clock size={14} className="text-[var(--primary-600)]" />
-                <div>
-                  <p className="text-[10px] font-semibold text-[var(--gray-500)] uppercase tracking-wide">Elapsed</p>
-                  <p className="text-sm font-bold text-[var(--primary-600)] font-mono">{elapsed}</p>
-                </div>
+
+              {/* Check Out / Elapsed */}
+              <div className="p-4 rounded-2xl bg-[var(--glass-05)] border border-[var(--glass-border)]">
+                 {myRecord?.check_out_at ? (
+                   <>
+                    <p className="text-[10px] font-black text-[var(--on-glass-muted)] uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                      <LogOut size={12} className="text-[var(--on-glass-dim)]" /> Check Out
+                    </p>
+                    <p className="text-xl font-black text-white font-mono">{formatTime(myRecord.check_out_at)}</p>
+                   </>
+                 ) : (
+                   <>
+                    <p className="text-[10px] font-black text-[var(--on-glass-muted)] uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                      <Clock size={12} className="text-[var(--primary-600)]" /> Hours Worked
+                    </p>
+                    <p className="text-xl font-black text-[var(--primary-600)] font-mono">{elapsed || '00:00'}</p>
+                   </>
+                 )}
               </div>
-            ) : null}
 
-            {myRecord.check_out_at && myRecord.hours_worked != null && (
-              <div className="flex items-center gap-2">
-                <Clock size={14} className="text-[var(--gray-500)]" />
-                <div>
-                  <p className="text-[10px] font-semibold text-[var(--gray-500)] uppercase tracking-wide">Hours</p>
-                  <p className="text-sm font-bold text-[var(--dark-950)]">
-                    {n(myRecord.hours_worked).toFixed(1)}h
-                    {myRecord.net_hours_worked != null && myRecord.net_hours_worked !== myRecord.hours_worked && (
-                      <span className="text-xs font-normal text-[var(--gray-500)]"> · {n(myRecord.net_hours_worked).toFixed(1)}h net</span>
-                    )}
-                  </p>
-                </div>
+              {/* Total Hours */}
+              <div className="p-4 rounded-2xl bg-[var(--glass-05)] border border-[var(--glass-border)]">
+                 <p className="text-[10px] font-black text-[var(--on-glass-muted)] uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                   <CheckCircle2 size={12} className="text-[var(--secondary)]" /> Total Hours
+                 </p>
+                 <p className="text-xl font-black text-white">
+                   {myRecord?.hours_worked != null ? `${n(myRecord.hours_worked).toFixed(1)}h` : '0.0h'}
+                 </p>
               </div>
-            )}
 
-            {(myRecord.check_in_type || myRecord.type) && (
-              <div className="flex items-center gap-2 ml-auto">
-                <Wifi size={14} className="text-[var(--gray-400)]" />
-                <span className="text-xs text-[var(--gray-500)]">
-                  {typeLabel[myRecord.check_in_type || myRecord.type!] || myRecord.check_in_type || myRecord.type}
-                  {myRecord.auto_checked_out && ' · auto out'}
-                </span>
+              {/* Method */}
+              <div className="p-4 rounded-2xl bg-[var(--glass-05)] border border-[var(--glass-border)]">
+                 <p className="text-[10px] font-black text-[var(--on-glass-muted)] uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                   <Wifi size={12} className="text-[var(--on-glass-dim)]" /> Method
+                 </p>
+                 <p className="text-sm font-bold text-white/70 truncate">
+                   {myRecord ? (typeLabel[myRecord.check_in_type || myRecord.type!] || 'MANUAL') : '---'}
+                 </p>
               </div>
-            )}
-          </div>
-        )}
+            </div>
 
-        {/* Compliance chips */}
-        {myRecord?.check_in_at && (
-          (myRecord.late_minutes ?? 0) > 0 ||
-          (myRecord.early_out_minutes ?? 0) > 0 ||
-          myRecord.adherence_score != null
-        ) && (
-          <div className="flex flex-wrap items-center gap-2 mb-4">
-            {(myRecord.late_minutes ?? 0) > 0 && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-full bg-[var(--warning-100)] text-[var(--warning-800)]">
-                <AlertTriangle size={11} /> {myRecord.late_minutes} min late
-              </span>
-            )}
-            {(myRecord.early_out_minutes ?? 0) > 0 && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-full bg-[var(--warning-100)] text-[var(--warning-800)]">
-                <LogOut size={11} /> Left {myRecord.early_out_minutes} min early
-              </span>
-            )}
-            {myRecord.adherence_score != null && (
-              <span className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-full ${
-                myRecord.adherence_score >= 90 ? 'bg-[var(--success-100)] text-[var(--success-700)]'
-                : myRecord.adherence_score >= 70 ? 'bg-[var(--warning-100)] text-[var(--warning-800)]'
-                : 'bg-[var(--danger-100)] text-[var(--danger-700)]'
-              }`}>
-                <CheckCircle2 size={11} /> {myRecord.adherence_score}% adherence
-              </span>
-            )}
-          </div>
-        )}
-
-        {/* Actions */}
-        <div className="flex flex-wrap items-center gap-3">
-          {!myRecord?.check_in_at && (
-            <>
-              <Button
-                icon={<LogIn size={14} />}
-                loading={checkInLoading}
-                onClick={handleCheckIn}
-              >
-                Check In
-              </Button>
-              {/* Report Late — show if no active notice yet */}
-              {!myLateNotice && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  icon={<AlertTriangle size={14} />}
-                  onClick={() => setLateNoticeModalOpen(true)}
-                >
-                  Report Late Arrival
-                </Button>
-              )}
-            </>
-          )}
-          {isCheckedIn && !isCheckedOut && (
-            <Button
-              variant="outline"
-              icon={<LogOut size={14} />}
-              loading={checkOutLoading}
-              onClick={handleCheckOut}
-            >
-              Check Out
-            </Button>
-          )}
-          {/* Pre-announced late badge */}
-          {isCheckedIn && myRecord?.late_notice_id && (
-            <span className="flex items-center gap-1 rounded-full bg-[var(--warning-100)] px-2.5 py-1 text-xs font-semibold text-[var(--warning-800)]">
-              <AlertTriangle size={11} /> Pre-announced late
-            </span>
-          )}
-          {isCheckedOut && (
-            <p className="text-sm text-[var(--gray-500)]">Work day complete · Have a great evening!</p>
-          )}
-        </div>
-      </Card>
-
-      {/* ── Break Tracking (only while checked in) ───────── */}
-      {isCheckedIn && (
-        <Card className="p-5 mb-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Coffee size={16} className="text-[var(--primary-600)]" />
-            <h3 className="text-sm font-bold text-[var(--dark-950)]">Break Tracking</h3>
-            {breakStatus?.total_break_minutes != null && breakStatus.total_break_minutes > 0 && (
-              <span className="ml-auto text-xs text-[var(--gray-500)]">
-                {breakStatus.total_break_minutes} min total today
-              </span>
-            )}
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            {breakStatus?.on_break ? (
-              <>
-                <div className="flex items-center gap-2 px-3 py-2 bg-[var(--warning-100)] rounded-lg">
-                  <div className="w-2 h-2 rounded-full bg-[var(--warning-800)] animate-pulse" />
-                  <span className="text-sm font-semibold text-[var(--warning-800)]">
-                    On {breakStatus.break_type === 'meal' ? 'Meal' : 'Rest'} Break
-                  </span>
-                  {breakStatus.started_at && (
-                    <span className="text-xs text-[var(--warning-800)] opacity-75">
-                      since {formatTime(breakStatus.started_at)}
-                    </span>
+            {/* Compliance Alerts */}
+            {myRecord?.check_in_at && (
+              ((myRecord.late_minutes ?? 0) > 0 || (myRecord.early_out_minutes ?? 0) > 0) && (
+                <div className="flex flex-wrap gap-2 mb-8">
+                  {(myRecord.late_minutes ?? 0) > 0 && (
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[var(--danger-500)]/10 border border-[var(--danger-500)]/20 text-[10px] font-black text-[var(--danger-500)] uppercase tracking-widest">
+                       <AlertTriangle size={12} /> {myRecord.late_minutes}M Late Arrival
+                    </div>
+                  )}
+                  {(myRecord.early_out_minutes ?? 0) > 0 && (
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[var(--warning-500)]/10 border border-[var(--warning-500)]/20 text-[10px] font-black text-[var(--warning-500)] uppercase tracking-widest">
+                       <LogOut size={12} /> {myRecord.early_out_minutes}M Early Exit
+                    </div>
                   )}
                 </div>
-                <Button variant="outline" size="sm" icon={<StopCircle size={14} />} loading={breakLoading} onClick={handleEndBreak}>
-                  End Break
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button variant="outline" size="sm" icon={<PlayCircle size={14} />} loading={breakLoading} onClick={() => handleStartBreak('rest')}>
-                  Rest Break
-                </Button>
-                <Button variant="outline" size="sm" icon={<Coffee size={14} />} loading={breakLoading} onClick={() => handleStartBreak('meal')}>
-                  Meal Break
-                </Button>
-              </>
+              )
             )}
-          </div>
 
-          {breakStatus?.breaks && breakStatus.breaks.length > 0 && (
-            <div className="mt-4 space-y-1">
-              <p className="text-xs font-semibold text-[var(--gray-500)] uppercase tracking-wide mb-2">Today&apos;s Breaks</p>
-              {breakStatus.breaks.map((b, i) => (
-                <div key={i} className="flex items-center justify-between px-3 py-1.5 bg-[var(--gray-50)] rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <Coffee size={11} className="text-[var(--gray-500)]" />
-                    <span className="text-xs font-medium text-[var(--dark-950)] capitalize">{b.break_type} break</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs text-[var(--gray-500)] font-mono">{formatTime(b.started_at)}</span>
-                    {b.ended_at && (
-                      <>
-                        <span className="text-xs text-[var(--gray-500)]">–</span>
-                        <span className="text-xs text-[var(--gray-500)] font-mono">{formatTime(b.ended_at)}</span>
-                      </>
-                    )}
-                    {b.minutes != null && <span className="text-xs text-[var(--gray-500)]">{b.minutes} min</span>}
-                    {!b.ended_at && <Badge label="Active" color="var(--warning-800)" bg="var(--warning-100)" size="sm" />}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
-      )}
-
-      {/* ── Remote Work Requests (managers only) ─────────── */}
-      {hasRole('manager', 'hr_admin', 'super_admin') && remoteSessions.length > 0 && (
-        <Card className="p-5 mb-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Home size={16} className="text-[var(--purple-700)]" />
-            <h3 className="text-sm font-bold text-[var(--dark-950)]">Pending Remote Work Requests</h3>
-            <span className="ml-auto px-2 py-0.5 text-xs font-bold bg-[var(--warning-100)] text-[var(--warning-800)] rounded-full">
-              {remoteSessions.length}
-            </span>
-          </div>
-          <div className="space-y-3">
-            {remoteSessions.map((session) => (
-              <div key={session.id} className="flex items-center gap-3 p-3 rounded-xl bg-[var(--gray-50)] border border-[var(--gray-100)]">
-                {session.user && <Avatar name={session.user.name} imageUrl={session.user.avatar_url} size="sm" />}
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-[var(--dark-950)] truncate">{session.user?.name || '—'}</p>
-                  <p className="text-xs text-[var(--gray-500)]">
-                    {session.attendance?.date ? formatDate(session.attendance.date) : '—'}
-                    {' · '}
-                    {session.duration_type.replace(/_/g, ' ')}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <Button size="sm" icon={<Check size={13} />} loading={remoteActionId === session.id} onClick={() => handleApproveRemote(session.id)}>
-                    Approve
+            {/* Main Actions */}
+            <div className="flex items-center gap-4 relative z-10 pt-4 border-t border-[var(--glass-border)]">
+              {!myRecord?.check_in_at ? (
+                <>
+                  <Button
+                    size="lg"
+                    className="px-10"
+                    icon={<LogIn size={18} />}
+                    loading={checkInLoading}
+                    onClick={handleCheckIn}
+                  >
+                    CHECK IN
                   </Button>
-                  <Button variant="outline" size="sm" icon={<X size={13} />} loading={remoteActionId === session.id} onClick={() => handleRejectRemote(session.id)}>
-                    Reject
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-      )}
-
-      {/* ── Team Late Notices (pending, for managers) ────── */}
-      {hasRole('manager', 'hr_admin', 'super_admin') && teamNotices.length > 0 && (
-        <Card className="p-5 mb-6">
-          <div className="flex items-center gap-2 mb-4">
-            <AlertTriangle size={16} className="text-[var(--warning-600)]" />
-            <h3 className="text-sm font-bold text-[var(--dark-950)]">Pending Late Arrival Notices</h3>
-            <span className="ml-auto rounded-full bg-[var(--warning-100)] px-2 py-0.5 text-xs font-semibold text-[var(--warning-800)]">
-              {teamNotices.length}
-            </span>
-          </div>
-          <div className="flex flex-col gap-3">
-            {teamNotices.map((notice) => (
-              <div key={notice.id} className="flex items-center gap-3 rounded-xl border border-[var(--warning-200)] bg-[var(--warning-50)] p-3">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    {notice.user && <Avatar name={notice.user.name} size="xs" />}
-                    <span className="text-sm font-semibold text-[var(--dark-950)]">{notice.user?.name ?? '—'}</span>
-                    {notice.user?.department && (
-                      <span className="text-xs text-[var(--gray-500)]">· {notice.user.department}</span>
-                    )}
-                  </div>
-                  <p className="mt-1 text-xs text-[var(--gray-500)]">
-                    Expected at <strong>{notice.expected_time}</strong> · {notice.reason}
-                  </p>
-                </div>
+                  {!myLateNotice && (
+                    <Button
+                      variant="ghost"
+                      size="lg"
+                      icon={<AlertTriangle size={18} />}
+                      onClick={() => setLateNoticeModalOpen(true)}
+                    >
+                      Report Late
+                    </Button>
+                  )}
+                </>
+              ) : isCheckedIn && !isCheckedOut ? (
                 <Button
-                  size="sm"
                   variant="outline"
-                  icon={<Check size={13} />}
-                  onClick={() => handleAcknowledgeNotice(notice.id)}
+                  size="lg"
+                  className="px-10 border-[var(--danger-500)]/30 text-[var(--danger-500)] hover:bg-[var(--danger-500)]/10"
+                  icon={<LogOut size={18} />}
+                  loading={checkOutLoading}
+                  onClick={handleCheckOut}
                 >
-                  Acknowledge
+                  CHECK OUT
                 </Button>
+              ) : isCheckedOut ? (
+                <div className="flex items-center gap-3 text-[var(--on-glass-muted)]">
+                   <div className="w-8 h-8 rounded-full bg-[var(--success-500)]/20 flex items-center justify-center">
+                      <Check size={16} className="text-[var(--success-500)]" />
+                   </div>
+                   <span className="text-sm font-bold uppercase tracking-widest">Attendance Complete</span>
+                </div>
+              ) : null}
+
+              {/* Late notice pending indicator */}
+              {myLateNotice && !myRecord?.check_in_at && (
+                <div className="flex items-center gap-3 px-4 py-2 bg-[var(--warning-500)]/10 border border-[var(--warning-500)]/20 rounded-2xl text-[10px] font-black text-[var(--warning-500)] uppercase tracking-widest">
+                   <Clock size={12} /> Late notice active: {myLateNotice.expected_time}
+                   <button onClick={handleCancelMyNotice} className="ml-2 hover:text-white transition-colors">
+                     <X size={14} />
+                   </button>
+                </div>
+              )}
+            </div>
+          </Card>
+        </div>
+
+        {/* ── Break Tracking Card ─────────────────────────── */}
+        <div className="xl:col-span-1">
+          <Card className={cn(
+            "p-6 h-full flex flex-col transition-all duration-500",
+            breakStatus?.on_break ? "bg-[var(--warning-500)]/10 border-[var(--warning-500)]/30" : "bg-[var(--glass-05)]"
+          )}>
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                 <div className="w-10 h-10 rounded-xl bg-[var(--glass-10)] flex items-center justify-center">
+                    <Coffee size={20} className={breakStatus?.on_break ? "text-[var(--warning-500)]" : "text-[var(--on-glass-dim)]"} />
+                 </div>
+                 <div>
+                    <h3 className="text-sm font-black text-white uppercase tracking-widest">Break Tracking</h3>
+                    {breakStatus?.total_break_minutes != null && (
+                      <p className="text-[10px] font-bold text-[var(--on-glass-muted)] uppercase tracking-widest mt-0.5">
+                        {breakStatus.total_break_minutes}m total today
+                      </p>
+                    )}
+                 </div>
               </div>
-            ))}
+            </div>
+
+            {isCheckedIn ? (
+              <div className="flex-1 flex flex-col">
+                <div className="flex flex-col gap-3 mb-6">
+                  {breakStatus?.on_break ? (
+                    <div className="space-y-4">
+                      <div className="p-4 rounded-2xl bg-white/5 border border-[var(--warning-500)]/20">
+                         <p className="text-[10px] font-black text-[var(--warning-500)] uppercase tracking-[0.2em] mb-1">Status: On Break</p>
+                         <p className="text-lg font-black text-white uppercase">{breakStatus.break_type} Break Active</p>
+                         {breakStatus.started_at && (
+                           <p className="text-xs font-medium text-[var(--on-glass-muted)] mt-1">Started at {formatTime(breakStatus.started_at)}</p>
+                         )}
+                      </div>
+                      <Button className="w-full h-14 bg-white text-black hover:bg-white/90" icon={<StopCircle size={18} />} loading={breakLoading} onClick={handleEndBreak}>
+                        END BREAK
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        onClick={() => handleStartBreak('rest')}
+                        disabled={breakLoading}
+                        className="p-5 rounded-2xl bg-[var(--glass-10)] border border-[var(--glass-border)] hover:bg-[var(--glass-15)] hover:border-[var(--primary-600)]/30 transition-all group flex flex-col items-center gap-3"
+                      >
+                         <PlayCircle size={20} className="text-[var(--on-glass-dim)] group-hover:text-[var(--primary-600)] transition-colors" />
+                         <span className="text-[10px] font-black text-white uppercase tracking-widest">Rest Break</span>
+                      </button>
+                      <button
+                        onClick={() => handleStartBreak('meal')}
+                        disabled={breakLoading}
+                        className="p-5 rounded-2xl bg-[var(--glass-10)] border border-[var(--glass-border)] hover:bg-[var(--glass-15)] hover:border-[var(--secondary)]/30 transition-all group flex flex-col items-center gap-3"
+                      >
+                         <Coffee size={20} className="text-[var(--on-glass-dim)] group-hover:text-[var(--secondary)] transition-colors" />
+                         <span className="text-[10px] font-black text-white uppercase tracking-widest">Meal Break</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* History Scroll */}
+                <div className="mt-auto pt-4 border-t border-[var(--glass-border)] overflow-y-auto max-h-32 custom-scrollbar">
+                   {breakStatus?.breaks && breakStatus.breaks.length > 0 ? (
+                     <div className="space-y-2">
+                        {breakStatus.breaks.map((b, i) => (
+                          <div key={i} className="flex items-center justify-between text-[11px] px-2">
+                             <span className="font-bold text-[var(--on-glass-muted)] uppercase">{b.break_type}</span>
+                             <span className="font-mono text-white/50">{formatTime(b.started_at)} {b.ended_at && `- ${formatTime(b.ended_at)}`}</span>
+                          </div>
+                        ))}
+                     </div>
+                   ) : (
+                     <p className="text-[10px] text-center font-black text-[var(--on-glass-dim)] uppercase tracking-widest py-4">No activity logged</p>
+                   )}
+                </div>
+              </div>
+            ) : (
+              <div className="flex-1 flex flex-col items-center justify-center text-center p-4">
+                 <WifiOff size={32} className="text-[var(--on-glass-dim)] mb-4" />
+                 <p className="text-xs font-black text-[var(--on-glass-dim)] uppercase tracking-widest leading-relaxed">Check-in required for break tracking</p>
+              </div>
+            )}
+          </Card>
+        </div>
+      </div>
+
+      {/* ── Banner: approved leave today ───────────────── */}
+      {leaveToday && !myRecord?.check_in_at && (
+        <div className="mb-6 p-5 rounded-[2rem] border border-[var(--primary-600)]/20 bg-[var(--primary-600)]/5 backdrop-blur-xl flex items-center gap-4 slide-in-bottom">
+          <div className="w-12 h-12 rounded-2xl bg-[var(--primary-600)]/20 flex items-center justify-center">
+            <Calendar size={20} className="text-[var(--primary-600)]" />
           </div>
-        </Card>
+          <div>
+            <p className="text-sm font-black text-white tracking-tight">Approved Leave in Progress</p>
+            <p className="text-xs font-medium text-[var(--on-glass-muted)] uppercase tracking-widest mt-1">
+              {leaveToday.leave_type.replace(/_/g, ' ')} Active &middot; No manual presence required
+            </p>
+          </div>
+        </div>
       )}
 
-      {/* ── Org-wide Attendance Table (managers / HR) ─────── */}
+      {/* ── Pending Requests (Managers) ──────────────────── */}
+      {hasRole('manager', 'hr_admin', 'super_admin') && (remoteSessions.length > 0 || teamNotices.length > 0) && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+           {remoteSessions.length > 0 && (
+              <Card className="p-6 border-[var(--secondary)]/20 bg-[var(--secondary)]/5">
+                 <div className="flex items-center gap-3 mb-6">
+                    <Home size={18} className="text-[var(--secondary)]" />
+                    <h3 className="text-sm font-black text-white uppercase tracking-widest">Remote Work Requests</h3>
+                    <span className="ml-auto w-6 h-6 rounded-lg bg-[var(--secondary)]/20 flex items-center justify-center text-[10px] font-black text-[var(--secondary)]">{remoteSessions.length}</span>
+                 </div>
+                 <div className="space-y-3">
+                    {remoteSessions.map(s => (
+                       <div key={s.id} className="flex items-center gap-4 p-4 rounded-2xl bg-[var(--dark-950)]/40 border border-[var(--glass-border)]">
+                          <Avatar name={s.user?.name || ''} imageUrl={s.user?.avatar_url} size="sm" />
+                          <div className="flex-1 min-w-0">
+                             <p className="text-sm font-black text-white truncate">{s.user?.name}</p>
+                             <p className="text-[10px] font-bold text-[var(--on-glass-muted)] uppercase tracking-widest">{s.duration_type.replace(/_/g, ' ')}</p>
+                          </div>
+                          <div className="flex gap-2">
+                             <button onClick={() => handleApproveRemote(s.id)} disabled={!!remoteActionId} className="w-8 h-8 rounded-lg bg-[var(--success-500)] text-white flex items-center justify-center hover:brightness-110 transition-all"><Check size={14} /></button>
+                             <button onClick={() => handleRejectRemote(s.id)} disabled={!!remoteActionId} className="w-8 h-8 rounded-lg bg-[var(--danger-500)] text-white flex items-center justify-center hover:brightness-110 transition-all"><X size={14} /></button>
+                          </div>
+                       </div>
+                    ))}
+                 </div>
+              </Card>
+           )}
+           {teamNotices.length > 0 && (
+              <Card className="p-6 border-[var(--warning-500)]/20 bg-[var(--warning-500)]/5">
+                 <div className="flex items-center gap-3 mb-6">
+                    <AlertTriangle size={18} className="text-[var(--warning-500)]" />
+                    <h3 className="text-sm font-black text-white uppercase tracking-widest">Late Arrival Notices</h3>
+                    <span className="ml-auto w-6 h-6 rounded-lg bg-[var(--warning-500)]/20 flex items-center justify-center text-[10px] font-black text-[var(--warning-500)]">{teamNotices.length}</span>
+                 </div>
+                 <div className="space-y-3">
+                    {teamNotices.map(n => (
+                       <div key={n.id} className="flex items-center gap-4 p-4 rounded-2xl bg-[var(--dark-950)]/40 border border-[var(--glass-border)]">
+                          <Avatar name={n.user?.name || ''} size="sm" />
+                          <div className="flex-1 min-w-0">
+                             <p className="text-sm font-black text-white truncate">{n.user?.name}</p>
+                             <p className="text-[10px] font-bold text-[var(--warning-500)] uppercase tracking-widest">Expected @ {n.expected_time}</p>
+                          </div>
+                          <Button size="sm" variant="ghost" className="h-8 py-0" onClick={() => handleAcknowledgeNotice(n.id)}>ACKNOWLEDGE</Button>
+                       </div>
+                    ))}
+                 </div>
+              </Card>
+           )}
+        </div>
+      )}
+
+      {/* ── Global Attendance Registry ──────────────────── */}
       {hasRole('manager', 'hr_admin', 'super_admin') && (
-        <Card>
-          <div className="flex flex-wrap items-center gap-3 p-5 border-b border-[var(--gray-100)]">
-            <div className="flex items-center gap-2">
-              <Calendar size={16} className="text-[var(--gray-500)]" />
+        <Card className="overflow-hidden">
+          <div className="flex flex-wrap items-center gap-4 p-6 bg-[var(--glass-05)] border-b border-[var(--glass-border)]">
+            <div className="relative group">
+              <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--on-glass-dim)] group-focus-within:text-[var(--primary-600)] transition-colors" />
               <input
                 type="date"
                 value={selectedDate}
                 onChange={e => setSelectedDate(e.target.value)}
-                className="px-3 py-2 text-sm border border-[var(--gray-200)] rounded-lg outline-none focus:border-[var(--primary-600)]"
+                className="pl-9 pr-4 py-2.5 text-[13px] font-bold bg-[var(--glass-10)] border border-[var(--glass-border)] rounded-xl text-white outline-none focus:border-[var(--primary-600)] transition-all cursor-pointer"
               />
             </div>
+
+            <div className="h-8 w-px bg-[var(--glass-border)] hidden sm:block" />
+
             <select
               value={statusFilter}
               onChange={e => setStatusFilter(e.target.value)}
-              className="px-3 py-2 text-sm border border-[var(--gray-200)] rounded-lg outline-none"
+              className="px-4 py-2.5 text-[13px] font-bold bg-[var(--glass-10)] border border-[var(--glass-border)] rounded-xl text-white outline-none focus:border-[var(--primary-600)] appearance-none cursor-pointer pr-10"
+              style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'white\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'%3E%3C/path%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center', backgroundSize: '16px' }}
             >
-              <option value="">All Statuses</option>
+              <option value="" className="bg-[var(--dark-950)]">ALL STATUSES</option>
               {Object.entries(statusConfig).map(([key, cfg]) => (
-                <option key={key} value={key}>{cfg.label}</option>
+                <option key={key} value={key} className="bg-[var(--dark-950)]">{cfg.label.toUpperCase()}</option>
               ))}
             </select>
-            <span className="text-sm text-[var(--gray-500)] ml-auto">{filtered.length} records</span>
+
+            <span className="text-[10px] font-black text-[var(--on-glass-dim)] uppercase tracking-[0.2em] ml-auto">
+               {filtered.length} Records Found
+            </span>
           </div>
 
           <Table
-            headers={['Employee', 'Status', 'Check In', 'Check Out', 'Work Time', 'Method', 'Actions']}
+            headers={['Employee', 'Status', 'Check In', 'Check Out', 'Hours', 'Method', 'Actions']}
             loading={tableLoading}
             emptyState={
-              <EmptyState
-                icon={<Clock size={24} />}
-                title="No attendance records"
-                description="No records found for the selected date and filters."
-              />
+              <div className="py-24 text-center">
+                 <Clock size={32} className="mx-auto text-[var(--on-glass-dim)] mb-4" />
+                 <p className="text-[11px] font-black text-[var(--on-glass-dim)] uppercase tracking-[0.3em]">No records found</p>
+              </div>
             }
           >
             {filtered.map((record) => {
@@ -752,80 +746,61 @@ export default function AttendancePage() {
               const cfg  = statusConfig[record.status] ?? statusConfig['in'];
               const cit  = record.check_in_type || record.type;
               return (
-                <tr key={record.id} className="border-b border-[var(--gray-100)] hover:bg-[var(--gray-50)] transition-colors">
-                  <td className="py-3 px-4">
+                <tr key={record.id} className="hover:bg-[var(--glass-05)] transition-all group">
+                  <td className="py-4 px-6">
                     {user ? (
-                      <div className="flex items-center gap-3">
-                        <Avatar name={user.name} imageUrl={user.avatar_url} size="sm" />
-                        <div>
-                          <p className="text-sm font-semibold text-[var(--dark-950)]">{user.name}</p>
-                          <p className="text-xs text-[var(--gray-500)]">{user.department}</p>
+                      <div className="flex items-center gap-4">
+                        <Avatar name={user.name} imageUrl={user.avatar_url} size="md" />
+                        <div className="min-w-0">
+                          <p className="text-[15px] font-black text-white group-hover:text-[var(--primary-600)] transition-colors truncate">{user.name}</p>
+                          <p className="text-[10px] font-bold text-[var(--on-glass-muted)] uppercase tracking-widest truncate">{user.department || 'No Department'}</p>
                         </div>
                       </div>
-                    ) : <span className="text-xs text-[var(--gray-500)]">—</span>}
+                    ) : <span className="text-xs text-[var(--on-glass-dim)]">—</span>}
                   </td>
-                  <td className="py-3 px-4">
-                    <div className="flex items-center gap-1.5">
-                      <Badge label={cfg.label} color={cfg.color} bg={cfg.bg} />
+                  <td className="py-4 px-6">
+                    <div className="flex items-center gap-2">
+                      <Badge label={cfg.label} color={cfg.color} bg={cfg.bg} size="sm" />
                       {record.is_overridden && (
-                        <span className="text-xs text-[var(--primary-600)] font-medium">edited</span>
+                        <div className="w-2 h-2 rounded-full bg-[var(--primary-600)]" title="Manually Adjusted" />
                       )}
                     </div>
                   </td>
-                  <td className="py-3 px-4">
-                    <span className="text-sm font-mono text-[var(--dark-950)]">
+                  <td className="py-4 px-6">
+                    <span className="text-sm font-black text-white font-mono">
                       {record.check_in_at ? formatTime(record.check_in_at) : '—'}
                     </span>
                     {(record.late_minutes ?? 0) > 0 && (
-                      <span className="block text-[10px] font-semibold text-[var(--warning-800)]">+{record.late_minutes}m late</span>
-                    )}
-                    {(record.early_checkin_minutes ?? 0) > 0 && (
-                      <span className="block text-[10px] font-semibold text-[var(--primary-600)]">
-                        {record.early_checkin_minutes}m early
-                      </span>
-                    )}
-                    {record.ip_detected && (
-                      <span className="block text-[10px] text-[var(--gray-400)] font-mono" title="Detected IP">
-                        {record.ip_detected}
-                      </span>
+                      <span className="block text-[10px] font-black text-[var(--danger-500)] uppercase tracking-widest mt-0.5">+{record.late_minutes}M</span>
                     )}
                   </td>
-                  <td className="py-3 px-4">
-                    <span className="text-sm font-mono text-[var(--dark-950)]">
+                  <td className="py-4 px-6">
+                    <span className="text-sm font-black text-white/50 font-mono">
                       {record.check_out_at ? formatTime(record.check_out_at) : '—'}
                     </span>
-                    {(record.early_out_minutes ?? 0) > 0 && (
-                      <span className="block text-[10px] font-semibold text-[var(--warning-700)]">-{record.early_out_minutes}m early</span>
-                    )}
-                    {record.auto_checked_out && (
-                      <span className="block text-[10px] text-[var(--gray-400)]">auto checkout</span>
-                    )}
                   </td>
-                  <td className="py-3 px-4">
+                  <td className="py-4 px-6">
                     {record.hours_worked != null ? (
                       <div>
-                        <span className="text-sm text-[var(--dark-950)]">{formatHours(n(record.hours_worked))}</span>
-                        {record.net_hours_worked != null &&
-                         Math.abs(n(record.net_hours_worked) - n(record.hours_worked)) >= 0.05 && (
-                          <span className="block text-[10px] text-[var(--gray-400)]">
-                            {formatHours(n(record.net_hours_worked))} net
-                          </span>
-                        )}
+                        <span className="text-[13px] font-black text-[var(--primary-600)]">{formatHours(n(record.hours_worked))}</span>
                       </div>
                     ) : record.check_in_at && !record.check_out_at ? (
                       <LiveDuration checkInAt={record.check_in_at} />
                     ) : (
-                      <span className="text-sm text-[var(--gray-400)]">—</span>
+                      <span className="text-sm text-[var(--on-glass-dim)]">—</span>
                     )}
                   </td>
-                  <td className="py-3 px-4">
-                    <span className="text-xs text-[var(--gray-500)]">{cit ? (typeLabel[cit] || cit) : '—'}</span>
+                  <td className="py-4 px-6">
+                    <span className="text-[10px] font-black text-[var(--on-glass-muted)] uppercase tracking-widest">{cit ? (typeLabel[cit] || cit) : '—'}</span>
                   </td>
-                  <td className="py-3 px-4">
+                  <td className="py-4 px-6">
                     {hasRole('manager', 'hr_admin', 'super_admin') && (
-                      <Button variant="ghost" size="sm" icon={<Edit2 size={12} />} onClick={() => openOverride(record)}>
-                        Override
-                      </Button>
+                      <button
+                        onClick={() => openOverride(record)}
+                        className="w-10 h-10 flex items-center justify-center rounded-xl bg-[var(--glass-10)] text-[var(--on-glass-dim)] hover:text-[var(--primary-600)] hover:bg-[var(--glass-15)] transition-all"
+                      >
+                        <Edit2 size={16} />
+                      </button>
                     )}
                   </td>
                 </tr>
@@ -851,18 +826,14 @@ export default function AttendancePage() {
         }
       >
         {overrideRecord && (
-          <div className="space-y-4">
+          <div className="space-y-6">
             {overrideRecord.user && (
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-[var(--gray-50)]">
-                <Avatar name={overrideRecord.user.name} size="sm" />
-                <div>
-                  <p className="text-sm font-semibold">{overrideRecord.user.name}</p>
-                  <p className="text-xs text-[var(--gray-500)]">{formatDate(overrideRecord.date)}</p>
+              <div className="flex items-center gap-4 p-5 rounded-3xl bg-[var(--glass-05)] border border-[var(--glass-border)]">
+                <Avatar name={overrideRecord.user.name} size="md" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-lg font-black text-white tracking-tight">{overrideRecord.user.name}</p>
+                  <p className="text-xs font-bold text-[var(--on-glass-muted)] uppercase tracking-widest">{formatDate(overrideRecord.date)}</p>
                 </div>
-                {(() => {
-                  const cfg = statusConfig[overrideRecord.status] ?? statusConfig['in'];
-                  return <Badge label={cfg.label} color={cfg.color} bg={cfg.bg} />;
-                })()}
               </div>
             )}
             <div className="grid grid-cols-2 gap-4">
@@ -876,9 +847,6 @@ export default function AttendancePage() {
               error={form.formState.errors.reason?.message}
               {...form.register('reason')}
             />
-            <p className="text-xs text-[var(--gray-500)]">
-              This action will be logged with your name and timestamp for audit purposes.
-            </p>
           </div>
         )}
       </Modal>
@@ -889,14 +857,14 @@ export default function AttendancePage() {
         onClose={() => { setLateNoticeModalOpen(false); lateNoticeForm.reset(); }}
         title="Report Late Arrival"
         footer={
-          <div className="flex gap-2 justify-end">
-            <Button variant="outline" onClick={() => setLateNoticeModalOpen(false)}>Cancel</Button>
+          <div className="flex gap-4 justify-end">
+            <Button variant="ghost" onClick={() => setLateNoticeModalOpen(false)}>Cancel</Button>
             <Button onClick={lateNoticeForm.handleSubmit(handleSubmitLateNotice)}>Submit Notice</Button>
           </div>
         }
       >
-        <div className="flex flex-col gap-4">
-          <p className="text-sm text-[var(--gray-500)]">
+        <div className="flex flex-col gap-6">
+          <p className="text-sm font-medium text-[var(--on-glass-muted)] leading-relaxed">
             Let your manager know you'll be arriving late. They'll be notified immediately and will not receive a late alert until your expected arrival time passes.
           </p>
           <Input

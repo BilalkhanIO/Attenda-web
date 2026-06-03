@@ -79,25 +79,25 @@ function ResetPasswordContent() {
               <div className="w-20 h-20 rounded-[2rem] bg-[var(--danger-500)]/20 border border-[var(--danger-500)]/30 flex items-center justify-center mx-auto mb-8 shadow-2xl shadow-[var(--danger-500)]/10">
                 <AlertTriangle size={36} className="text-[var(--danger-500)]" />
               </div>
-              <h1 className="text-2xl font-black text-white mb-4 tracking-tight">Link Compromised.</h1>
+              <h1 className="text-2xl font-black text-white mb-4 tracking-tight">Invalid Link</h1>
               <p className="text-sm font-medium text-[var(--on-glass-muted)] mb-10 leading-relaxed">
-                This recovery link is invalid or has expired. Please initiate a new recovery request from the base login.
+                This recovery link is invalid or has expired. Please request a new link from the login page.
               </p>
               <Button variant="ghost" className="w-full py-4 text-[11px] font-black uppercase tracking-[0.2em]" onClick={() => router.push('/login')}>
-                Return to Base
+                Return to Login
               </Button>
             </div>
           ) : (
             <div className="page-fade-in">
               <div className="mb-10">
                 <p className="text-[10px] font-black text-[var(--primary-600)] uppercase tracking-[0.3em] mb-4">Security</p>
-                <h1 className="text-3xl font-black text-white mb-2 tracking-tight">New Identifier.</h1>
-                <p className="text-sm font-medium text-[var(--on-glass-muted)]">Configure your new secure access passphrase.</p>
+                <h1 className="text-3xl font-black text-white mb-2 tracking-tight">New Password</h1>
+                <p className="text-sm font-medium text-[var(--on-glass-muted)]">Please enter and confirm your new account password.</p>
               </div>
 
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                 <Input
-                  label="New Passphrase"
+                  label="New Password"
                   type={showPass ? 'text' : 'password'}
                   required
                   error={errors.password?.message}
@@ -110,7 +110,7 @@ function ResetPasswordContent() {
                   {...register('password')}
                 />
                 <Input
-                  label="Confirm Passphrase"
+                  label="Confirm Password"
                   type={showConf ? 'text' : 'password'}
                   required
                   error={errors.confirm?.message}
@@ -125,14 +125,14 @@ function ResetPasswordContent() {
 
                 <div className="space-y-4 pt-4">
                   <Button type="submit" className="w-full py-4 text-[11px] font-black uppercase tracking-[0.2em]" loading={isSubmitting}>
-                    Update Access
+                    Reset Password
                   </Button>
                   <button
                     type="button"
                     onClick={() => router.push('/login')}
                     className="w-full text-[10px] font-black text-[var(--on-glass-muted)] hover:text-white uppercase tracking-widest transition-all"
                   >
-                    ← Cancel Recovery
+                    ← Cancel
                   </button>
                 </div>
               </form>

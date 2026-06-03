@@ -70,13 +70,13 @@ export default function ForgotPasswordPage() {
             <div className="page-fade-in">
               <div className="mb-10">
                 <p className="text-[10px] font-black text-[var(--primary-600)] uppercase tracking-[0.3em] mb-4">Recovery</p>
-                <h1 className="text-3xl font-black text-white mb-2 tracking-tight">Lost Access?</h1>
-                <p className="text-sm font-medium text-[var(--on-glass-muted)]">Identify your endpoint to receive a recovery link.</p>
+                <h1 className="text-3xl font-black text-white mb-2 tracking-tight">Forgot Password?</h1>
+                <p className="text-sm font-medium text-[var(--on-glass-muted)]">Enter your email address to receive a password recovery link.</p>
               </div>
 
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
                 <Input
-                  label="Secure Identifier"
+                  label="Email Address"
                   type="email"
                   placeholder="you@company.com"
                   required
@@ -88,14 +88,14 @@ export default function ForgotPasswordPage() {
 
                 <div className="space-y-4">
                   <Button type="submit" className="w-full py-4 text-[11px] font-black uppercase tracking-[0.2em]" loading={isSubmitting}>
-                    Transmit Recovery Link
+                    Send Recovery Link
                   </Button>
                   <button
                     type="button"
                     onClick={() => router.push('/login')}
                     className="w-full text-[10px] font-black text-[var(--on-glass-muted)] hover:text-white uppercase tracking-widest transition-all"
                   >
-                    ← Return to Base
+                    ← Return to Login
                   </button>
                 </div>
               </form>
