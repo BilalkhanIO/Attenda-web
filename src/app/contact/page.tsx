@@ -3,6 +3,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { MarketingNav, MarketingFooter } from '../page';
 import { Mail, MessageSquare, Building2, Clock, CheckCircle } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export default function ContactPage() {
   const [form, setForm] = useState({ name: '', email: '', company: '', message: '' });
@@ -12,68 +13,81 @@ export default function ContactPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    // Simulate submission — replace with real endpoint if needed
-    await new Promise(r => setTimeout(r, 900));
+    await new Promise(r => setTimeout(r, 1200));
     setSent(true);
     setLoading(false);
   };
 
   return (
-    <div className="bg-white min-h-screen">
+    <div className="bg-[var(--dark-950)] min-h-screen selection:bg-[var(--primary-600)] selection:text-white">
       <MarketingNav />
 
       {/* Header */}
-      <section className="bg-[var(--dark-950)] pt-32 pb-16 px-6">
-        <div className="max-w-3xl mx-auto text-center">
-          <p className="text-xs font-bold text-[var(--primary-600)] uppercase tracking-widest mb-3">Get In Touch</p>
-          <h1 className="text-4xl font-black text-white mb-4">We&apos;d love to hear from you.</h1>
-          <p className="text-white/60">Have a question, want a demo, or need help? Our team typically responds within 24 hours.</p>
+      <section className="pt-44 pb-20 px-6 relative overflow-hidden">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-[var(--primary-600)]/5 blur-[120px] rounded-full pointer-events-none" />
+        <div className="max-w-4xl mx-auto text-center relative z-10">
+          <p className="text-[10px] font-black text-[var(--primary-600)] uppercase tracking-[0.4em] mb-6">Connect</p>
+          <h1 className="text-5xl md:text-7xl font-black text-white mb-8 tracking-tighter leading-tight">We&apos;d love to <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--primary-600)] to-[var(--secondary)]">hear from you.</span></h1>
+          <p className="text-lg md:text-xl text-[var(--on-glass-muted)] leading-relaxed max-w-2xl mx-auto font-medium">
+            Whether you&apos;re looking for a bespoke enterprise demo or technical support, our engineers and product experts are standing by.
+          </p>
         </div>
       </section>
 
       {/* Content */}
-      <section className="py-20 px-6">
-        <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16">
+      <section className="py-24 px-6 relative z-10">
+        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-20">
           {/* Contact info */}
-          <div>
-            <h2 className="text-2xl font-bold text-[var(--dark-950)] mb-6">Contact information</h2>
-            <div className="space-y-5">
-              {[
-                { icon: Mail,          label: 'General enquiries',   value: 'hello@attenda.app',   href: 'mailto:hello@attenda.app' },
-                { icon: Building2,     label: 'Sales & enterprise',  value: 'sales@attenda.app',   href: 'mailto:sales@attenda.app' },
-                { icon: MessageSquare, label: 'Support',             value: 'support@attenda.app', href: 'mailto:support@attenda.app' },
-              ].map(c => (
-                <div key={c.label} className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-[var(--primary-100)] flex items-center justify-center flex-shrink-0">
-                    <c.icon size={18} className="text-[var(--primary-600)]" />
+          <div className="space-y-12 slide-in-left">
+            <div>
+              <h2 className="text-[11px] font-black text-white uppercase tracking-[0.2em] mb-10">Direct Channels</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-6">
+                {[
+                  { icon: Mail,          label: 'General Inquiries',   value: 'hello@attenda.app',   href: 'mailto:hello@attenda.app' },
+                  { icon: Building2,     label: 'Sales & Enterprise',  value: 'sales@attenda.app',   href: 'mailto:sales@attenda.app' },
+                  { icon: MessageSquare, label: 'Technical Support',   value: 'support@attenda.app', href: 'mailto:support@attenda.app' },
+                ].map(c => (
+                  <div key={c.label} className="p-6 rounded-3xl border border-[var(--glass-border)] bg-[var(--glass-05)] hover:bg-[var(--glass-10)] transition-all duration-500 group">
+                    <div className="flex items-center gap-5">
+                      <div className="w-12 h-12 rounded-2xl bg-[var(--glass-10)] flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                        <c.icon size={20} className="text-[var(--primary-600)]" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-[var(--on-glass-muted)] font-black uppercase tracking-widest mb-1">{c.label}</p>
+                        <a href={c.href} className="text-[15px] font-bold text-white hover:text-[var(--primary-600)] transition-colors">{c.value}</a>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs text-[var(--gray-500)] font-medium mb-0.5">{c.label}</p>
-                    <a href={c.href} className="text-sm font-semibold text-[var(--dark-950)] hover:text-[var(--primary-600)] transition-colors">{c.value}</a>
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
 
             {/* Response time */}
-            <div className="mt-10 p-5 rounded-2xl bg-[var(--gray-50)] border border-[var(--gray-100)]">
-              <div className="flex items-center gap-2 mb-2">
-                <Clock size={14} className="text-[var(--gray-500)]" />
-                <p className="text-xs font-semibold text-[var(--dark-950)]">Response times</p>
+            <div className="p-8 rounded-[2.5rem] bg-gradient-to-br from-[var(--glass-10)] to-transparent border border-[var(--glass-border)] shadow-xl">
+              <div className="flex items-center gap-3 mb-6">
+                <Clock size={18} className="text-[var(--primary-600)]" />
+                <p className="text-[11px] font-black text-white uppercase tracking-widest">SLA Commitment</p>
               </div>
-              <ul className="space-y-1.5 text-xs text-[var(--gray-500)]">
-                <li>General enquiries — within 24 hours</li>
-                <li>Support tickets — within 4 hours (business days)</li>
-                <li>Enterprise sales — same business day</li>
-              </ul>
+              <div className="space-y-4">
+                {[
+                  ['General Response', 'Under 24 Hours'],
+                  ['Critical Support', 'Within 4 Hours'],
+                  ['Enterprise Strategy', 'Same Business Day'],
+                ].map(([label, time]) => (
+                  <div key={label} className="flex justify-between items-center py-2 border-b border-[var(--glass-border)] last:border-0">
+                    <span className="text-[13px] font-medium text-[var(--on-glass-muted)]">{label}</span>
+                    <span className="text-[13px] font-black text-white">{time}</span>
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* Quick links */}
-            <div className="mt-8">
-              <p className="text-xs font-semibold text-[var(--gray-500)] uppercase tracking-widest mb-3">Quick links</p>
-              <div className="flex gap-3 flex-wrap">
-                {[{ label: 'Apply for org', href: '/get-started' }, { label: 'Privacy Policy', href: '/privacy' }, { label: 'About us', href: '/about' }].map(l => (
-                  <Link key={l.label} href={l.href} className="px-3 py-1.5 border border-[var(--gray-200)] rounded-lg text-xs font-medium text-[var(--dark-950)] hover:bg-[var(--gray-50)] transition-colors">
+            <div>
+              <p className="text-[10px] font-black text-[var(--on-glass-dim)] uppercase tracking-[0.2em] mb-6">Resources</p>
+              <div className="flex gap-4 flex-wrap">
+                {[{ label: 'Documentation', href: '#' }, { label: 'Platform Status', href: '#' }, { label: 'Security Whitepaper', href: '#' }].map(l => (
+                  <Link key={l.label} href={l.href} className="px-5 py-2.5 bg-[var(--glass-05)] border border-[var(--glass-border)] rounded-full text-[11px] font-bold text-white hover:bg-[var(--glass-10)] transition-all">
                     {l.label}
                   </Link>
                 ))}
@@ -82,84 +96,94 @@ export default function ContactPage() {
           </div>
 
           {/* Contact form */}
-          <div>
-            {sent ? (
-              <div className="flex flex-col items-center justify-center h-full text-center py-12">
-                <div className="w-16 h-16 rounded-full bg-[var(--success-100)] flex items-center justify-center mb-5">
-                  <CheckCircle size={28} className="text-[var(--success-700)]" />
-                </div>
-                <h3 className="text-xl font-bold text-[var(--dark-950)] mb-2">Message received!</h3>
-                <p className="text-[var(--gray-500)] text-sm max-w-xs">Thanks for reaching out. We&apos;ll get back to you within 24 hours.</p>
-                <button onClick={() => setSent(false)} className="mt-6 text-xs text-[var(--primary-600)] hover:underline">Send another message</button>
-              </div>
-            ) : (
-              <form onSubmit={handleSubmit} className="space-y-5">
-                <h2 className="text-2xl font-bold text-[var(--dark-950)] mb-6">Send us a message</h2>
+          <div className="slide-in-right">
+            <div className="p-10 md:p-12 rounded-[3.5rem] bg-[var(--glass-05)] border border-[var(--glass-border)] backdrop-blur-2xl shadow-2xl relative overflow-hidden">
+               {/* Background Glow */}
+               <div className="absolute bottom-0 right-0 w-[300px] h-[300px] bg-[var(--primary-600)]/5 blur-[80px] rounded-full pointer-events-none" />
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-semibold text-[var(--dark-950)] mb-1.5">Your name <span className="text-[var(--danger-500)]">*</span></label>
-                    <input
-                      required
-                      type="text"
-                      placeholder="Jane Smith"
-                      value={form.name}
-                      onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                      className="w-full px-3 py-2.5 border border-[var(--gray-200)] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary-600)] focus:border-transparent"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-[var(--dark-950)] mb-1.5">Work email <span className="text-[var(--danger-500)]">*</span></label>
-                    <input
-                      required
-                      type="email"
-                      placeholder="jane@company.com"
-                      value={form.email}
-                      onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-                      className="w-full px-3 py-2.5 border border-[var(--gray-200)] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary-600)] focus:border-transparent"
-                    />
-                  </div>
-                </div>
+               {sent ? (
+                 <div className="flex flex-col items-center justify-center min-h-[400px] text-center page-fade-in">
+                   <div className="w-20 h-20 rounded-[2rem] bg-[var(--success-500)]/20 border border-[var(--success-500)]/30 flex items-center justify-center mb-8 shadow-2xl shadow-[var(--success-500)]/10 animate-bounce">
+                     <CheckCircle size={36} className="text-[var(--success-500)]" />
+                   </div>
+                   <h3 className="text-3xl font-black text-white mb-4 tracking-tight">Signal Received.</h3>
+                   <p className="text-[var(--on-glass-muted)] font-medium mb-10 max-w-xs mx-auto">Our team is already processing your request. Expect a response shortly.</p>
+                   <button onClick={() => setSent(false)} className="px-8 py-3 bg-[var(--glass-10)] border border-[var(--glass-border)] rounded-xl text-[11px] font-black text-white uppercase tracking-[0.2em] hover:bg-[var(--glass-20)] transition-all">
+                     Transmit Another
+                   </button>
+                 </div>
+               ) : (
+                 <form onSubmit={handleSubmit} className="space-y-8 relative z-10">
+                   <div className="mb-10">
+                      <h2 className="text-3xl font-black text-white mb-2 tracking-tight">Send a Transmission</h2>
+                      <p className="text-sm font-medium text-[var(--on-glass-muted)]">Experience the future of workforce management.</p>
+                   </div>
 
-                <div>
-                  <label className="block text-sm font-semibold text-[var(--dark-950)] mb-1.5">Company name</label>
-                  <input
-                    type="text"
-                    placeholder="Acme Corp"
-                    value={form.company}
-                    onChange={e => setForm(f => ({ ...f, company: e.target.value }))}
-                    className="w-full px-3 py-2.5 border border-[var(--gray-200)] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary-600)] focus:border-transparent"
-                  />
-                </div>
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                     <div className="space-y-2">
+                       <label className="text-[10px] font-black text-[var(--on-glass-muted)] uppercase tracking-widest ml-1">Identity</label>
+                       <input
+                         required
+                         type="text"
+                         placeholder="Jane Doe"
+                         value={form.name}
+                         onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                         className="w-full bg-[var(--glass-10)] border border-[var(--glass-border)] rounded-2xl px-6 py-4 text-white text-sm placeholder:text-[var(--on-glass-dim)] outline-none focus:border-[var(--primary-600)] focus:ring-4 focus:ring-[var(--primary-600)]/10 transition-all font-medium"
+                       />
+                     </div>
+                     <div className="space-y-2">
+                       <label className="text-[10px] font-black text-[var(--on-glass-muted)] uppercase tracking-widest ml-1">Secure Email</label>
+                       <input
+                         required
+                         type="email"
+                         placeholder="jane@company.com"
+                         value={form.email}
+                         onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+                         className="w-full bg-[var(--glass-10)] border border-[var(--glass-border)] rounded-2xl px-6 py-4 text-white text-sm placeholder:text-[var(--on-glass-dim)] outline-none focus:border-[var(--primary-600)] focus:ring-4 focus:ring-[var(--primary-600)]/10 transition-all font-medium"
+                       />
+                     </div>
+                   </div>
 
-                <div>
-                  <label className="block text-sm font-semibold text-[var(--dark-950)] mb-1.5">Message <span className="text-[var(--danger-500)]">*</span></label>
-                  <textarea
-                    required
-                    rows={5}
-                    placeholder="Tell us how we can help..."
-                    value={form.message}
-                    onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
-                    className="w-full px-3 py-2.5 border border-[var(--gray-200)] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary-600)] focus:border-transparent resize-none"
-                  />
-                </div>
+                   <div className="space-y-2">
+                     <label className="text-[10px] font-black text-[var(--on-glass-muted)] uppercase tracking-widest ml-1">Organisation</label>
+                     <input
+                       type="text"
+                       placeholder="Global Core Inc"
+                       value={form.company}
+                       onChange={e => setForm(f => ({ ...f, company: e.target.value }))}
+                       className="w-full bg-[var(--glass-10)] border border-[var(--glass-border)] rounded-2xl px-6 py-4 text-white text-sm placeholder:text-[var(--on-glass-dim)] outline-none focus:border-[var(--primary-600)] focus:ring-4 focus:ring-[var(--primary-600)]/10 transition-all font-medium"
+                     />
+                   </div>
 
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-3 bg-[var(--primary-600)] hover:bg-[var(--primary-900)] text-white font-semibold rounded-xl transition-all text-sm disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {loading ? (
-                    <span className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
-                  ) : 'Send Message'}
-                </button>
+                   <div className="space-y-2">
+                     <label className="text-[10px] font-black text-[var(--on-glass-muted)] uppercase tracking-widest ml-1">Requirement Details</label>
+                     <textarea
+                       required
+                       rows={4}
+                       placeholder="How can we help optimize your workforce?"
+                       value={form.message}
+                       onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
+                       className="w-full bg-[var(--glass-10)] border border-[var(--glass-border)] rounded-2xl px-6 py-4 text-white text-sm placeholder:text-[var(--on-glass-dim)] outline-none focus:border-[var(--primary-600)] focus:ring-4 focus:ring-[var(--primary-600)]/10 transition-all font-medium resize-none"
+                     />
+                   </div>
 
-                <p className="text-xs text-center text-[var(--gray-500)]">
-                  By submitting, you agree to our{' '}
-                  <Link href="/privacy" className="text-[var(--primary-600)] hover:underline">Privacy Policy</Link>.
-                </p>
-              </form>
-            )}
+                   <button
+                     type="submit"
+                     disabled={loading}
+                     className="w-full py-5 bg-[var(--primary-600)] hover:brightness-110 text-white font-black rounded-2xl transition-all shadow-2xl shadow-[var(--primary-600)]/20 text-sm uppercase tracking-[0.2em] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 active:scale-95"
+                   >
+                     {loading ? (
+                       <span className="w-5 h-5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                     ) : 'Establish Connection'}
+                   </button>
+
+                   <p className="text-[10px] text-center font-bold text-[var(--on-glass-dim)] uppercase tracking-widest leading-relaxed">
+                     By initiating contact, you agree to our{' '}
+                     <Link href="/privacy" className="text-[var(--primary-600)] hover:underline">Privacy & Security Protocols</Link>.
+                   </p>
+                 </form>
+               )}
+            </div>
           </div>
         </div>
       </section>
