@@ -9,8 +9,9 @@ import { authApi } from '@/lib/api';
 import { getApiError } from '@/lib/utils';
 import { Button, Input, Modal } from '@/components/ui';
 import AttendaLogo from '@/components/ui/AttendaLogo';
-import { Eye, EyeOff, Mail, Shield, MapPin, MessageCircle, Bot, Banknote } from 'lucide-react';
+import { Eye, EyeOff, Mail, Shield, MapPin, MessageCircle, Bot, Banknote, Sparkles } from 'lucide-react';
 import toast from 'react-hot-toast';
+import Link from 'next/link';
 
 const loginSchema = z.object({
   email:    z.string().email('Enter a valid email address'),
@@ -85,150 +86,186 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex bg-[var(--gray-50)]">
+    <div className="min-h-screen flex bg-[var(--dark-950)] selection:bg-[var(--primary-600)] selection:text-white font-sans">
       {/* Left panel */}
-      <div className="hidden lg:flex w-1/2 bg-[var(--dark-950)] flex-col justify-between p-12">
-        {/* Logo */}
-        <AttendaLogo iconSize={40} variant="dark" />
+      <div className="hidden lg:flex w-[55%] bg-[var(--dark-950)] flex-col justify-between p-16 relative overflow-hidden border-r border-[var(--glass-border)]">
+        {/* Background Visuals */}
+        <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-bl from-[var(--dark-800)] to-[var(--dark-950)] opacity-50" />
+        <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-[var(--primary-600)]/5 blur-[120px] rounded-full pointer-events-none animate-pulse" />
+
+        <div className="relative z-10">
+          <AttendaLogo iconSize={44} />
+        </div>
 
         {/* Feature highlights */}
-        <div className="space-y-8">
-          <div>
-            <h1 className="text-4xl font-bold text-white leading-tight mb-4">
-              Your team,<br />always accounted<br />for.
+        <div className="space-y-12 relative z-10 max-w-lg">
+          <div className="slide-in-left">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-[var(--primary-600)]/10 border border-[var(--primary-600)]/20 rounded-full text-[9px] font-black text-[var(--primary-600)] uppercase tracking-[0.2em] mb-6">
+               <Sparkles size={10} /> Secure Identification Portal
+            </div>
+            <h1 className="text-6xl font-black text-white leading-[1.05] mb-8 tracking-tighter">
+              Your Team,<br />Autonomous &<br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--primary-600)] to-[var(--secondary)]">Connected.</span>
             </h1>
-            <p className="text-white/50 text-base leading-relaxed">
-              Automated attendance, payroll, leave and performance — all in one dashboard built for small businesses.
+            <p className="text-lg font-medium text-[var(--on-glass-muted)] leading-relaxed">
+              Authenticate to your organisation&apos;s Attenda ecosystem. Manage attendance, shifts, and payroll with Aurora Liquid Glass precision.
             </p>
           </div>
-          <div className="space-y-4">
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 slide-in-left delay-150">
             {[
-              { icon: <MapPin size={16} />, text: 'Auto check-in via office WiFi IP' },
-              { icon: <MessageCircle size={16} />, text: 'Real-time WhatsApp notifications' },
-              { icon: <Bot size={16} />, text: 'AI-powered remote work check-ins' },
-              { icon: <Banknote size={16} />, text: 'One-click payroll processing' },
+              { icon: <MapPin size={20} />, text: 'Network Presence Verification' },
+              { icon: <MessageCircle size={20} />, text: 'WhatsApp Signal Intelligence' },
+              { icon: <Bot size={20} />, text: 'Aurora AI Workforce Routing' },
+              { icon: <Banknote size={20} />, text: 'Real-time Fiscal Processing' },
             ].map((f) => (
-              <div key={f.text} className="flex items-center gap-3">
-                <span className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/10 text-white/70 flex-shrink-0">{f.icon}</span>
-                <span className="text-white/70 text-sm">{f.text}</span>
+              <div key={f.text} className="flex items-center gap-4 group">
+                <div className="w-11 h-11 flex items-center justify-center rounded-2xl bg-[var(--glass-10)] border border-[var(--glass-border)] text-[var(--primary-600)] transition-all group-hover:scale-110 group-hover:border-[var(--primary-600)]/50">
+                  {f.icon}
+                </div>
+                <span className="text-white/80 text-[13px] font-bold tracking-tight leading-tight">{f.text}</span>
               </div>
             ))}
           </div>
         </div>
 
-        <p className="text-white/20 text-xs">© 2026 Attenda. All rights reserved.</p>
+        <div className="relative z-10">
+           <p className="text-[10px] font-black text-[var(--on-glass-dim)] uppercase tracking-[0.2em]">&copy; ATTENDA TECHNOLOGIES 2026 &middot; SECURE ENVIRONMENT</p>
+        </div>
       </div>
 
       {/* Right panel — Login form */}
-      <div className="flex-1 flex items-center justify-center p-8">
-        <div className="w-full max-w-sm">
+      <div className="flex-1 flex items-center justify-center p-8 relative overflow-hidden bg-gradient-to-br from-[var(--dark-800)]/30 to-transparent">
+        <div className="w-full max-w-sm relative z-10">
           {/* Mobile logo */}
-          <div className="lg:hidden flex justify-start mb-8">
-            <AttendaLogo iconSize={36} variant="light" />
+          <div className="lg:hidden flex justify-center mb-12">
+            <AttendaLogo iconSize={44} />
           </div>
 
-          {requires2FA ? (
-            /* ── 2FA Step ─────────────────────────────── */
-            <div className="space-y-5">
-              <div>
-                <h2 className="text-2xl font-bold text-[var(--dark-950)] mb-1">Two-factor verification</h2>
-                <p className="text-sm text-[var(--gray-500)]">Enter the 6-digit code from your authenticator app.</p>
-              </div>
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-[var(--primary-50)] border border-[var(--primary-100)]">
-                <Shield size={18} className="text-[var(--primary-600)] flex-shrink-0" />
-                <p className="text-sm text-[var(--primary-600)]">Your account has 2FA enabled for extra security.</p>
-              </div>
-              <Input
-                label="Authenticator Code"
-                type="text"
-                inputMode="numeric"
-                maxLength={6}
-                placeholder="000000"
-                value={twoFACode}
-                onChange={e => setTwoFACode(e.target.value.replace(/\D/g, ''))}
-                className="text-center text-2xl tracking-widest font-mono"
-              />
-              <Button className="w-full" size="lg" loading={submitting2FA} onClick={onVerify2FA}>
-                Verify
-              </Button>
-              <button
-                type="button"
-                onClick={() => { setRequires2FA(false); setTwoFACode(''); setPartialToken(''); }}
-                className="w-full text-sm text-[var(--gray-500)] hover:text-[var(--dark-950)] transition-colors"
-              >
-                ← Back to sign in
-              </button>
-            </div>
-          ) : (
-            /* ── Login Form ───────────────────────────── */
-            <>
-              <h2 className="text-2xl font-bold text-[var(--dark-950)] mb-1">Welcome back</h2>
-              <p className="text-sm text-[var(--gray-500)] mb-6">Sign in to your workspace</p>
+          <div className="p-8 md:p-10 rounded-[3rem] bg-[var(--glass-05)] border border-[var(--glass-border)] backdrop-blur-2xl shadow-2xl relative overflow-hidden page-fade-in">
+             {/* Subtle Glow */}
+             <div className="absolute top-0 right-0 w-[200px] h-[200px] bg-[var(--primary-600)]/5 blur-[60px] rounded-full pointer-events-none" />
 
-              {/* Google SSO */}
-              <a
-                href={`${API_BASE}/auth/sso/google`}
-                className="flex items-center justify-center gap-3 w-full px-4 py-2.5 text-sm font-semibold text-[var(--dark-950)] border border-[var(--gray-200)] rounded-lg hover:bg-[var(--gray-50)] transition-colors mb-4"
-              >
-                <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                  <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
-                  <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z" fill="#34A853"/>
-                  <path d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
-                  <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
-                </svg>
-                Sign in with Google
-              </a>
+             {requires2FA ? (
+               /* ── 2FA Step ─────────────────────────────── */
+               <div className="space-y-8">
+                 <div>
+                   <p className="text-[10px] font-black text-[var(--primary-600)] uppercase tracking-[0.3em] mb-4">Security</p>
+                   <h2 className="text-3xl font-black text-white mb-2 tracking-tight">Identity Vault</h2>
+                   <p className="text-sm font-medium text-[var(--on-glass-muted)]">Transmit the 6-digit verification code from your authenticator.</p>
+                 </div>
 
-              <div className="flex items-center gap-3 mb-4">
-                <div className="flex-1 h-px bg-[var(--gray-200)]" />
-                <span className="text-xs text-[var(--gray-500)]">or</span>
-                <div className="flex-1 h-px bg-[var(--gray-200)]" />
-              </div>
+                 <div className="flex items-center gap-4 p-4 rounded-2xl bg-[var(--primary-600)]/10 border border-[var(--primary-600)]/20">
+                   <Shield size={20} className="text-[var(--primary-600)] flex-shrink-0" />
+                   <p className="text-[11px] font-bold text-[var(--primary-600)] uppercase tracking-widest leading-relaxed">Multifactor Identification Active</p>
+                 </div>
 
-              <form onSubmit={handleSubmit(onLogin)} className="space-y-4">
-                <Input
-                  label="Email address"
-                  type="email"
-                  placeholder="you@company.com"
-                  leftIcon={<Mail size={16} />}
-                  error={errors.email?.message}
-                  required
-                  {...register('email')}
-                />
-                <Input
-                  label="Password"
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="Enter your password"
-                  error={errors.password?.message}
-                  required
-                  rightIcon={
-                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="hover:text-[var(--dark-950)] transition-colors">
-                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                  }
-                  {...register('password')}
-                />
+                 <Input
+                   label="Verification Code"
+                   type="text"
+                   inputMode="numeric"
+                   maxLength={6}
+                   placeholder="000000"
+                   value={twoFACode}
+                   onChange={e => setTwoFACode(e.target.value.replace(/\D/g, ''))}
+                   className="text-center text-3xl tracking-[0.5em] font-black bg-[var(--glass-10)] border-[var(--glass-border)] h-16"
+                 />
 
-                <div className="flex justify-end">
-                  <button
-                    type="button"
-                    onClick={() => setForgotOpen(true)}
-                    className="text-sm text-[var(--primary-600)] hover:underline font-medium"
-                  >
-                    Forgot password?
-                  </button>
-                </div>
+                 <Button className="w-full py-4 text-[13px] font-black uppercase tracking-[0.2em]" size="lg" loading={submitting2FA} onClick={onVerify2FA}>
+                   Verify Identity
+                 </Button>
 
-                <Button type="submit" className="w-full" size="lg" loading={isSubmitting}>
-                  Sign In
-                </Button>
-              </form>
+                 <button
+                   type="button"
+                   onClick={() => { setRequires2FA(false); setTwoFACode(''); setPartialToken(''); }}
+                   className="w-full text-[10px] font-black text-[var(--on-glass-dim)] hover:text-white uppercase tracking-widest transition-colors"
+                 >
+                   ← Terminate Session
+                 </button>
+               </div>
+             ) : (
+               /* ── Login Form ───────────────────────────── */
+               <>
+                 <div className="mb-10">
+                   <p className="text-[10px] font-black text-[var(--primary-600)] uppercase tracking-[0.3em] mb-4">Identification</p>
+                   <h2 className="text-3xl font-black text-white mb-2 tracking-tight">Welcome Back.</h2>
+                   <p className="text-sm font-medium text-[var(--on-glass-muted)]">Resume your workspace operation.</p>
+                 </div>
 
-              <p className="text-center text-xs text-[var(--gray-500)] mt-6">
-                Don&apos;t have an account? Contact your HR Admin.
-              </p>
-            </>
-          )}
+                 {/* SSO */}
+                 <div className="space-y-4 mb-8">
+                    <a
+                      href={`${API_BASE}/auth/sso/google`}
+                      className="group flex items-center justify-center gap-4 w-full h-14 bg-[var(--glass-10)] border border-[var(--glass-border)] rounded-2xl hover:bg-[var(--glass-15)] hover:border-[var(--glass-high)] transition-all active:scale-95"
+                    >
+                      <svg width="20" height="20" viewBox="0 0 18 18">
+                        <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#FFFFFF"/>
+                        <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z" fill="#FFFFFF" opacity="0.6"/>
+                        <path d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FFFFFF" opacity="0.4"/>
+                        <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#FFFFFF" opacity="0.2"/>
+                      </svg>
+                      <span className="text-[13px] font-black text-white uppercase tracking-widest">Identify with Google</span>
+                    </a>
+                 </div>
+
+                 <div className="flex items-center gap-6 mb-8">
+                   <div className="flex-1 h-px bg-[var(--glass-border)]" />
+                   <span className="text-[10px] font-black text-[var(--on-glass-dim)] uppercase tracking-[0.2em]">or</span>
+                   <div className="flex-1 h-px bg-[var(--glass-border)]" />
+                 </div>
+
+                 <form onSubmit={handleSubmit(onLogin)} className="space-y-6">
+                   <Input
+                     label="Secure Identifier"
+                     type="email"
+                     placeholder="you@company.com"
+                     leftIcon={<Mail size={18} />}
+                     error={errors.email?.message}
+                     required
+                     className="bg-[var(--glass-10)]"
+                     {...register('email')}
+                   />
+                   <div className="space-y-2">
+                      <Input
+                        label="Passphrase"
+                        type={showPassword ? 'text' : 'password'}
+                        placeholder="••••••••"
+                        error={errors.password?.message}
+                        required
+                        className="bg-[var(--glass-10)]"
+                        rightIcon={
+                          <button type="button" onClick={() => setShowPassword(!showPassword)} className="hover:text-white transition-colors">
+                            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                          </button>
+                        }
+                        {...register('password')}
+                      />
+                      <div className="flex justify-end pr-1">
+                        <button
+                          type="button"
+                          onClick={() => setForgotOpen(true)}
+                          className="text-[10px] font-black text-[var(--primary-600)] hover:brightness-110 uppercase tracking-widest transition-all"
+                        >
+                          Lost Access?
+                        </button>
+                      </div>
+                   </div>
+
+                   <Button type="submit" className="w-full py-5 text-[13px] font-black uppercase tracking-[0.2em]" size="lg" loading={isSubmitting}>
+                     Initialize Session
+                   </Button>
+                 </form>
+
+                 <div className="mt-10 text-center space-y-4">
+                    <p className="text-[10px] font-bold text-[var(--on-glass-dim)] uppercase tracking-widest">
+                      New to Attenda? <Link href="/get-started" className="text-white hover:text-[var(--primary-600)] transition-colors">Apply for Account</Link>
+                    </p>
+                    <Link href="/" className="inline-block text-[10px] font-black text-[var(--on-glass-muted)] hover:text-white uppercase tracking-widest transition-all">
+                       ← Return to Base
+                    </Link>
+                 </div>
+               </>
+             )}
+          </div>
         </div>
       </div>
 
@@ -236,51 +273,53 @@ export default function LoginPage() {
       <Modal
         isOpen={forgotOpen}
         onClose={() => { setForgotOpen(false); setForgotSent(false); forgotForm.reset(); }}
-        title="Reset your password"
+        title="Protocol: Access Recovery"
         size="sm"
         footer={
           !forgotSent ? (
             <>
-              <Button variant="ghost" onClick={() => setForgotOpen(false)}>Cancel</Button>
+              <Button variant="ghost" onClick={() => setForgotOpen(false)} className="text-[11px] uppercase tracking-widest">Cancel</Button>
               <Button
                 onClick={forgotForm.handleSubmit(onForgotPassword)}
                 loading={forgotForm.formState.isSubmitting}
+                className="text-[11px] uppercase tracking-widest"
               >
-                Send reset link
+                Transmit Link
               </Button>
             </>
           ) : (
-            <Button onClick={() => { setForgotOpen(false); setForgotSent(false); }}>
-              Done
+            <Button onClick={() => { setForgotOpen(false); setForgotSent(false); }} className="text-[11px] uppercase tracking-widest">
+              Acknowledged
             </Button>
           )
         }
       >
         {forgotSent ? (
-          <div className="text-center py-4">
-            <div className="w-12 h-12 rounded-full bg-[var(--success-100)] flex items-center justify-center mx-auto mb-3">
-              <Mail size={20} className="text-[var(--success-700)]" />
+          <div className="text-center py-6">
+            <div className="w-16 h-16 rounded-2xl bg-[var(--primary-600)]/10 border border-[var(--primary-600)]/20 flex items-center justify-center mx-auto mb-6 shadow-xl shadow-[var(--primary-600)]/10">
+              <Mail size={24} className="text-[var(--primary-600)]" />
             </div>
-            <p className="text-sm font-semibold text-[var(--dark-950)] mb-1">Check your email</p>
-            <p className="text-sm text-[var(--gray-500)]">
-              We&apos;ve sent a password reset link. It expires in 15 minutes.
+            <p className="text-lg font-black text-white mb-2 uppercase tracking-tight">Transmission Sent</p>
+            <p className="text-sm font-medium text-[var(--on-glass-muted)] leading-relaxed">
+              We&apos;ve dispatched a recovery link to your secure endpoint. It remains active for 15 temporal minutes.
             </p>
           </div>
         ) : (
-          <>
-            <p className="text-sm text-[var(--gray-500)] mb-4">
-              Enter your email address and we&apos;ll send you a reset link.
+          <div className="space-y-6">
+            <p className="text-[13px] font-medium text-[var(--on-glass-muted)] leading-relaxed">
+              Identify your secure work email. We will transmit an encrypted recovery signal.
             </p>
             <Input
-              label="Email address"
+              label="Secure Identifier"
               type="email"
               placeholder="you@company.com"
-              leftIcon={<Mail size={16} />}
+              leftIcon={<Mail size={18} />}
               error={forgotForm.formState.errors.email?.message}
               required
+              className="bg-[var(--glass-10)]"
               {...forgotForm.register('email')}
             />
-          </>
+          </div>
         )}
       </Modal>
     </div>

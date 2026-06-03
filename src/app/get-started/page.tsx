@@ -3,14 +3,15 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { apiClient } from '@/lib/api';
 import { getApiError } from '@/lib/utils';
-import { CheckCircle, ArrowRight, Clock, Shield, Zap } from 'lucide-react';
+import { CheckCircle, ArrowRight, Clock, Shield, Zap, Sparkles } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const SIZES = ['1–10', '11–50', '51–200', '201–500', '500+'];
 
 const PERKS = [
-  { icon: Zap,     text: 'Activated within 24 hours' },
-  { icon: Shield,  text: 'No credit card required' },
-  { icon: Clock,   text: '14-day free trial included' },
+  { icon: Zap,      title: 'Rapid Deployment', text: 'Operational within 24 hours' },
+  { icon: Shield,   title: 'Zero Risk',        text: 'No credit card required' },
+  { icon: Sparkles, title: 'Premium Access',   text: 'Full enterprise feature-set' },
 ];
 
 export default function GetStartedPage() {
@@ -34,7 +35,7 @@ export default function GetStartedPage() {
     e.preventDefault();
     setError('');
     if (!form.company_name.trim() || !form.contact_name.trim() || !form.contact_email.trim()) {
-      setError('Please fill in all required fields.');
+      setError('Required operational parameters missing.');
       return;
     }
     setLoading(true);
@@ -49,108 +50,127 @@ export default function GetStartedPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--dark-950)] flex">
-      {/* Left panel */}
-      <div className="hidden lg:flex w-[45%] flex-col justify-between px-16 py-12 relative overflow-hidden" style={{ background: 'linear-gradient(160deg, var(--dark-950) 0%, #4a1050 100%)' }}>
-        <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse 70% 50% at 30% 40%, rgba(241,81,83,0.15) 0%, transparent 70%)' }} />
-        <div className="relative">
-          <Link href="/" className="flex items-center gap-2 mb-16">
-            <div className="w-8 h-8 rounded-lg bg-[var(--primary-600)] flex items-center justify-center">
-              <Clock size={16} className="text-white" />
+    <div className="min-h-screen bg-[var(--dark-950)] flex selection:bg-[var(--primary-600)] selection:text-white">
+      {/* Left panel — Brand Story */}
+      <div className="hidden lg:flex w-[40%] flex-col justify-between px-20 py-16 relative overflow-hidden border-r border-[var(--glass-border)]">
+        {/* Background Visuals */}
+        <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-[var(--dark-800)] to-[var(--dark-950)]" />
+        <div className="absolute top-[-10%] left-[-10%] w-[400px] h-[400px] bg-[var(--primary-600)]/10 blur-[100px] rounded-full animate-pulse pointer-events-none" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[300px] h-[300px] bg-[var(--secondary)]/10 blur-[80px] rounded-full animate-pulse delay-700 pointer-events-none" />
+
+        <div className="relative z-10">
+          <Link href="/" className="flex items-center gap-3 mb-24 group">
+            <div className="w-10 h-10 rounded-xl bg-[var(--primary-600)] flex items-center justify-center shadow-2xl shadow-[var(--primary-600)]/20 transition-transform group-hover:scale-110">
+              <Clock size={20} className="text-white" />
             </div>
-            <span className="font-bold text-white text-lg">Attenda</span>
+            <span className="font-black text-white text-xl tracking-tight uppercase">Attenda</span>
           </Link>
 
-          <h1 className="text-4xl font-black text-white leading-tight mb-4">
-            Your team,<br />always accounted for.
+          <h1 className="text-5xl font-black text-white leading-[1.1] mb-8 tracking-tighter">
+            Engineering the<br />Next <span className="text-[var(--primary-600)]">Blueprint.</span>
           </h1>
-          <p className="text-white/60 leading-relaxed mb-10">
-            Apply to get your organisation set up on Attenda. Our team will review your application and have you running within 24 hours.
+          <p className="text-lg text-[var(--on-glass-muted)] leading-relaxed mb-16 font-medium max-w-sm">
+            Initiate your organisation&apos;s digital transformation. Our engineers will provision your dedicated instance within 24 hours.
           </p>
 
-          <div className="space-y-4">
+          <div className="space-y-8">
             {PERKS.map(p => (
-              <div key={p.text} className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
-                  <p.icon size={15} className="text-white/80" />
+              <div key={p.text} className="flex items-center gap-5 group">
+                <div className="w-12 h-12 rounded-2xl bg-[var(--glass-10)] border border-[var(--glass-border)] flex items-center justify-center flex-shrink-0 group-hover:border-[var(--primary-600)]/50 transition-all">
+                  <p.icon size={20} className="text-[var(--primary-600)]" />
                 </div>
-                <span className="text-sm text-white/70">{p.text}</span>
+                <div>
+                  <p className="text-[11px] font-black text-white uppercase tracking-widest mb-0.5">{p.title}</p>
+                  <p className="text-sm font-medium text-[var(--on-glass-muted)]">{p.text}</p>
+                </div>
               </div>
             ))}
           </div>
         </div>
 
-        <p className="relative text-xs text-white/30">&copy; {new Date().getFullYear()} Attenda</p>
+        <div className="relative z-10">
+           <p className="text-[10px] font-black text-[var(--on-glass-dim)] uppercase tracking-[0.2em]">&copy; ATTENDA TECHNOLOGIES 2026</p>
+        </div>
       </div>
 
-      {/* Right panel — form */}
-      <div className="flex-1 flex items-center justify-center px-6 py-12">
-        <div className="w-full max-w-md">
+      {/* Right panel — Form */}
+      <div className="flex-1 flex items-center justify-center px-6 py-20 relative overflow-y-auto">
+        <div className="w-full max-w-lg">
           {/* Mobile logo */}
-          <div className="lg:hidden mb-8">
-            <Link href="/" className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-[var(--primary-600)] flex items-center justify-center">
-                <Clock size={16} className="text-white" />
+          <div className="lg:hidden mb-12">
+            <Link href="/" className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[var(--primary-600)] flex items-center justify-center shadow-lg">
+                <Clock size={20} className="text-white" />
               </div>
-              <span className="font-bold text-white text-lg">Attenda</span>
+              <span className="font-black text-white text-xl tracking-tight uppercase">Attenda</span>
             </Link>
           </div>
 
           {step === 'success' ? (
-            <div className="text-center">
-              <div className="w-20 h-20 rounded-full bg-[var(--success-100)] flex items-center justify-center mx-auto mb-6">
-                <CheckCircle size={36} className="text-[var(--success-700)]" />
+            <div className="text-center page-fade-in p-10 md:p-16 rounded-[3rem] bg-[var(--glass-05)] border border-[var(--glass-border)] backdrop-blur-2xl shadow-2xl">
+              <div className="w-20 h-20 rounded-[2rem] bg-[var(--success-500)]/20 border border-[var(--success-500)]/30 flex items-center justify-center mx-auto mb-10 shadow-2xl shadow-[var(--success-500)]/10 animate-bounce">
+                <CheckCircle size={36} className="text-[var(--success-500)]" />
               </div>
-              <h2 className="text-2xl font-bold text-white mb-3">Application submitted!</h2>
-              <p className="text-white/60 mb-8 leading-relaxed">
-                We&apos;ve received your application for <strong className="text-white">{form.company_name}</strong>. Our team will review it and email you at <strong className="text-white">{form.contact_email}</strong> within 24 hours.
+              <h2 className="text-3xl font-black text-white mb-4 tracking-tight">Signal Locked.</h2>
+              <p className="text-[var(--on-glass-muted)] mb-12 leading-relaxed font-medium">
+                We have successfully received the blueprint for <strong className="text-white">{form.company_name}</strong>. Verification is in progress. Check <strong className="text-white">{form.contact_email}</strong> for instructions.
               </p>
-              <div className="p-4 rounded-xl bg-white/5 border border-white/10 text-left mb-8">
-                <p className="text-xs text-white/50 font-semibold uppercase tracking-wider mb-2">What happens next</p>
-                <ol className="space-y-2 text-sm text-white/70">
-                  <li className="flex items-start gap-2"><span className="font-bold text-[var(--primary-600)]">1.</span> We review your application</li>
-                  <li className="flex items-start gap-2"><span className="font-bold text-[var(--primary-600)]">2.</span> You receive a setup link via email</li>
-                  <li className="flex items-start gap-2"><span className="font-bold text-[var(--primary-600)]">3.</span> Create your password and invite your team</li>
-                </ol>
+
+              <div className="p-8 rounded-3xl bg-[var(--dark-950)]/50 border border-[var(--glass-border)] text-left mb-12">
+                <p className="text-[10px] font-black text-[var(--primary-600)] uppercase tracking-[0.2em] mb-4">Activation Sequence</p>
+                <ul className="space-y-4">
+                  {[
+                    'Architecture Review & Provisioning',
+                    'Instance Credentials Transmission',
+                    'Environment Configuration & Sync',
+                  ].map((item, i) => (
+                    <li key={item} className="flex items-center gap-4 text-[13px] font-bold text-white/70">
+                       <span className="text-[var(--primary-600)]">0{i+1}</span>
+                       <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
-              <Link href="/" className="text-sm text-[var(--primary-600)] hover:underline">
-                ← Back to homepage
+
+              <Link href="/" className="text-[11px] font-black text-[var(--primary-600)] uppercase tracking-[0.2em] hover:brightness-110 transition-all">
+                ← Return to Base
               </Link>
             </div>
           ) : (
-            <>
-              <div className="mb-8">
-                <h2 className="text-2xl font-bold text-white mb-2">Apply for your organisation</h2>
-                <p className="text-white/50 text-sm">Takes 2 minutes. We&apos;ll be in touch within 24 hours.</p>
+            <div className="page-fade-in">
+              <div className="mb-12">
+                <p className="text-[10px] font-black text-[var(--primary-600)] uppercase tracking-[0.3em] mb-4">Initialisation</p>
+                <h2 className="text-4xl font-black text-white mb-3 tracking-tighter">Apply for Access.</h2>
+                <p className="text-sm font-medium text-[var(--on-glass-muted)]">Secure your organisation&apos;s place in the Aurora Ecosystem.</p>
               </div>
 
               {error && (
-                <div className="mb-5 px-4 py-3 rounded-xl bg-[var(--danger-100)] border border-[var(--danger-500)]/30">
-                  <p className="text-sm font-medium text-[var(--danger-800)]">{error}</p>
+                <div className="mb-8 px-6 py-4 rounded-2xl bg-[var(--danger-500)]/10 border border-[var(--danger-500)]/30">
+                  <p className="text-xs font-bold text-[var(--danger-500)] uppercase tracking-wider">{error}</p>
                 </div>
               )}
 
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Company name */}
-                <div>
-                  <label className="block text-sm font-semibold text-white/80 mb-1.5">
-                    Company name <span className="text-[var(--primary-600)]">*</span>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-[var(--on-glass-muted)] uppercase tracking-widest ml-1">
+                    Organisation Entity <span className="text-[var(--primary-600)]">*</span>
                   </label>
                   <input
                     required
                     type="text"
-                    placeholder="Acme Corp"
+                    placeholder="Acme Strategic Corp"
                     value={form.company_name}
                     onChange={set('company_name')}
-                    className="w-full px-3 py-2.5 bg-white/8 border border-white/15 rounded-xl text-white text-sm placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-[var(--primary-600)] focus:border-transparent"
+                    className="w-full bg-[var(--glass-10)] border border-[var(--glass-border)] rounded-2xl px-6 py-4 text-white text-sm placeholder:text-[var(--on-glass-dim)] outline-none focus:border-[var(--primary-600)] focus:ring-4 focus:ring-[var(--primary-600)]/10 transition-all font-medium"
                   />
                 </div>
 
                 {/* Name + email in grid */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-sm font-semibold text-white/80 mb-1.5">
-                      Your name <span className="text-[var(--primary-600)]">*</span>
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-[var(--on-glass-muted)] uppercase tracking-widest ml-1">
+                      Lead Identity <span className="text-[var(--primary-600)]">*</span>
                     </label>
                     <input
                       required
@@ -158,25 +178,25 @@ export default function GetStartedPage() {
                       placeholder="Jane Smith"
                       value={form.contact_name}
                       onChange={set('contact_name')}
-                      className="w-full px-3 py-2.5 bg-white/8 border border-white/15 rounded-xl text-white text-sm placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-[var(--primary-600)] focus:border-transparent"
+                      className="w-full bg-[var(--glass-10)] border border-[var(--glass-border)] rounded-2xl px-6 py-4 text-white text-sm placeholder:text-[var(--on-glass-dim)] outline-none focus:border-[var(--primary-600)] focus:ring-4 focus:ring-[var(--primary-600)]/10 transition-all font-medium"
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-white/80 mb-1.5">Phone</label>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-[var(--on-glass-muted)] uppercase tracking-widest ml-1">Phone</label>
                     <input
                       type="tel"
                       placeholder="+1 555 000 0000"
                       value={form.phone}
                       onChange={set('phone')}
-                      className="w-full px-3 py-2.5 bg-white/8 border border-white/15 rounded-xl text-white text-sm placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-[var(--primary-600)] focus:border-transparent"
+                      className="w-full bg-[var(--glass-10)] border border-[var(--glass-border)] rounded-2xl px-6 py-4 text-white text-sm placeholder:text-[var(--on-glass-dim)] outline-none focus:border-[var(--primary-600)] focus:ring-4 focus:ring-[var(--primary-600)]/10 transition-all font-medium"
                     />
                   </div>
                 </div>
 
                 {/* Email */}
-                <div>
-                  <label className="block text-sm font-semibold text-white/80 mb-1.5">
-                    Work email <span className="text-[var(--primary-600)]">*</span>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-[var(--on-glass-muted)] uppercase tracking-widest ml-1">
+                    Secure Work Email <span className="text-[var(--primary-600)]">*</span>
                   </label>
                   <input
                     required
@@ -184,55 +204,57 @@ export default function GetStartedPage() {
                     placeholder="jane@acme.com"
                     value={form.contact_email}
                     onChange={set('contact_email')}
-                    className="w-full px-3 py-2.5 bg-white/8 border border-white/15 rounded-xl text-white text-sm placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-[var(--primary-600)] focus:border-transparent"
+                    className="w-full bg-[var(--glass-10)] border border-[var(--glass-border)] rounded-2xl px-6 py-4 text-white text-sm placeholder:text-[var(--on-glass-dim)] outline-none focus:border-[var(--primary-600)] focus:ring-4 focus:ring-[var(--primary-600)]/10 transition-all font-medium"
                   />
                 </div>
 
                 {/* Size + Timezone */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-sm font-semibold text-white/80 mb-1.5">Company size</label>
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-[var(--on-glass-muted)] uppercase tracking-widest ml-1">Scale</label>
                     <select
                       value={form.company_size}
                       onChange={set('company_size')}
-                      className="w-full px-3 py-2.5 bg-white/8 border border-white/15 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary-600)] focus:border-transparent appearance-none"
+                      className="w-full bg-[var(--glass-10)] border border-[var(--glass-border)] rounded-2xl px-6 py-4 text-white text-sm focus:outline-none focus:ring-4 focus:ring-[var(--primary-600)]/10 transition-all font-medium appearance-none cursor-pointer"
                     >
-                      <option value="">Select...</option>
-                      {SIZES.map(s => <option key={s} value={s}>{s} employees</option>)}
+                      <option value="" className="bg-[var(--dark-950)]">Select Scale...</option>
+                      {SIZES.map(s => <option key={s} value={s} className="bg-[var(--dark-950)]">{s} Nodes</option>)}
                     </select>
                   </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-white/80 mb-1.5">Timezone</label>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-[var(--on-glass-muted)] uppercase tracking-widest ml-1">Temporal Zone</label>
                     <input
                       type="text"
                       placeholder="UTC"
                       value={form.timezone}
                       onChange={set('timezone')}
-                      className="w-full px-3 py-2.5 bg-white/8 border border-white/15 rounded-xl text-white text-sm placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-[var(--primary-600)] focus:border-transparent"
+                      className="w-full bg-[var(--glass-10)] border border-[var(--glass-border)] rounded-2xl px-6 py-4 text-white text-sm placeholder:text-[var(--on-glass-dim)] outline-none focus:border-[var(--primary-600)] focus:ring-4 focus:ring-[var(--primary-600)]/10 transition-all font-medium"
                     />
                   </div>
                 </div>
 
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-3.5 bg-[var(--primary-600)] hover:bg-[var(--primary-900)] text-white font-bold rounded-xl transition-all text-sm disabled:opacity-60 flex items-center justify-center gap-2 mt-2"
-                >
-                  {loading ? (
-                    <span className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
-                  ) : (
-                    <>Submit Application <ArrowRight size={16} /></>
-                  )}
-                </button>
+                <div className="pt-4">
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full py-5 bg-[var(--primary-600)] hover:brightness-110 text-white font-black rounded-2xl transition-all shadow-2xl shadow-[var(--primary-600)]/20 text-sm uppercase tracking-[0.2em] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 active:scale-95"
+                  >
+                    {loading ? (
+                      <span className="w-5 h-5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                    ) : (
+                      <>Initialize Application <ArrowRight size={18} /></>
+                    )}
+                  </button>
+                </div>
 
-                <p className="text-xs text-center text-white/30">
-                  By submitting you agree to our{' '}
-                  <Link href="/privacy" className="text-white/50 hover:text-white underline">Privacy Policy</Link>.
-                  Already have an account?{' '}
-                  <Link href="/login" className="text-[var(--primary-600)] hover:underline">Sign in</Link>
+                <p className="text-[10px] text-center font-bold text-[var(--on-glass-dim)] uppercase tracking-widest leading-relaxed">
+                  Submission implies acceptance of our{' '}
+                  <Link href="/privacy" className="text-[var(--primary-600)] hover:underline">Privacy Protocols</Link>.<br />
+                  Already identified?{' '}
+                  <Link href="/login" className="text-white hover:text-[var(--primary-600)] underline">Sign in here</Link>
                 </p>
               </form>
-            </>
+            </div>
           )}
         </div>
       </div>
