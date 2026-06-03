@@ -243,3 +243,80 @@ export interface NotificationList {
   limit:        number;
   unread_count: number;
 }
+
+// ─── SaaS / Subscription ─────────────────────────────
+export type SubscriptionStatus = 'trialing' | 'active' | 'inactive' | 'suspended' | 'defaulted';
+
+export interface PlanFeatures {
+  attendance: boolean;
+  leave_management: boolean;
+  shifts: boolean;
+  payroll: boolean;
+  whatsapp: boolean;
+  performance_reviews: boolean;
+  remote_work: boolean;
+  api_access: boolean;
+  advanced_reports: boolean;
+  multi_location: boolean;
+  [key: string]: boolean;
+}
+
+export interface PlanDefinition {
+  id: string;
+  display_name: string;
+  price_monthly: number;
+  price_annual: number;
+  max_employees: number;
+  trial_days: number;
+  features: PlanFeatures;
+  description: string | null;
+  highlight: boolean;
+  is_active: boolean;
+  sort_order: number;
+  updated_at: string;
+}
+
+export interface OrgSubscription {
+  id: string;
+  name: string;
+  plan: string;
+  status: string;
+  subscription_status: SubscriptionStatus;
+  trial_started_at: string | null;
+  trial_ends_at: string | null;
+  seats_limit: number | null;
+  features_override: Partial<PlanFeatures> | null;
+  admin_notes: string | null;
+  billing_email: string | null;
+}
+
+// ─── Blog ─────────────────────────────────────────────
+export interface BlogPost {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt: string | null;
+  content: string;
+  author_name: string;
+  author_avatar: string | null;
+  cover_image: string | null;
+  tags: string[];
+  meta_title: string | null;
+  meta_description: string | null;
+  og_image: string | null;
+  is_published: boolean;
+  published_at: string | null;
+  read_time_mins: number | null;
+  views: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BlogListItem extends Omit<BlogPost, 'content'> {}
+
+export interface BlogListResponse {
+  posts: BlogListItem[];
+  total: number;
+  page: number;
+  pages: number;
+}

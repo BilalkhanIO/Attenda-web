@@ -295,6 +295,10 @@ export const publicApi = {
     company_name: string; contact_name: string; contact_email: string;
     phone?: string; timezone?: string; company_size?: string;
   }) => apiClient.post('/public/onboard', data),
+  getPlans: () => apiClient.get('/public/plans'),
+  getBlogPosts: (params?: { page?: number; limit?: number; tag?: string }) =>
+    apiClient.get('/public/blog', { params }),
+  getBlogPost: (slug: string) => apiClient.get(`/public/blog/${slug}`),
 };
 
 // ─── PLATFORM ADMIN ───────────────────────────────────
@@ -311,6 +315,12 @@ export const adminApi = {
     apiClient.patch(`/admin/orgs/${id}/plan`, { plan }),
   suspendOrg: (id: string) =>
     apiClient.patch(`/admin/orgs/${id}/suspend`),
+  updateSubscription: (id: string, data: Record<string, unknown>) =>
+    apiClient.patch(`/admin/orgs/${id}/subscription`, data),
+  extendTrial: (id: string, days: number) =>
+    apiClient.post(`/admin/orgs/${id}/extend-trial`, { days }),
+  activateOrg: (id: string) =>
+    apiClient.post(`/admin/orgs/${id}/activate`),
   createOrg: (data: { name: string; timezone?: string; currency?: string; plan?: string }) =>
     apiClient.post('/admin/orgs', data),
   approveOrg: (id: string) =>
@@ -319,6 +329,28 @@ export const adminApi = {
     apiClient.post(`/admin/orgs/${id}/reject`),
   getOrgUsers: (id: string) =>
     apiClient.get(`/admin/orgs/${id}/users`),
+  // Plans
+  getPlans: () =>
+    apiClient.get('/admin/plans'),
+  createPlan: (data: Record<string, unknown>) =>
+    apiClient.post('/admin/plans', data),
+  updatePlanDef: (id: string, data: Record<string, unknown>) =>
+    apiClient.put(`/admin/plans/${id}`, data),
+  deletePlan: (id: string) =>
+    apiClient.delete(`/admin/plans/${id}`),
+  // Blog
+  getBlogPosts: (params?: { page?: number; limit?: number }) =>
+    apiClient.get('/admin/blog', { params }),
+  getBlogPost: (id: string) =>
+    apiClient.get(`/admin/blog/${id}`),
+  createBlogPost: (data: Record<string, unknown>) =>
+    apiClient.post('/admin/blog', data),
+  updateBlogPost: (id: string, data: Record<string, unknown>) =>
+    apiClient.put(`/admin/blog/${id}`, data),
+  deleteBlogPost: (id: string) =>
+    apiClient.delete(`/admin/blog/${id}`),
+  togglePublish: (id: string) =>
+    apiClient.patch(`/admin/blog/${id}/publish`),
 };
 
 // ─── ORG SETTINGS ─────────────────────────────────────
