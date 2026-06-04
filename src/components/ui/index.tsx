@@ -1,7 +1,20 @@
 'use client';
-import { ReactNode, ButtonHTMLAttributes, InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes, useEffect, useRef } from 'react';
+import {
+  ReactNode,
+  Children,
+  ButtonHTMLAttributes,
+  InputHTMLAttributes,
+  SelectHTMLAttributes,
+  TextareaHTMLAttributes,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import { cn, getInitials } from '@/lib/utils';
-import { X, Loader2, AlertTriangle, ChevronRight } from 'lucide-react';
+import { shouldShowTableEmptyState } from './table.utils';
+
+export { shouldShowTableEmptyState } from './table.utils';
+import { X, Loader2, AlertTriangle, ChevronRight, MoreHorizontal } from 'lucide-react';
 
 // ─── Button ───────────────────────────────────────────
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -325,7 +338,14 @@ export function ConfirmDialog({ isOpen, onClose, onConfirm, title, message, conf
 
 // ─── Skeleton ─────────────────────────────────────────
 export function Skeleton({ className }: { className?: string }) {
-  return <div className={cn('animate-pulse rounded-lg bg-[var(--gray-100)]', className)} />;
+  return (
+    <div
+      className={cn(
+        'animate-pulse rounded-lg bg-[var(--glass-10)] border border-[var(--glass-border)]',
+        className,
+      )}
+    />
+  );
 }
 
 export function SkeletonRow() {
@@ -352,13 +372,134 @@ interface EmptyStateProps {
 export function EmptyState({ icon, title, description, action }: EmptyStateProps) {
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center">
-      <div className="w-14 h-14 rounded-2xl bg-[var(--gray-100)] flex items-center justify-center text-[var(--gray-500)] mb-4">
+      <div className="w-14 h-14 rounded-2xl bg-[var(--glass-10)] border border-[var(--glass-border)] flex items-center justify-center text-[var(--on-glass-muted)] mb-4">
         {icon}
       </div>
-      <h3 className="text-base font-semibold text-[var(--dark-950)] mb-1">{title}</h3>
-      <p className="text-sm text-[var(--gray-500)] mb-4 max-w-xs">{description}</p>
+      <h3 className="text-base font-bold text-white mb-1">{title}</h3>
+      <p className="text-sm text-[var(--on-glass-muted)] mb-4 max-w-xs">{description}</p>
       {action}
     </div>
+  );
+}
+
+// ─── Tabs ─────────────────────────────────────────────
+export interface TabItem {
+  id: string;
+  label: string;
+  icon?: ReactNode;
+  disabled?: boolean;
+}
+
+interface TabsProps {
+  tabs: TabItem[];
+  activeId: string;
+  onChange: (id: string) => void;
+  variant?: 'underline' | 'pill';
+  className?: string;
+}
+
+export function Tabs({ tabs, activeId, onChange, variant = 'underline', className }: TabsProps) {
+  if (variant === 'pill') {
+    return (
+      <div className={cn('flex flex-wrap items-center gap-2', className)}>
+        {tabs.map(tab => (
+          <button
+            key={tab.id}
+            type="button"
+            disabled={tab.disabled}
+            onClick={() => onChange(tab.id)}
+            className={cn(
+              'inline-flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-bold transition-all',
+              activeId === tab.id
+                ? 'bg-[var(--primary-600)] text-white shadow-lg shadow-[var(--primary-600)]/20'
+                : 'bg-[var(--glass-05)] text-[var(--on-glass-muted)] border border-[var(--glass-border)] hover:bg-[var(--glass-10)] hover:text-white',
+              tab.disabled && 'opacity-50 cursor-not-allowed',
+            )}
+          >
+            {tab.icon}{tab.label}
+          </button>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={cn(
+        'flex items-center gap-1 overflow-x-auto border-b border-[var(--glass-border)]',
+        className,
+      )}
+    >
+      {tabs.map(tab => (
+        <button
+          key={tab.id}
+          type="button"
+          disabled={tab.disabled}
+          onClick={() => onChange(tab.id)}
+          className={cn(
+            'inline-flex items-center gap-2 px-6 py-4 text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap border-b-2 -mb-px',
+            activeId === tab.id
+              ? 'text-[var(--primary-600)] border-[var(--primary-600)]'
+              : 'text-[var(--on-glass-dim)] border-transparent hover:text-white',
+            tab.disabled && 'opacity-50 cursor-not-allowed',
+          )}
+        >
+          {tab.icon}{tab.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ─── Status select (employee / org tables) ────────────
+export type EntityStatus = 'active' | 'inactive' | 'suspended';
+
+const STATUS_OPTIONS: { value: EntityStatus; label: string }[] = [
+  { value: 'active', label: 'Active' },
+  { value: 'inactive', label: 'Inactive' },
+  { value: 'suspended', label: 'Suspended' },
+];
+
+interface StatusSelectProps {
+  value: EntityStatus;
+  onChange: (value: EntityStatus) => void;
+  disabled?: boolean;
+  allowed?: EntityStatus[];
+  size?: 'sm' | 'md';
+  className?: string;
+}
+
+export function StatusSelect({
+  value,
+  onChange,
+  disabled,
+  allowed,
+  size = 'sm',
+  className,
+}: StatusSelectProps) {
+  const options = allowed
+    ? STATUS_OPTIONS.filter(o => allowed.includes(o.value))
+    : STATUS_OPTIONS;
+
+  return (
+    <select
+      value={value}
+      disabled={disabled}
+      onChange={e => onChange(e.target.value as EntityStatus)}
+      className={cn(
+        'rounded-xl border bg-[var(--glass-05)] font-bold text-white appearance-none cursor-pointer',
+        'border-[var(--glass-border)] focus:border-[var(--primary-600)] focus:ring-4 focus:ring-[var(--primary-600)]/10 outline-none transition-all',
+        size === 'sm' ? 'px-3 py-1.5 text-xs' : 'px-4 py-2.5 text-sm',
+        disabled && 'opacity-50 cursor-not-allowed',
+        className,
+      )}
+    >
+      {options.map(o => (
+        <option key={o.value} value={o.value} className="bg-[var(--dark-950)]">
+          {o.label}
+        </option>
+      ))}
+    </select>
   );
 }
 
@@ -405,6 +546,9 @@ interface TableProps {
 }
 
 export function Table({ headers, children, loading, emptyState }: TableProps) {
+  const rowCount = Children.count(children);
+  const showEmpty = shouldShowTableEmptyState(loading, rowCount);
+
   return (
     <div className="overflow-x-auto">
       <table className="w-full">
@@ -422,14 +566,224 @@ export function Table({ headers, children, loading, emptyState }: TableProps) {
             Array.from({ length: 5 }).map((_, i) => (
               <tr key={i}>
                 {headers.map((h) => (
-                  <td key={h} className="py-4 px-6"><Skeleton className="h-4 w-full opacity-20" /></td>
+                  <td key={h} className="py-4 px-6"><Skeleton className="h-4 w-full" /></td>
                 ))}
               </tr>
             ))
-          ) : children}
+          ) : showEmpty ? (
+            <tr>
+              <td colSpan={headers.length} className="py-4 px-6">
+                {emptyState}
+              </td>
+            </tr>
+          ) : (
+            children
+          )}
         </tbody>
       </table>
-      {!loading && emptyState}
+    </div>
+  );
+}
+
+// ─── DataTable ────────────────────────────────────────
+export interface DataTableColumn<T> {
+  key: string;
+  header: string;
+  sortable?: boolean;
+  className?: string;
+  render: (row: T) => ReactNode;
+}
+
+interface DataTableProps<T> {
+  columns: DataTableColumn<T>[];
+  data: T[];
+  rowKey: (row: T) => string;
+  loading?: boolean;
+  emptyState?: ReactNode;
+  page?: number;
+  pageSize?: number;
+  total?: number;
+  onPageChange?: (page: number) => void;
+  sortKey?: string;
+  sortDir?: 'asc' | 'desc';
+  onSort?: (key: string) => void;
+  rowActions?: (row: T) => ActionMenuItem[];
+}
+
+function DataTableRowMenu({ items }: { items: ActionMenuItem[] }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [open]);
+
+  return (
+    <div className="relative flex justify-end" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
+        className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-[var(--glass-10)] text-[var(--on-glass-dim)] hover:text-white transition-all"
+        aria-label="Row actions"
+      >
+        <MoreHorizontal size={20} />
+      </button>
+      {open && (
+        <ActionMenu
+          items={items.map(item => ({
+            ...item,
+            onClick: () => {
+              setOpen(false);
+              item.onClick();
+            },
+          }))}
+        />
+      )}
+    </div>
+  );
+}
+
+function DataTableSortableHeader({
+  label,
+  columnKey,
+  sortKey,
+  sortDir,
+  onSort,
+}: {
+  label: string;
+  columnKey: string;
+  sortKey?: string;
+  sortDir: 'asc' | 'desc';
+  onSort?: (key: string) => void;
+}) {
+  const active = sortKey === columnKey;
+  return (
+    <button
+      type="button"
+      onClick={() => onSort?.(columnKey)}
+      className="inline-flex items-center gap-1 hover:text-white transition-colors"
+    >
+      {label}
+      {active && <span className="text-[10px] text-[var(--primary-600)]">{sortDir === 'asc' ? '↑' : '↓'}</span>}
+    </button>
+  );
+}
+
+export function DataTable<T>({
+  columns,
+  data,
+  rowKey,
+  loading,
+  emptyState,
+  page = 1,
+  pageSize,
+  total,
+  onPageChange,
+  sortKey,
+  sortDir = 'asc',
+  onSort,
+  rowActions,
+}: DataTableProps<T>) {
+  const rowCount = data.length;
+  const showEmpty = shouldShowTableEmptyState(loading, rowCount);
+  const pageCount = pageSize && total != null ? Math.max(1, Math.ceil(total / pageSize)) : null;
+
+  return (
+    <div className="space-y-4">
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-[var(--glass-border)]">
+              {columns.map(col => (
+                <th
+                  key={col.key}
+                  className="text-left text-[11px] font-black text-[var(--on-glass-muted)] uppercase tracking-[0.1em] py-4 px-6 whitespace-nowrap"
+                >
+                  {col.sortable && onSort ? (
+                    <DataTableSortableHeader
+                      label={col.header}
+                      columnKey={col.key}
+                      sortKey={sortKey}
+                      sortDir={sortDir}
+                      onSort={onSort}
+                    />
+                  ) : (
+                    col.header
+                  )}
+                </th>
+              ))}
+              {rowActions && <th className="py-4 px-6" />}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[var(--glass-border)]">
+            {loading ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <tr key={i}>
+                  {columns.map(col => (
+                    <td key={col.key} className="py-4 px-6">
+                      <Skeleton className="h-4 w-full" />
+                    </td>
+                  ))}
+                  {rowActions && <td className="py-4 px-6" />}
+                </tr>
+              ))
+            ) : showEmpty ? (
+              <tr>
+                <td colSpan={columns.length + (rowActions ? 1 : 0)} className="py-4 px-6">
+                  {emptyState}
+                </td>
+              </tr>
+            ) : (
+              data.map(row => (
+                <tr key={rowKey(row)} className="hover:bg-[var(--glass-05)] transition-all group">
+                  {columns.map(col => (
+                    <td key={col.key} className={cn('py-4 px-6', col.className)}>
+                      {col.render(row)}
+                    </td>
+                  ))}
+                  {rowActions && (
+                    <td className="py-4 px-6">
+                      <DataTableRowMenu items={rowActions(row)} />
+                    </td>
+                  )}
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {pageCount != null && pageCount > 1 && onPageChange && (
+        <div className="flex items-center justify-between px-2">
+          <p className="text-xs font-medium text-[var(--on-glass-muted)]">
+            Page {page} of {pageCount}
+            {total != null && ` · ${total} total`}
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={page <= 1}
+              onClick={() => onPageChange(page - 1)}
+            >
+              Previous
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={page >= pageCount}
+              onClick={() => onPageChange(page + 1)}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

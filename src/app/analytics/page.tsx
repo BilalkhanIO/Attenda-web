@@ -14,6 +14,7 @@ import { Users, Clock, BarChart2, Download, RefreshCw, FileText, Sparkles, Send,
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/lib/auth';
 
 const REPORT_TYPES = [
   { id: 'attendance',  label: 'Attendance Report',   icon: <Clock size={20} />,     color: 'var(--primary-600)', bg: 'var(--primary-100)'  },
@@ -37,6 +38,7 @@ function ChartCard({ title, children, className }: { title: string; children: Re
 }
 
 export default function AnalyticsPage() {
+  const { hasPermission } = useAuth();
   const [overview, setOverview]     = useState<AnalyticsOverview | null>(null);
   const [trend, setTrend]           = useState<AttendanceTrendPoint[]>([]);
   const [lateData, setLateData]     = useState<{name:string; count:number}[]>([]);
@@ -59,7 +61,7 @@ export default function AnalyticsPage() {
   const [selectedReport, setSelectedReport] = useState<string | null>(null);
   const [reportStart, setReportStart]       = useState(format(new Date(), 'yyyy-MM-01'));
   const [reportEnd, setReportEnd]           = useState(format(new Date(), 'yyyy-MM-dd'));
-  const [reportFormat, setReportFormat]     = useState<'pdf' | 'csv'>('pdf');
+  const [reportFormat, setReportFormat]     = useState<'csv'>('csv');
   const [generating, setGenerating]         = useState(false);
   const [reportReady, setReportReady]       = useState(false);
   const [downloadUrl, setDownloadUrl]       = useState<string | null>(null);
@@ -126,11 +128,18 @@ export default function AnalyticsPage() {
     setReportReady(false);
     setDownloadUrl(null);
     try {
-      const { data } = await analyticsApi.generateReport(selectedReport, {
+      const start = new Date(reportStart);
+      const dataPayload: any = {
         start_date: reportStart,
         end_date: reportEnd,
         format: reportFormat,
-      });
+      };
+      if (selectedReport === 'payroll' || selectedReport === 'performance') {
+        dataPayload.month = start.getMonth() + 1;
+        dataPayload.year = start.getFullYear();
+      }
+
+      const { data } = await analyticsApi.generateReport(selectedReport, dataPayload);
       setDownloadUrl(data.data?.download_url || null);
       setReportReady(true);
       toast.success('Report generated successfully');
@@ -165,10 +174,10 @@ export default function AnalyticsPage() {
       {/* Tabs */}
       <div className="flex items-center gap-1 px-5 pt-4 pb-0 mb-6 border-b border-[var(--glass-border)] overflow-x-auto bg-[var(--glass-05)] rounded-t-3xl">
         {([
-          { id: 'overview', label: 'Overview' },
-          { id: 'reports',  label: 'Reports'  },
-          { id: 'ai',       label: 'AI Insights' },
-        ] as const).map(tab => (
+          { id: 'overview', label: 'Overview', show: true },
+          { id: 'reports',  label: 'Reports', show: hasPermission('reports.export') },
+          { id: 'ai',       label: 'AI Insights', show: hasPermission('analytics.advanced') },
+        ] as const).filter(t => t.show).map(tab => (
           <button key={tab.id}
             onClick={() => { setActiveTab(tab.id); if (tab.id === 'ai' && anomalies.length === 0 && payAnomalies.length === 0) loadAnomalies(); }}
             className={cn(
@@ -353,7 +362,7 @@ export default function AnalyticsPage() {
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-[var(--on-glass-dim)] uppercase tracking-widest ml-1">Format</label>
                   <div className="flex gap-3">
-                    {(['pdf', 'csv'] as const).map(f => (
+                    {(['csv'] as const).map(f => (
                       <button key={f} onClick={() => setReportFormat(f)}
                         className={cn(
                           "flex-1 py-3 text-[11px] font-black rounded-xl border transition-all uppercase tracking-widest",

@@ -1,0 +1,537 @@
+'use client';
+
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { adminApi } from '@/lib/api';
+import { getApiError } from '@/lib/utils';
+import {
+  PageHeader, Card, Button, Badge, Skeleton, Tabs, Table, EmptyState,
+  Select, ConfirmDialog,
+} from '@/components/ui';
+import type { PlanDefinition, PlanFeatures } from '@/types';
+import {
+  AdminOrg, AdminOrgUser, ALL_FEATURE_KEYS, FEATURE_LABELS,
+  ORG_STATUS_STYLES, PLAN_STYLES, ROLE_STYLES, SUB_STATUS_STYLES,
+  buildFeaturesOverride, daysLeft, featureOverrideState, fmtDate,
+  type FeatureOverrideState,
+} from '@/lib/admin-shared';
+import {
+  ChevronLeft, Ban, CheckCircle, Calendar, Pencil, Save, Users,
+} from 'lucide-react';
+import toast from 'react-hot-toast';
+
+export default function AdminOrgDetailPage() {
+  const params = useParams();
+  const router = useRouter();
+  const orgId = String(params.id);
+
+  const [org, setOrg] = useState<AdminOrg | null>(null);
+  const [users, setUsers] = useState<AdminOrgUser[]>([]);
+  const [plans, setPlans] = useState<PlanDefinition[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadingUsers, setLoadingUsers] = useState(true);
+  const [activeTab, setActiveTab] = useState('overview');
+  const [saving, setSaving] = useState(false);
+  const [suspending, setSuspending] = useState(false);
+  const [activating, setActivating] = useState(false);
+  const [extendingTrial, setExtendingTrial] = useState(false);
+  const [suspendConfirm, setSuspendConfirm] = useState(false);
+
+  const [name, setName] = useState('');
+  const [timezone, setTimezone] = useState('UTC');
+  const [contactName, setContactName] = useState('');
+  const [contactEmail, setContactEmail] = useState('');
+  const [companySize, setCompanySize] = useState('');
+
+  const [subStatus, setSubStatus] = useState('');
+  const [subPlan, setSubPlan] = useState('');
+  const [trialEndsAt, setTrialEndsAt] = useState('');
+  const [seatsLimit, setSeatsLimit] = useState('');
+  const [billingEmail, setBillingEmail] = useState('');
+  const [adminNotes, setAdminNotes] = useState('');
+  const [extendDays, setExtendDays] = useState('7');
+  const [featureStates, setFeatureStates] = useState<Record<string, FeatureOverrideState>>({});
+
+  const planDef = useMemo(
+    () => plans.find(p => p.id === subPlan),
+    [plans, subPlan],
+  );
+
+  const planOptions = useMemo(
+    () => plans.filter(p => p.is_active).map(p => ({ value: p.id, label: p.display_name })),
+    [plans],
+  );
+
+  const loadOrg = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [orgRes, plansRes] = await Promise.all([
+        adminApi.getOrg(orgId),
+        adminApi.getPlans(),
+      ]);
+      const orgData = orgRes.data.data as AdminOrg;
+      setOrg(orgData);
+      setPlans(plansRes.data.data || []);
+      const plan = (plansRes.data.data as PlanDefinition[]).find(p => p.id === orgData.plan);
+      const states: Record<string, FeatureOverrideState> = {};
+      for (const key of ALL_FEATURE_KEYS) {
+        states[key] = featureOverrideState(key, plan?.features, orgData.features_override ?? undefined);
+      }
+      setFeatureStates(states);
+      setName(orgData.name);
+      setTimezone(orgData.timezone);
+      setContactName(orgData.contact_name || '');
+      setContactEmail(orgData.contact_email || '');
+      setCompanySize(orgData.company_size || '');
+      setSubStatus(orgData.subscription_status || 'active');
+      setSubPlan(orgData.plan || 'starter');
+      setTrialEndsAt(orgData.trial_ends_at ? orgData.trial_ends_at.slice(0, 10) : '');
+      setSeatsLimit(orgData.seats_limit?.toString() || '');
+      setBillingEmail(orgData.billing_email || '');
+      setAdminNotes(orgData.admin_notes || '');
+    } catch (err) {
+      toast.error(getApiError(err));
+      router.replace('/admin');
+    } finally {
+      setLoading(false);
+    }
+  }, [orgId, router]);
+
+  const loadUsers = useCallback(async () => {
+    setLoadingUsers(true);
+    try {
+      const res = await adminApi.getOrgUsers(orgId);
+      setUsers(res.data.data || []);
+    } catch {
+      setUsers([]);
+    } finally {
+      setLoadingUsers(false);
+    }
+  }, [orgId]);
+
+  useEffect(() => {
+    loadOrg();
+    loadUsers();
+  }, [loadOrg, loadUsers]);
+
+  const saveOverview = async () => {
+    setSaving(true);
+    try {
+      const res = await adminApi.updateOrg(orgId, {
+        name: name.trim(),
+        timezone,
+        contact_name: contactName || null,
+        contact_email: contactEmail || null,
+        company_size: companySize || null,
+      });
+      setOrg(res.data.data);
+      toast.success('Organisation updated');
+    } catch (err) {
+      toast.error(getApiError(err));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const saveSubscription = async () => {
+    setSaving(true);
+    try {
+      const res = await adminApi.updateSubscription(orgId, {
+        subscription_status: subStatus,
+        plan: subPlan,
+        trial_ends_at: trialEndsAt || null,
+        seats_limit: seatsLimit ? Number(seatsLimit) : null,
+        billing_email: billingEmail || null,
+        admin_notes: adminNotes || null,
+        features_override: buildFeaturesOverride(featureStates),
+      });
+      setOrg(res.data.data);
+      toast.success('Subscription updated');
+    } catch (err) {
+      toast.error(getApiError(err));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const toggleSuspend = async () => {
+    setSuspending(true);
+    try {
+      const res = await adminApi.suspendOrg(orgId);
+      setOrg(res.data.data);
+      toast.success('Organisation updated');
+      setSuspendConfirm(false);
+    } catch (err) {
+      toast.error(getApiError(err));
+    } finally {
+      setSuspending(false);
+    }
+  };
+
+  const extendTrial = async () => {
+    const days = Number(extendDays);
+    if (!days || days < 1) {
+      toast.error('Enter valid days');
+      return;
+    }
+    setExtendingTrial(true);
+    try {
+      const res = await adminApi.extendTrial(orgId, days);
+      setOrg(res.data.data);
+      setTrialEndsAt(res.data.data.trial_ends_at?.slice(0, 10) || '');
+      setSubStatus(res.data.data.subscription_status);
+      toast.success(`Trial extended by ${days} days`);
+    } catch (err) {
+      toast.error(getApiError(err));
+    } finally {
+      setExtendingTrial(false);
+    }
+  };
+
+  const activateOrg = async () => {
+    setActivating(true);
+    try {
+      const res = await adminApi.activateOrg(orgId);
+      setOrg(res.data.data);
+      setSubStatus(res.data.data.subscription_status);
+      toast.success('Organisation activated');
+    } catch (err) {
+      toast.error(getApiError(err));
+    } finally {
+      setActivating(false);
+    }
+  };
+
+  const setFeatureState = (key: string, state: FeatureOverrideState) => {
+    setFeatureStates(prev => ({ ...prev, [key]: state }));
+  };
+
+  if (loading || !org) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-12 w-64 rounded-xl" />
+        <Skeleton className="h-48 w-full rounded-2xl" />
+      </div>
+    );
+  }
+
+  const planStyle = PLAN_STYLES[org.plan] ?? PLAN_STYLES.trial;
+  const orgStatusStyle = ORG_STATUS_STYLES[org.status] ?? ORG_STATUS_STYLES.active;
+  const subStyle = SUB_STATUS_STYLES[org.subscription_status] ?? SUB_STATUS_STYLES.active;
+  const trialDays = daysLeft(org.trial_ends_at);
+
+  return (
+    <>
+      <PageHeader
+        title={org.name}
+        subtitle={`${org.timezone} · ${org.user_count} users`}
+        breadcrumb={[
+          { label: 'Admin', href: '/admin' },
+          { label: org.name },
+        ]}
+        actions={
+          <div className="flex items-center gap-2">
+            <Link href="/admin">
+              <Button variant="ghost" size="sm" icon={<ChevronLeft size={14} />}>Back</Button>
+            </Link>
+            <Button
+              variant="outline"
+              size="sm"
+              icon={org.status === 'suspended' ? <CheckCircle size={14} /> : <Ban size={14} />}
+              onClick={() => setSuspendConfirm(true)}
+            >
+              {org.status === 'suspended' ? 'Reactivate' : 'Suspend'}
+            </Button>
+          </div>
+        }
+      />
+
+      <div className="flex flex-wrap gap-2 mb-6">
+        <Badge label={org.plan} color={planStyle.color} bg={planStyle.bg} />
+        <Badge label={orgStatusStyle.label} color={orgStatusStyle.color} bg={orgStatusStyle.bg} />
+        <Badge label={subStyle.label} color={subStyle.color} bg={subStyle.bg} />
+        {org.trial_ends_at && (
+          <Badge
+            label={trialDays !== null && trialDays <= 0 ? 'Trial expired' : `Trial ${trialDays}d left`}
+            color={trialDays !== null && trialDays <= 7 ? '#fbbf24' : '#94a3b8'}
+            bg="rgba(148, 163, 184, 0.1)"
+          />
+        )}
+      </div>
+
+      <Tabs
+        tabs={[
+          { id: 'overview', label: 'Overview' },
+          { id: 'subscription', label: 'Subscription' },
+          { id: 'features', label: 'Features' },
+          { id: 'users', label: 'Users' },
+        ]}
+        activeId={activeTab}
+        onChange={setActiveTab}
+        className="mb-6"
+      />
+
+      {activeTab === 'overview' && (
+        <Card className="glass-card p-6 space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 mb-1.5">Organisation name</label>
+              <input
+                value={name}
+                onChange={e => setName(e.target.value)}
+                className="w-full px-3 py-2 border border-glass bg-slate-800/50 rounded-lg text-sm text-slate-100"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 mb-1.5">Timezone</label>
+              <input
+                value={timezone}
+                onChange={e => setTimezone(e.target.value)}
+                className="w-full px-3 py-2 border border-glass bg-slate-800/50 rounded-lg text-sm text-slate-100"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 mb-1.5">Contact name</label>
+              <input
+                value={contactName}
+                onChange={e => setContactName(e.target.value)}
+                className="w-full px-3 py-2 border border-glass bg-slate-800/50 rounded-lg text-sm text-slate-100"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 mb-1.5">Contact email</label>
+              <input
+                type="email"
+                value={contactEmail}
+                onChange={e => setContactEmail(e.target.value)}
+                className="w-full px-3 py-2 border border-glass bg-slate-800/50 rounded-lg text-sm text-slate-100"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 mb-1.5">Company size</label>
+              <input
+                value={companySize}
+                onChange={e => setCompanySize(e.target.value)}
+                className="w-full px-3 py-2 border border-glass bg-slate-800/50 rounded-lg text-sm text-slate-100"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 mb-1.5">Created</label>
+              <p className="text-sm text-slate-300 py-2">{fmtDate(org.created_at)}</p>
+            </div>
+          </div>
+          {org.record_counts && (
+            <div className="grid grid-cols-3 gap-3 pt-2 border-t border-glass">
+              <div className="p-3 rounded-lg bg-slate-800/40 text-center">
+                <p className="text-lg font-bold text-slate-100">{org.record_counts.attendance}</p>
+                <p className="text-xs text-slate-500">Attendance records</p>
+              </div>
+              <div className="p-3 rounded-lg bg-slate-800/40 text-center">
+                <p className="text-lg font-bold text-slate-100">{org.record_counts.leave}</p>
+                <p className="text-xs text-slate-500">Leave requests</p>
+              </div>
+              <div className="p-3 rounded-lg bg-slate-800/40 text-center">
+                <p className="text-lg font-bold text-slate-100">{org.record_counts.payroll}</p>
+                <p className="text-xs text-slate-500">Payroll records</p>
+              </div>
+            </div>
+          )}
+          <Button loading={saving} onClick={saveOverview} icon={<Save size={14} />}>
+            Save overview
+          </Button>
+        </Card>
+      )}
+
+      {activeTab === 'subscription' && (
+        <Card className="glass-card p-6 space-y-5">
+          {(org.subscription_status === 'inactive' || org.subscription_status === 'defaulted') && (
+            <Button variant="success" size="sm" loading={activating} onClick={activateOrg} icon={<CheckCircle size={14} />}>
+              Activate organisation
+            </Button>
+          )}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 mb-1.5">Subscription status</label>
+              <select
+                value={subStatus}
+                onChange={e => setSubStatus(e.target.value)}
+                className="w-full px-3 py-2 border border-glass bg-slate-800/50 rounded-lg text-sm text-slate-100"
+              >
+                {Object.entries(SUB_STATUS_STYLES).map(([k, v]) => (
+                  <option key={k} value={k} className="bg-[#040D12]">{v.label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 mb-1.5">Plan</label>
+              {planOptions.length > 0 ? (
+                <Select options={planOptions} value={subPlan} onChange={e => setSubPlan(e.target.value)} />
+              ) : (
+                <input value={subPlan} onChange={e => setSubPlan(e.target.value)} className="w-full px-3 py-2 border border-glass bg-slate-800/50 rounded-lg text-sm" />
+              )}
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 mb-1.5">Trial ends</label>
+              <input
+                type="date"
+                value={trialEndsAt}
+                onChange={e => setTrialEndsAt(e.target.value)}
+                className="w-full px-3 py-2 border border-glass bg-slate-800/50 rounded-lg text-sm text-slate-100"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 mb-1.5">Seats limit</label>
+              <input
+                type="number"
+                min={0}
+                value={seatsLimit}
+                onChange={e => setSeatsLimit(e.target.value)}
+                placeholder="Unlimited"
+                className="w-full px-3 py-2 border border-glass bg-slate-800/50 rounded-lg text-sm text-slate-100"
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-semibold text-slate-500 mb-1.5">Billing email</label>
+              <input
+                type="email"
+                value={billingEmail}
+                onChange={e => setBillingEmail(e.target.value)}
+                className="w-full px-3 py-2 border border-glass bg-slate-800/50 rounded-lg text-sm text-slate-100"
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-semibold text-slate-500 mb-1.5">Admin notes</label>
+              <textarea
+                rows={3}
+                value={adminNotes}
+                onChange={e => setAdminNotes(e.target.value)}
+                className="w-full px-3 py-2 border border-glass bg-slate-800/50 rounded-lg text-sm text-slate-100 resize-none"
+              />
+            </div>
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Extend trial</p>
+            <div className="flex gap-2 max-w-sm">
+              <input
+                type="number"
+                min={1}
+                max={365}
+                value={extendDays}
+                onChange={e => setExtendDays(e.target.value)}
+                className="flex-1 px-3 py-2 border border-glass bg-slate-800/50 rounded-lg text-sm text-slate-100"
+              />
+              <Button variant="outline" loading={extendingTrial} onClick={extendTrial} icon={<Calendar size={14} />}>
+                Extend
+              </Button>
+            </div>
+          </div>
+          <Button loading={saving} onClick={saveSubscription} icon={<Pencil size={14} />}>
+            Save subscription
+          </Button>
+        </Card>
+      )}
+
+      {activeTab === 'features' && (
+        <Card className="glass-card p-6 space-y-4">
+          <p className="text-sm text-slate-400">
+            Per-feature override: <strong className="text-slate-200">Inherit</strong> uses plan defaults,
+            <strong className="text-emerald-400"> On</strong> forces enable,
+            <strong className="text-rose-400"> Off</strong> forces disable.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {ALL_FEATURE_KEYS.map(key => {
+              const state = featureStates[key] ?? 'inherit';
+              const planOn = !!(planDef?.features as PlanFeatures)?.[key];
+              return (
+                <div key={key} className="p-3 rounded-xl border border-glass bg-slate-800/30">
+                  <p className="text-sm font-medium text-slate-200 mb-1">{FEATURE_LABELS[key]}</p>
+                  <p className="text-[10px] text-slate-500 mb-2">Plan default: {planOn ? 'On' : 'Off'}</p>
+                  <div className="flex gap-1">
+                    {(['inherit', 'on', 'off'] as FeatureOverrideState[]).map(s => (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => setFeatureState(key, s)}
+                        className={`flex-1 py-1.5 text-[10px] font-bold uppercase rounded-lg border transition-all ${
+                          state === s
+                            ? s === 'on'
+                              ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400'
+                              : s === 'off'
+                                ? 'bg-rose-500/20 border-rose-500/40 text-rose-400'
+                                : 'bg-slate-700/50 border-slate-500 text-slate-200'
+                            : 'border-glass text-slate-500 hover:bg-white/5'
+                        }`}
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <Button loading={saving} onClick={saveSubscription} icon={<Save size={14} />}>
+            Save feature overrides
+          </Button>
+        </Card>
+      )}
+
+      {activeTab === 'users' && (
+        <Card className="glass-card overflow-hidden">
+          <div className="px-5 py-4 border-b border-glass flex items-center gap-2">
+            <Users size={16} className="text-emerald-400" />
+            <h2 className="text-sm font-bold text-slate-100">Users ({users.length})</h2>
+          </div>
+          <Table
+            headers={['Name', 'Email', 'Role', 'Status']}
+            loading={loadingUsers}
+            emptyState={
+              <EmptyState
+                icon={<Users size={24} />}
+                title="No users"
+                description="This organisation has no users yet."
+              />
+            }
+          >
+            {users.map(u => {
+              const rs = ROLE_STYLES[u.role] ?? ROLE_STYLES.employee;
+              return (
+                <tr key={u.id} className="border-b border-glass hover:bg-white/5">
+                  <td className="py-3 px-4 text-sm font-medium text-slate-200">{u.name}</td>
+                  <td className="py-3 px-4 text-sm text-slate-400">{u.email}</td>
+                  <td className="py-3 px-4">
+                    <Badge label={u.role.replace(/_/g, ' ')} color={rs.color} bg={rs.bg} size="sm" />
+                  </td>
+                  <td className="py-3 px-4">
+                    <Badge
+                      label={u.is_active ? 'Active' : 'Inactive'}
+                      color={u.is_active ? '#00C896' : '#94a3b8'}
+                      bg={u.is_active ? 'rgba(0, 200, 150, 0.1)' : 'rgba(148, 163, 184, 0.1)'}
+                      size="sm"
+                    />
+                  </td>
+                </tr>
+              );
+            })}
+          </Table>
+        </Card>
+      )}
+
+      <ConfirmDialog
+        isOpen={suspendConfirm}
+        onClose={() => setSuspendConfirm(false)}
+        onConfirm={toggleSuspend}
+        loading={suspending}
+        title={org.status === 'suspended' ? 'Reactivate organisation' : 'Suspend organisation'}
+        message={
+          org.status === 'suspended'
+            ? `Reactivate ${org.name}? Users will regain access.`
+            : `Suspend ${org.name}? Users may lose access until reactivated.`
+        }
+        confirmLabel={org.status === 'suspended' ? 'Reactivate' : 'Suspend'}
+        variant={org.status === 'suspended' ? 'primary' : 'danger'}
+      />
+    </>
+  );
+}

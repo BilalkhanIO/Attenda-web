@@ -44,7 +44,7 @@ function SetupAccountContent() {
     try {
       const { data: res } = await authApi.setupAccount(token, data.password);
       const { access_token, refresh_token } = res.data;
-      loginWithTokens(access_token, refresh_token);
+      await loginWithTokens(access_token, refresh_token);
       toast.success('Account set up! Welcome to Attenda.');
       router.push('/dashboard');
     } catch (err) {

@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import {
@@ -30,7 +31,15 @@ const MONTHS = Array.from({ length: 12 }, (_, i) => {
 });
 
 export default function PayrollPage() {
-  const { hasRole } = useAuth();
+  const router = useRouter();
+  const { hasFeature, hasPermission, capabilitiesLoading } = useAuth();
+  const canAccessPayroll = hasFeature('payroll') && hasPermission('payroll.view');
+
+  useEffect(() => {
+    if (!capabilitiesLoading && !canAccessPayroll) {
+      router.replace('/dashboard');
+    }
+  }, [capabilitiesLoading, canAccessPayroll, router]);
   const [payroll, setPayroll]       = useState<Payroll | null>(null);
   const [loading, setLoading]       = useState(true);
   const [selectedMonth, setMonth]   = useState(MONTHS[0].value);
@@ -176,10 +185,10 @@ export default function PayrollPage() {
               {MONTHS.map(m => <option key={m.value} value={m.value} className="bg-[var(--dark-950)]">{m.label.toUpperCase()}</option>)}
             </select>
             <div className="h-6 w-px bg-[var(--glass-border)]" />
-            {hasRole('hr_admin', 'super_admin') && (
+            {hasPermission('payroll.manage') && (
               <Button variant="ghost" size="sm" className="h-9 py-0 border-none bg-transparent hover:bg-[var(--glass-15)]" icon={<Download size={14} />} onClick={onExportCSV}>Export CSV</Button>
             )}
-            {hasRole('hr_admin', 'super_admin') && !isProcessed && payroll && (
+            {hasPermission('payroll.process') && !isProcessed && payroll && (
               <Button size="sm" className="h-9 py-0 px-4" icon={<Play size={14} />}
                 onClick={() => setProcess(true)}
                 disabled={hasErrors}>
@@ -277,7 +286,7 @@ export default function PayrollPage() {
                     <span className="text-[15px] font-black text-[var(--primary-600)]">{formatCurrency(n(rec.gross_pay))}</span>
                   </td>
                   <td className="py-4 px-6">
-                    {!isProcessed && hasRole('hr_admin', 'super_admin') ? (
+                    {!isProcessed && hasPermission('payroll.manage') ? (
                       <button
                         onClick={() => { form.reset(); setAdjustRow(rec); }}
                         className="w-10 h-10 flex items-center justify-center rounded-xl bg-[var(--glass-10)] text-[var(--on-glass-dim)] hover:text-white hover:bg-[var(--glass-15)] transition-all"
@@ -300,7 +309,7 @@ export default function PayrollPage() {
             icon={<Wallet size={24} />}
             title="No payroll generated for this period"
             description="Operational payroll is generated automatically at the end of each month."
-            action={hasRole('hr_admin', 'super_admin') ? <Button icon={<Play size={14} />} onClick={onGenerate}>GENERATE NOW</Button> : undefined}
+            action={hasPermission('payroll.manage') ? <Button icon={<Play size={14} />} onClick={onGenerate}>GENERATE NOW</Button> : undefined}
           />
         </Card>
       )}

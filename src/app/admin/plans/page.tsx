@@ -1,27 +1,12 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { adminApi } from '@/lib/api';
-import { useAuth } from '@/lib/auth';
 import { getApiError } from '@/lib/utils';
-import { Card, Button, Skeleton, Badge } from '@/components/ui';
-import { ArrowLeft, Plus, Pencil, Trash2, Check, X, Star, Tag } from 'lucide-react';
+import { PageHeader, Card, Button, Skeleton, Badge, ConfirmDialog } from '@/components/ui';
+import { Plus, Pencil, Trash2, Check, X, Star, Tag } from 'lucide-react';
+import { FEATURE_LABELS } from '@/lib/admin-shared';
 import type { PlanDefinition } from '@/types';
 import toast from 'react-hot-toast';
-
-const FEATURE_LABELS: Record<string, string> = {
-  attendance:          'Attendance',
-  leave_management:    'Leave Management',
-  shifts:              'Shifts',
-  payroll:             'Payroll',
-  whatsapp:            'WhatsApp',
-  performance_reviews: 'Performance Reviews',
-  remote_work:         'Remote Work',
-  api_access:          'API Access',
-  advanced_reports:    'Advanced Reports',
-  multi_location:      'Multi-Location',
-};
 
 const DEFAULT_FEATURES = Object.fromEntries(Object.keys(FEATURE_LABELS).map(k => [k, false]));
 
@@ -40,22 +25,15 @@ const EMPTY_PLAN: Omit<PlanDefinition, 'updated_at'> = {
 };
 
 export default function AdminPlansPage() {
-  const { user, isLoading: authLoading } = useAuth();
-  const router = useRouter();
-
   const [plans, setPlans]     = useState<PlanDefinition[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<PlanDefinition | null>(null);
   const [isNew, setIsNew]     = useState(false);
   const [saving, setSaving]   = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
   const [form, setForm] = useState<typeof EMPTY_PLAN>({ ...EMPTY_PLAN });
-
-  useEffect(() => {
-    if (!authLoading && user && user.role !== 'platform_admin') router.replace('/dashboard');
-    if (!authLoading && !user) router.replace('/login');
-  }, [user, authLoading, router]);
 
   const loadPlans = useCallback(async () => {
     setLoading(true);
@@ -70,8 +48,8 @@ export default function AdminPlansPage() {
   }, []);
 
   useEffect(() => {
-    if (!authLoading && user?.role === 'platform_admin') loadPlans();
-  }, [authLoading, user, loadPlans]);
+    loadPlans();
+  }, [loadPlans]);
 
   const openEdit = (plan: PlanDefinition) => {
     setIsNew(false);
@@ -118,13 +96,14 @@ export default function AdminPlansPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Delete this plan? This cannot be undone.')) return;
-    setDeleting(id);
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(deleteTarget);
     try {
-      await adminApi.deletePlan(id);
-      setPlans(prev => prev.filter(p => p.id !== id));
+      await adminApi.deletePlan(deleteTarget);
+      setPlans(prev => prev.filter(p => p.id !== deleteTarget));
       toast.success('Plan deleted');
+      setDeleteTarget(null);
     } catch (err) {
       toast.error(getApiError(err));
     } finally {
@@ -132,27 +111,13 @@ export default function AdminPlansPage() {
     }
   };
 
-  if (authLoading) {
-    return <div className="min-h-screen bg-[#040D12] flex items-center justify-center">
-      <div className="w-8 h-8 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin" />
-    </div>;
-  }
-
   return (
-    <div className="min-h-screen bg-[#040D12] text-slate-300">
-      <div className="max-w-6xl mx-auto px-6 py-8">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <Link href="/admin" className="p-2 rounded-lg hover:bg-white/5 transition-colors group">
-              <ArrowLeft size={18} className="text-slate-500 group-hover:text-emerald-400" />
-            </Link>
-            <div>
-              <h1 className="text-xl font-black text-slate-100">Plan Management</h1>
-              <p className="text-sm text-slate-500">Define pricing tiers and feature access</p>
-            </div>
-          </div>
-          <Button size="sm" icon={<Plus size={14} />} onClick={openNew}>New Plan</Button>
-        </div>
+    <>
+      <PageHeader
+        title="Plan management"
+        subtitle="Define pricing tiers and feature access"
+        actions={<Button size="sm" icon={<Plus size={14} />} onClick={openNew}>New plan</Button>}
+      />
 
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
@@ -180,7 +145,7 @@ export default function AdminPlansPage() {
                       <button onClick={() => openEdit(plan)} className="p-1.5 rounded-lg hover:bg-white/10 text-slate-500 hover:text-emerald-400 transition-colors">
                         <Pencil size={13} />
                       </button>
-                      <button onClick={() => handleDelete(plan.id)} disabled={deleting === plan.id}
+                      <button onClick={() => setDeleteTarget(plan.id)} disabled={deleting === plan.id}
                         className="p-1.5 rounded-lg hover:bg-rose-500/10 text-slate-500 hover:text-rose-400 transition-colors">
                         <Trash2 size={13} />
                       </button>
@@ -219,13 +184,22 @@ export default function AdminPlansPage() {
             ))}
           </div>
         )}
-      </div>
 
-      {/* ─── Edit / Create drawer ─── */}
+      <ConfirmDialog
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDelete}
+        loading={!!deleting}
+        title="Delete plan"
+        message="Delete this plan? Organisations on this plan are not migrated automatically."
+        confirmLabel="Delete"
+        variant="danger"
+      />
+
       {editing !== null && (
         <div className="fixed inset-0 z-50 flex">
           <div className="flex-1 bg-black/60 backdrop-blur-sm" onClick={() => setEditing(null)} />
-          <div className="w-full max-md bg-[#040D12] h-full shadow-2xl flex flex-col overflow-hidden slide-in-right border-l border-glass">
+          <div className="w-full max-w-lg bg-[#040D12] h-full shadow-2xl flex flex-col overflow-hidden slide-in-right border-l border-glass">
             <div className="flex items-center justify-between px-5 py-4 border-b border-glass bg-slate-800/20">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
@@ -317,6 +291,6 @@ export default function AdminPlansPage() {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

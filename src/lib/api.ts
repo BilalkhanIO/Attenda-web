@@ -18,6 +18,19 @@ apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   return config;
 });
 
+// Notify auth layer when access token is refreshed (re-fetch capabilities)
+type TokenRefreshListener = () => void;
+const tokenRefreshListeners = new Set<TokenRefreshListener>();
+
+export function onAccessTokenRefreshed(listener: TokenRefreshListener): () => void {
+  tokenRefreshListeners.add(listener);
+  return () => tokenRefreshListeners.delete(listener);
+}
+
+function notifyTokenRefreshed() {
+  tokenRefreshListeners.forEach(fn => fn());
+}
+
 // --- Response interceptor: handle 401 refresh ---
 apiClient.interceptors.response.use(
   (res: AxiosResponse) => res,
@@ -30,6 +43,7 @@ apiClient.interceptors.response.use(
         try {
           const { data } = await axios.post(`${BASE_URL}/auth/refresh`, { refresh_token: refresh });
           Cookies.set('access_token', data.data.access_token, { expires: 1 / 3 }); // 8 hours
+          notifyTokenRefreshed();
           if (original.headers) original.headers.Authorization = `Bearer ${data.data.access_token}`;
           return apiClient(original);
         } catch {
@@ -78,6 +92,8 @@ export const usersApi = {
     apiClient.get(`/users/${id}`),
   getMe: () =>
     apiClient.get('/users/me'),
+  getMyCapabilities: () =>
+    apiClient.get('/users/me/capabilities'),
   create: (data: Record<string, unknown>) =>
     apiClient.post('/users', data),
   update: (id: string, data: Record<string, unknown>) =>
@@ -88,6 +104,10 @@ export const usersApi = {
     apiClient.patch(`/users/${id}/deactivate`),
   importCSV: (formData: FormData) =>
     apiClient.post('/users/import', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  getPermissions: (id: string) =>
+    apiClient.get(`/users/${id}/permissions`),
+  updatePermissions: (id: string, grants: Array<{ permission_key: string; effect: 'allow' | 'deny' }>) =>
+    apiClient.put(`/users/${id}/permissions`, { grants }),
 };
 
 // ─── ATTENDANCE ───────────────────────────────────────
@@ -311,6 +331,8 @@ export const adminApi = {
     apiClient.get('/admin/orgs/pending'),
   getOrg: (id: string) =>
     apiClient.get(`/admin/orgs/${id}`),
+  updateOrg: (id: string, data: Record<string, unknown>) =>
+    apiClient.patch(`/admin/orgs/${id}`, data),
   updatePlan: (id: string, plan: string) =>
     apiClient.patch(`/admin/orgs/${id}/plan`, { plan }),
   suspendOrg: (id: string) =>
@@ -351,6 +373,17 @@ export const adminApi = {
     apiClient.delete(`/admin/blog/${id}`),
   togglePublish: (id: string) =>
     apiClient.patch(`/admin/blog/${id}/publish`),
+  // Platform Users
+  getPlatformUsers: (params?: { role?: string }) =>
+    apiClient.get('/admin/users', { params }),
+  getPlatformUser: (id: string) =>
+    apiClient.get(`/admin/users/${id}`),
+  createPlatformUser: (data: Record<string, unknown>) =>
+    apiClient.post('/admin/users', data),
+  updatePlatformUser: (id: string, data: Record<string, unknown>) =>
+    apiClient.put(`/admin/users/${id}`, data),
+  deletePlatformUser: (id: string) =>
+    apiClient.delete(`/admin/users/${id}`),
 };
 
 // ─── ORG SETTINGS ─────────────────────────────────────
@@ -375,6 +408,26 @@ export const orgApi = {
     apiClient.post('/org/whatsapp/test'),
   getDepartments: () =>
     apiClient.get('/org/departments'),
+};
+
+// ─── ORG RBAC ─────────────────────────────────────────
+export const orgRbacApi = {
+  getPermissionCatalog: () =>
+    apiClient.get('/org/permissions'),
+  getRoles: () =>
+    apiClient.get('/org/roles'),
+  createRole: (data: { name: string; slug: string; permission_keys?: string[] }) =>
+    apiClient.post('/org/roles', data),
+  updateRole: (id: string, data: { name: string }) =>
+    apiClient.put(`/org/roles/${id}`, data),
+  updateRolePermissions: (id: string, permission_keys: string[]) =>
+    apiClient.put(`/org/roles/${id}/permissions`, { permission_keys }),
+  deleteRole: (id: string) =>
+    apiClient.delete(`/org/roles/${id}`),
+  assignUserRole: (userId: string, org_role_id: string, sync_legacy_role = true) =>
+    apiClient.put(`/org/users/${userId}/role`, { org_role_id, sync_legacy_role }),
+  ensureSystemRoles: () =>
+    apiClient.post('/org/roles/ensure-system'),
 };
 
 export const notificationApi = {

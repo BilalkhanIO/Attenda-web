@@ -13,30 +13,62 @@ import {
 import { Avatar } from '@/components/ui';
 import AttendaLogo from '@/components/ui/AttendaLogo';
 import { notificationApi } from '@/lib/api';
-import type { InAppNotification } from '@/types';
+import type { AuthRole, InAppNotification } from '@/types';
 import TrialBanner from '@/components/TrialBanner';
 
 interface NavItem {
   label: string;
   href: string;
   icon: ReactNode;
-  roles: string[];
+  /** Legacy fallback while capabilities load */
+  roles?: string[];
+  permission?: string;
+  /** Extra permission keys that also grant access (e.g. manager team scope) */
+  permissionsAlt?: string[];
+  feature?: string;
   badge?: number;
 }
 
 const navItems: NavItem[] = [
-  { label: 'Dashboard',    href: '/dashboard',    icon: <LayoutDashboard size={18} />, roles: ['super_admin','hr_admin','manager','employee'] },
-  { label: 'Attendance',   href: '/attendance',   icon: <Clock size={18} />,           roles: ['super_admin','hr_admin','manager'] },
-  { label: 'Remote',       href: '/remote',       icon: <Home size={18} />,            roles: ['super_admin','hr_admin','manager'] },
-  { label: 'Leave',        href: '/leave',        icon: <Calendar size={18} />,        roles: ['super_admin','hr_admin','manager','employee'] },
-  { label: 'Shifts',       href: '/shifts',       icon: <CalendarClock size={18} />,   roles: ['super_admin','hr_admin','manager'] },
-  { label: 'Payroll',      href: '/payroll',      icon: <Wallet size={18} />,          roles: ['super_admin','hr_admin'] },
-  { label: 'Employees',    href: '/employees',    icon: <Users size={18} />,           roles: ['super_admin','hr_admin','manager'] },
-  { label: 'Performance',  href: '/performance',  icon: <TrendingUp size={18} />,      roles: ['super_admin','hr_admin','manager'] },
-  { label: 'Analytics',    href: '/analytics',    icon: <BarChart2 size={18} />,       roles: ['super_admin','hr_admin'] },
-  { label: 'WhatsApp',     href: '/settings/whatsapp', icon: <MessageSquare size={18} />, roles: ['super_admin'] },
-  { label: 'Settings',     href: '/settings',     icon: <Settings size={18} />,        roles: ['super_admin','hr_admin'] },
+  { label: 'Dashboard', href: '/dashboard', icon: <LayoutDashboard size={18} />, roles: ['super_admin', 'hr_admin', 'manager', 'employee'] },
+  { label: 'Attendance', href: '/attendance', icon: <Clock size={18} />, feature: 'attendance', permission: 'attendance.view_team', roles: ['super_admin', 'hr_admin', 'manager'] },
+  { label: 'Remote', href: '/remote', icon: <Home size={18} />, feature: 'remote_work', permission: 'remote.approve', roles: ['super_admin', 'hr_admin', 'manager'] },
+  { label: 'Leave', href: '/leave', icon: <Calendar size={18} />, feature: 'leave_management', roles: ['super_admin', 'hr_admin', 'manager', 'employee'] },
+  { label: 'Shifts', href: '/shifts', icon: <CalendarClock size={18} />, feature: 'shifts', permission: 'shifts.view', roles: ['super_admin', 'hr_admin', 'manager'] },
+  { label: 'Payroll', href: '/payroll', icon: <Wallet size={18} />, feature: 'payroll', permission: 'payroll.view', roles: ['super_admin', 'hr_admin'] },
+  { label: 'Employees', href: '/employees', icon: <Users size={18} />, permission: 'employees.view', permissionsAlt: ['employees.view_team'], roles: ['super_admin', 'hr_admin', 'manager'] },
+  { label: 'Performance', href: '/performance', icon: <TrendingUp size={18} />, feature: 'performance_reviews', permission: 'performance.view', roles: ['super_admin', 'hr_admin', 'manager'] },
+  { label: 'Analytics', href: '/analytics', icon: <BarChart2 size={18} />, permission: 'analytics.view', roles: ['super_admin', 'hr_admin'] },
+  { label: 'WhatsApp', href: '/settings/whatsapp', icon: <MessageSquare size={18} />, feature: 'whatsapp', permission: 'org.whatsapp.update', roles: ['super_admin'] },
+  { label: 'Settings', href: '/settings', icon: <Settings size={18} />, permission: 'org.settings.view', roles: ['super_admin', 'hr_admin'] },
 ];
+
+function navItemVisible(
+  item: NavItem,
+  userRole: string,
+  capabilitiesLoading: boolean,
+  hasFeature: (key: string) => boolean,
+  hasPermission: (key: string) => boolean,
+  hasRole: (...roles: AuthRole[]) => boolean,
+): boolean {
+  const roleFallback = item.roles?.length
+    ? item.roles.some(r => hasRole(r as AuthRole))
+    : true;
+
+  if (capabilitiesLoading && item.roles?.length) {
+    return item.roles.includes(userRole);
+  }
+
+  if (item.feature && !hasFeature(item.feature)) return false;
+
+  if (item.permission) {
+    const permKeys = [item.permission, ...(item.permissionsAlt ?? [])];
+    if (permKeys.some(k => hasPermission(k))) return true;
+    return roleFallback;
+  }
+
+  return roleFallback;
+}
 
 function timeAgo(isoStr: string): string {
   const diff = Date.now() - new Date(isoStr).getTime();
@@ -65,7 +97,7 @@ const NOTIF_ICONS: Record<string, string> = {
 };
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
-  const { user, logout } = useAuth();
+  const { user, logout, capabilities, capabilitiesLoading, hasFeature, hasPermission, hasRole } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -166,7 +198,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     return () => clearInterval(t);
   }, []);
 
-  const filteredNav = navItems.filter(item => user && item.roles.includes(user.role));
+  const filteredNav = navItems.filter(item =>
+    user && navItemVisible(item, user.role, capabilitiesLoading, hasFeature, hasPermission, hasRole),
+  );
+
+  const roleLabel = capabilities?.org_role?.name
+    ?? user?.role.replace(/_/g, ' ')
+    ?? '';
 
   const sidebarContent = (
     <div className="flex flex-col h-full">
@@ -212,7 +250,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             <Avatar name={user.name} size="sm" />
             <div className="flex-1 min-w-0">
               <p className="text-sm font-bold text-white truncate">{user.name}</p>
-              <p className="text-[10px] text-[var(--on-glass-muted)] uppercase tracking-widest font-black truncate">{user.role.replace('_', ' ')}</p>
+              <p className="text-[10px] text-[var(--on-glass-muted)] uppercase tracking-widest font-black truncate">{roleLabel}</p>
             </div>
             <button
               onClick={logout}

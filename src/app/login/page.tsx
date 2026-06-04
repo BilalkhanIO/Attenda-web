@@ -53,7 +53,7 @@ export default function LoginPage() {
         setPartialToken(payload.partial_token);
         setRequires2FA(true);
       } else {
-        loginWithTokens(payload.access_token, payload.refresh_token);
+        await loginWithTokens(payload.access_token, payload.refresh_token);
         router.push('/dashboard');
       }
     } catch (err) {
@@ -67,7 +67,7 @@ export default function LoginPage() {
     try {
       const res = await authApi.authenticate2FA(partialToken, twoFACode);
       const { access_token, refresh_token } = res.data.data;
-      loginWithTokens(access_token, refresh_token);
+      await loginWithTokens(access_token, refresh_token);
       router.push('/dashboard');
     } catch (err) {
       toast.error(getApiError(err));

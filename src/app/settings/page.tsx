@@ -7,7 +7,7 @@ import { getApiError } from '@/lib/utils';
 import {
   Wifi, Network, Plus, Trash2, Save, QrCode, RefreshCw, Download,
   Clock, ChevronRight, MessageSquare, Info, Search, ChevronDown, ChevronUp,
-  Monitor, Smartphone, Globe, CheckCircle2, AlertCircle,
+  Monitor, Smartphone, Globe, CheckCircle2, AlertCircle, Shield,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/lib/auth';
@@ -296,7 +296,7 @@ function AddNetworkModal({ isOpen, onClose, onAdd, existingIps, existingSsids }:
 
 // ─── Main Page ────────────────────────────────────────
 export default function SettingsPage() {
-  const { hasRole } = useAuth();
+  const { hasRole, hasPermission } = useAuth();
 
   const [ips, setIps]     = useState<string[]>([]);
   const [ssids, setSsids] = useState<string[]>([]);
@@ -641,6 +641,13 @@ export default function SettingsPage() {
       {/* ── More Settings ─────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {[
+          ...(hasPermission('org.roles.manage') || hasPermission('org.permissions.grant')
+            ? [{
+                href: '/settings/access',
+                icon: Shield, iconBg: 'bg-violet-500/10', iconColor: 'text-violet-400',
+                title: 'Access control', sub: 'Roles, permissions & overrides',
+              }]
+            : []),
           {
             href: '/settings/overtime',
             icon: Clock, iconBg: 'bg-amber-500/10', iconColor: 'text-amber-400',

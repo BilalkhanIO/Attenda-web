@@ -1,14 +1,11 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { adminApi } from '@/lib/api';
-import { useAuth } from '@/lib/auth';
 import { getApiError, timeAgo } from '@/lib/utils';
-import { Card, Button, Badge, Skeleton, Modal, Input } from '@/components/ui';
+import { PageHeader, Card, Button, Badge, Skeleton, Modal, Input, ConfirmDialog } from '@/components/ui';
 import {
-  ArrowLeft, Plus, Pencil, Trash2, Eye, EyeOff, RefreshCw,
-  FileText, Tag, Calendar, Globe, X,
+  Plus, Pencil, Trash2, Eye, EyeOff, RefreshCw,
+  FileText, Tag, Globe, X,
 } from 'lucide-react';
 import type { BlogPost } from '@/types';
 import toast from 'react-hot-toast';
@@ -30,9 +27,6 @@ const EMPTY_POST: Partial<BlogPost> = {
 };
 
 export default function AdminBlogPage() {
-  const { user, isLoading: authLoading } = useAuth();
-  const router = useRouter();
-
   const [posts, setPosts]       = useState<BlogPost[]>([]);
   const [total, setTotal]       = useState(0);
   const [page, setPage]         = useState(1);
@@ -43,11 +37,7 @@ export default function AdminBlogPage() {
   const [deleting, setDeleting] = useState<string | null>(null);
   const [toggling, setToggling] = useState<string | null>(null);
   const [tagsInput, setTagsInput] = useState('');
-
-  useEffect(() => {
-    if (!authLoading && user && user.role !== 'platform_admin') router.replace('/dashboard');
-    if (!authLoading && !user) router.replace('/login');
-  }, [user, authLoading, router]);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
   const loadPosts = useCallback(async (p = 1) => {
     setLoading(true);
@@ -64,8 +54,8 @@ export default function AdminBlogPage() {
   }, []);
 
   useEffect(() => {
-    if (!authLoading && user?.role === 'platform_admin') loadPosts();
-  }, [authLoading, user, loadPosts]);
+    loadPosts();
+  }, [loadPosts]);
 
   const openNew = () => {
     setIsNew(true);
@@ -106,14 +96,15 @@ export default function AdminBlogPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Delete this post? This cannot be undone.')) return;
-    setDeleting(id);
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(deleteTarget);
     try {
-      await adminApi.deleteBlogPost(id);
-      setPosts(prev => prev.filter(p => p.id !== id));
+      await adminApi.deleteBlogPost(deleteTarget);
+      setPosts(prev => prev.filter(p => p.id !== deleteTarget));
       setTotal(t => t - 1);
       toast.success('Post deleted');
+      setDeleteTarget(null);
     } catch (err) {
       toast.error(getApiError(err));
     } finally {
@@ -134,32 +125,20 @@ export default function AdminBlogPage() {
     }
   };
 
-  if (authLoading) return (
-    <div className="min-h-screen bg-[#040D12] flex items-center justify-center">
-      <div className="w-8 h-8 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin" />
-    </div>
-  );
-
   return (
-    <div className="min-h-screen bg-[#040D12] text-slate-300">
-      <div className="max-w-6xl mx-auto px-6 py-8">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <Link href="/admin" className="p-2 rounded-lg hover:bg-white/5 transition-colors group">
-              <ArrowLeft size={18} className="text-slate-500 group-hover:text-emerald-400" />
-            </Link>
-            <div>
-              <h1 className="text-xl font-black text-slate-100">Blog Management</h1>
-              <p className="text-sm text-slate-500">{total} posts total</p>
-            </div>
-          </div>
+    <>
+      <PageHeader
+        title="Blog management"
+        subtitle={`${total} posts total`}
+        actions={
           <div className="flex gap-2">
             <Button variant="outline" size="sm" icon={<RefreshCw size={14} />} onClick={() => loadPosts(page)} loading={loading}>Refresh</Button>
-            <Button size="sm" icon={<Plus size={14} />} onClick={openNew}>New Post</Button>
+            <Button size="sm" icon={<Plus size={14} />} onClick={openNew}>New post</Button>
           </div>
-        </div>
+        }
+      />
 
-        <Card className="glass-card overflow-hidden">
+      <Card className="glass-card overflow-hidden">
           {loading ? (
             <div className="p-5 space-y-3">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-16 rounded-lg" />)}</div>
           ) : posts.length === 0 ? (
@@ -211,7 +190,7 @@ export default function AdminBlogPage() {
                       className="p-1.5 rounded-lg hover:bg-white/10 text-slate-500 hover:text-slate-200 transition-colors" title="Edit">
                       <Pencil size={14} />
                     </button>
-                    <button onClick={() => handleDelete(post.id)} disabled={deleting === post.id}
+                    <button onClick={() => setDeleteTarget(post.id)} disabled={deleting === post.id}
                       className="p-1.5 rounded-lg hover:bg-rose-500/10 text-slate-500 hover:text-rose-400 transition-colors" title="Delete">
                       <Trash2 size={14} />
                     </button>
@@ -221,7 +200,17 @@ export default function AdminBlogPage() {
             </div>
           )}
         </Card>
-      </div>
+
+      <ConfirmDialog
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDelete}
+        loading={!!deleting}
+        title="Delete post"
+        message="Delete this blog post permanently?"
+        confirmLabel="Delete"
+        variant="danger"
+      />
 
       {/* ─── Edit / Create Drawer ─── */}
       {editing !== null && (
@@ -312,6 +301,6 @@ export default function AdminBlogPage() {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

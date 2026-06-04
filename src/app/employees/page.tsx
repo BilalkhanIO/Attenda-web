@@ -25,11 +25,12 @@ const userSchema = z.object({
   phone:       z.string().optional(),
   hourly_rate: z.string().optional(),
   manager_id:  z.string().optional(),
+  password:    z.string().min(8, 'Password must be at least 8 chars').optional().or(z.literal('')),
 });
 type UserForm = z.infer<typeof userSchema>;
 
 export default function EmployeesPage() {
-  const { hasRole } = useAuth();
+  const { hasRole, hasPermission } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [departments, setDepartments] = useState<string[]>([]);
   const [managers, setManagers] = useState<User[]>([]);
@@ -82,6 +83,7 @@ export default function EmployeesPage() {
       phone:       user.phone || '',
       hourly_rate: user.hourly_rate?.toString() || '',
       manager_id:  user.manager_id || '',
+      password:    '',
     });
     setEditUser(user);
     setActionMenuId(null);
@@ -130,41 +132,64 @@ export default function EmployeesPage() {
     return matchSearch && matchDept && matchRole;
   });
 
-  const UserFormFields = () => (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
-        <Input label="Full Name" required error={form.formState.errors.name?.message} {...form.register('name')} />
-        <Input label="Email" type="email" required error={form.formState.errors.email?.message} {...form.register('email')} />
+  const UserFormFields = ({ isEdit }: { isEdit?: boolean }) => {
+    const canUpdateCreds = hasPermission('employees.credentials.update') || hasRole('super_admin');
+    
+    return (
+      <div className="space-y-4">
+        <div className="grid grid-cols-2 gap-4">
+          <Input label="Full Name" required error={form.formState.errors.name?.message} {...form.register('name')} />
+          <Input 
+            label="Email" 
+            type="email" 
+            required 
+            disabled={isEdit && !canUpdateCreds}
+            error={form.formState.errors.email?.message} 
+            {...form.register('email')} 
+          />
+        </div>
+        
+        {isEdit && canUpdateCreds && (
+          <div className="grid grid-cols-1 gap-4">
+            <Input 
+              label="New Password (leave blank to keep current)" 
+              type="password" 
+              error={form.formState.errors.password?.message} 
+              {...form.register('password')} 
+            />
+          </div>
+        )}
+
+        <div className="grid grid-cols-2 gap-4">
+          <Select label="Role" required error={form.formState.errors.role?.message}
+            options={[
+              { value: 'employee', label: 'Employee' },
+              { value: 'manager',  label: 'Manager'  },
+              { value: 'hr_admin', label: 'HR Admin'  },
+            ]}
+            {...form.register('role')}
+          />
+          <Select label="Department" required error={form.formState.errors.department?.message}
+            placeholder="Select department"
+            options={departments.map(d => ({ value: d, label: d }))}
+            {...form.register('department')}
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <Input label="Job Title" required error={form.formState.errors.job_title?.message} {...form.register('job_title')} />
+          <Input label="Phone" type="tel" placeholder="+1 234 567 8900" {...form.register('phone')} />
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <Input label="Hourly Rate" type="number" placeholder="0.00" {...form.register('hourly_rate')} />
+          <Select label="Reporting Manager"
+            placeholder="Select manager"
+            options={managers.map(m => ({ value: m.id, label: m.name }))}
+            {...form.register('manager_id')}
+          />
+        </div>
       </div>
-      <div className="grid grid-cols-2 gap-4">
-        <Select label="Role" required error={form.formState.errors.role?.message}
-          options={[
-            { value: 'employee', label: 'Employee' },
-            { value: 'manager',  label: 'Manager'  },
-            { value: 'hr_admin', label: 'HR Admin'  },
-          ]}
-          {...form.register('role')}
-        />
-        <Select label="Department" required error={form.formState.errors.department?.message}
-          placeholder="Select department"
-          options={departments.map(d => ({ value: d, label: d }))}
-          {...form.register('department')}
-        />
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <Input label="Job Title" required error={form.formState.errors.job_title?.message} {...form.register('job_title')} />
-        <Input label="Phone" type="tel" placeholder="+1 234 567 8900" {...form.register('phone')} />
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <Input label="Hourly Rate" type="number" placeholder="0.00" {...form.register('hourly_rate')} />
-        <Select label="Reporting Manager"
-          placeholder="Select manager"
-          options={managers.map(m => ({ value: m.id, label: m.name }))}
-          {...form.register('manager_id')}
-        />
-      </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <DashboardLayout>
@@ -173,7 +198,7 @@ export default function EmployeesPage() {
         subtitle={`${users.filter(u => u.status === 'active').length} active employees`}
         actions={
           <>
-            {hasRole('hr_admin', 'super_admin') && <Button variant="outline" size="sm" icon={<Upload size={14} />} onClick={() => {
+            {hasPermission('employees.import') && <Button variant="outline" size="sm" icon={<Upload size={14} />} onClick={() => {
               const input = document.createElement('input');
               input.type = 'file';
               input.accept = '.csv';
@@ -190,7 +215,7 @@ export default function EmployeesPage() {
               };
               input.click();
             }}>Import CSV</Button>}
-            {hasRole('hr_admin', 'super_admin') && <Button size="sm" icon={<UserPlus size={14} />} onClick={openAdd}>Add Employee</Button>}
+            {hasPermission('employees.create') && <Button size="sm" icon={<UserPlus size={14} />} onClick={openAdd}>Add Employee</Button>}
           </>
         }
       />
@@ -282,13 +307,13 @@ export default function EmployeesPage() {
                           className="w-full text-left px-5 py-3 text-[13px] font-bold flex items-center gap-3 hover:bg-[var(--glass-10)] text-white transition-all">
                           <Eye size={16} /> View Profile
                         </button>
-                        {hasRole('hr_admin', 'super_admin') && (
+                        {hasPermission('employees.update') && (
                           <button onClick={() => openEdit(user)}
                             className="w-full text-left px-5 py-3 text-[13px] font-bold flex items-center gap-3 hover:bg-[var(--glass-10)] text-white transition-all">
                             <Edit size={16} /> Edit
                           </button>
                         )}
-                        {hasRole('hr_admin', 'super_admin') && user.status === 'active' && (
+                        {hasPermission('employees.deactivate') && user.status === 'active' && (
                           <button onClick={() => { setDeactivateUser(user); setActionMenuId(null); }}
                             className="w-full text-left px-5 py-3 text-[13px] font-bold flex items-center gap-3 hover:bg-[var(--danger-500)]/10 text-[var(--danger-500)] transition-all">
                             <UserX size={16} /> Deactivate
@@ -324,7 +349,7 @@ export default function EmployeesPage() {
           </>
         }
       >
-        <UserFormFields />
+        <UserFormFields isEdit={false} />
       </Modal>
 
       {/* Edit Employee Modal */}
@@ -339,7 +364,7 @@ export default function EmployeesPage() {
           </>
         }
       >
-        <UserFormFields />
+        <UserFormFields isEdit={true} />
       </Modal>
 
       {/* View Profile Modal */}

@@ -8,7 +8,15 @@ export interface ApiResponse<T> {
 
 // ─── Users ────────────────────────────────────────────
 export type Role = 'super_admin' | 'hr_admin' | 'manager' | 'employee';
+/** JWT / auth role (tenant roles + platform_admin) */
+export type AuthRole = Role | 'platform_admin';
 export type UserStatus = 'active' | 'inactive';
+
+export interface OrgRoleSummary {
+  id: string;
+  slug: string;
+  name: string;
+}
 
 export interface User {
   id: string;
@@ -261,6 +269,35 @@ export interface PlanFeatures {
   advanced_reports: boolean;
   multi_location: boolean;
   [key: string]: boolean;
+}
+
+/** GET /users/me/capabilities */
+export interface UserCapabilities {
+  permissions: string[];
+  features: PlanFeatures;
+  org_role: OrgRoleSummary | null;
+  platform_permissions: string[];
+}
+
+export interface PermissionDef {
+  key: string;
+  module: string;
+  description: string;
+}
+
+export interface OrgRoleRecord {
+  id: string;
+  name: string;
+  slug: string;
+  is_system: boolean;
+  permission_keys: string[];
+  user_count: number;
+  created_at: string;
+}
+
+export interface UserPermissionGrant {
+  permission_key: string;
+  effect: 'allow' | 'deny';
 }
 
 export interface PlanDefinition {

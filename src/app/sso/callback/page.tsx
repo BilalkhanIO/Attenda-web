@@ -25,12 +25,14 @@ function SSOCallbackContent() {
     }
 
     if (accessToken && refreshToken) {
-      try {
-        loginWithTokens(accessToken, refreshToken);
-        router.replace('/dashboard');
-      } catch {
-        setError('Failed to complete sign-in. Please try again.');
-      }
+      void (async () => {
+        try {
+          await loginWithTokens(accessToken, refreshToken);
+          router.replace('/dashboard');
+        } catch {
+          setError('Failed to complete sign-in. Please try again.');
+        }
+      })();
     } else {
       setError('Sign-in response was incomplete. Please try again.');
     }
