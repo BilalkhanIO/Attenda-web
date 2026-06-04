@@ -91,6 +91,8 @@ export interface LeaveRequest {
   working_days: number;
   is_half_day?: boolean;
   half_day_period?: 'morning' | 'afternoon';
+  leave_start_time?: string;
+  leave_end_time?: string;
   reason: string;
   status: LeaveStatus;
   approved_by?: string;

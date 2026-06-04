@@ -138,7 +138,7 @@ export const leaveApi = {
     apiClient.get('/leave/requests/team'),
   getAllRequests: (params?: { status?: string; department?: string }) =>
     apiClient.get('/leave/requests', { params }),
-  submit: (data: { leave_type: string; start_date: string; end_date: string; reason: string }) =>
+  submit: (data: { leave_type: string; start_date: string; end_date: string; reason: string; leave_start_time?: string; leave_end_time?: string }) =>
     apiClient.post('/leave/requests', data),
   cancel: (id: string) =>
     apiClient.delete(`/leave/requests/${id}`),

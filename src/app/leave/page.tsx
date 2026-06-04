@@ -29,7 +29,19 @@ const leaveSchema = z.object({
   leave_type: z.string().min(1, 'Leave type required'),
   start_date: z.string().min(1, 'Start date required'),
   end_date:   z.string().min(1, 'End date required'),
+  leave_start_time: z.string().optional(),
+  leave_end_time: z.string().optional(),
   reason:     z.string().min(5, 'Please provide a reason'),
+}).refine((data) => {
+  const hasStart = !!data.leave_start_time;
+  const hasEnd = !!data.leave_end_time;
+  if (!hasStart && !hasEnd) return true;
+  if (!hasStart || !hasEnd) return false;
+  if (data.start_date !== data.end_date) return false;
+  return data.leave_end_time! > data.leave_start_time!;
+}, {
+  message: 'Timed leave must be one day with an end time after start time',
+  path: ['leave_end_time'],
 });
 type LeaveForm = z.infer<typeof leaveSchema>;
 
@@ -194,6 +206,11 @@ export default function LeavePage() {
                 </td>
                 <td className="py-4 px-6">
                   <span className="text-sm font-black text-white">{req.working_days} DAY{req.working_days !== 1 ? 'S' : ''}</span>
+                  {req.leave_start_time && req.leave_end_time && (
+                    <p className="text-[10px] font-bold text-[var(--on-glass-dim)] uppercase tracking-widest font-mono mt-0.5">
+                      {req.leave_start_time} - {req.leave_end_time}
+                    </p>
+                  )}
                 </td>
                 <td className="py-4 px-6">
                   <p className="text-sm font-black text-white font-mono">{format(new Date(req.start_date), 'dd MMM')}</p>
@@ -257,6 +274,15 @@ export default function LeavePage() {
             <Input label="End Date" type="date" required
               error={leaveForm.formState.errors.end_date?.message}
               {...leaveForm.register('end_date')}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <Input label="Start Time (optional)" type="time"
+              {...leaveForm.register('leave_start_time')}
+            />
+            <Input label="End Time (optional)" type="time"
+              error={leaveForm.formState.errors.leave_end_time?.message}
+              {...leaveForm.register('leave_end_time')}
             />
           </div>
           <Textarea label="Reason" required placeholder="State the reason for leave..."

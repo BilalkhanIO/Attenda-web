@@ -678,20 +678,28 @@ export default function AttendancePage() {
               <Card className="p-6 border-[var(--warning-500)]/20 bg-[var(--warning-500)]/5">
                  <div className="flex items-center gap-3 mb-6">
                     <AlertTriangle size={18} className="text-[var(--warning-500)]" />
-                    <h3 className="text-sm font-black text-white uppercase tracking-widest">Late Arrival Notices</h3>
+                    <h3 className="text-sm font-black text-white uppercase tracking-widest">Attendance Exceptions</h3>
                     <span className="ml-auto w-6 h-6 rounded-lg bg-[var(--warning-500)]/20 flex items-center justify-center text-[10px] font-black text-[var(--warning-500)]">{teamNotices.length}</span>
                  </div>
                  <div className="space-y-3">
-                    {teamNotices.map(n => (
-                       <div key={n.id} className="flex items-center gap-4 p-4 rounded-2xl bg-[var(--dark-950)]/40 border border-[var(--glass-border)]">
-                          <Avatar name={n.user?.name || ''} size="sm" />
-                          <div className="flex-1 min-w-0">
-                             <p className="text-sm font-black text-white truncate">{n.user?.name}</p>
-                             <p className="text-[10px] font-bold text-[var(--warning-500)] uppercase tracking-widest">Expected @ {n.expected_time}</p>
-                          </div>
-                          <Button size="sm" variant="ghost" className="h-8 py-0" onClick={() => handleAcknowledgeNotice(n.id)}>ACKNOWLEDGE</Button>
-                       </div>
-                    ))}
+                    {teamNotices.map(n => {
+                       const isEarly = n.reason.startsWith('[Early Departure]');
+                       const cleanReason = isEarly ? n.reason.replace('[Early Departure]', '').trim() : n.reason;
+                       const nDate = (n as any).date ? format(new Date((n as any).date), 'MMM d') : 'Today';
+                       return (
+                         <div key={n.id} className="flex items-center gap-4 p-4 rounded-2xl bg-[var(--dark-950)]/40 border border-[var(--glass-border)]">
+                            <Avatar name={n.user?.name || ''} size="sm" />
+                            <div className="flex-1 min-w-0">
+                               <p className="text-sm font-black text-white truncate">{n.user?.name}</p>
+                               <p className="text-[10px] font-bold text-[var(--warning-500)] uppercase tracking-widest">
+                                 {nDate} &middot; {isEarly ? 'Departure' : 'Arrival'} @ {n.expected_time}
+                               </p>
+                               <p className="text-xs text-[var(--on-glass-muted)] truncate mt-1">{cleanReason}</p>
+                            </div>
+                            <Button size="sm" variant="ghost" className="h-8 py-0" onClick={() => handleAcknowledgeNotice(n.id)}>ACKNOWLEDGE</Button>
+                         </div>
+                       );
+                    })}
                  </div>
               </Card>
            )}
