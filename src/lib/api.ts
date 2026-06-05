@@ -130,8 +130,8 @@ export const attendanceApi = {
     apiClient.get('/org/qr-code'),
   regenerateQR: () =>
     apiClient.post('/org/qr-code/regenerate'),
-  startBreak: (break_type?: string) =>
-    apiClient.post('/attendance/break/start', { break_type }),
+  startBreak: (break_type?: string, shift_break_id?: string) =>
+    apiClient.post('/attendance/break/start', { break_type, shift_break_id }),
   endBreak: () =>
     apiClient.post('/attendance/break/end'),
   getBreakStatus: () =>
@@ -190,6 +190,8 @@ export const shiftsApi = {
     apiClient.post('/shifts/schedule/publish', { week_start: weekStart }),
   getAssignments: (params?: { week_start?: string; department?: string }) =>
     apiClient.get('/shifts/assignments', { params }),
+  getAssignmentDetail: (id: string) =>
+    apiClient.get(`/shifts/assignments/${id}/detail`),
   deleteAssignment: (id: string) =>
     apiClient.delete(`/shifts/assignments/${id}`),
   assignShift: (data: { user_id: string; shift_id: string; date: string }) =>
@@ -204,7 +206,7 @@ export const shiftsApi = {
     apiClient.post('/shifts/ai-schedule', { description, week_start: weekStart, department }),
   getBreaks: (shiftId: string) =>
     apiClient.get(`/shifts/${shiftId}/breaks`),
-  addBreak: (shiftId: string, data: { name: string; start_time: string; end_time: string; is_paid: boolean }) =>
+  addBreak: (shiftId: string, data: Record<string, unknown>) =>
     apiClient.post(`/shifts/${shiftId}/breaks`, data),
   updateBreak: (shiftId: string, breakId: string, data: Record<string, unknown>) =>
     apiClient.put(`/shifts/${shiftId}/breaks/${breakId}`, data),
@@ -297,6 +299,16 @@ export const analyticsApi = {
 
 // ─── OVERTIME ─────────────────────────────────────────
 export const overtimeApi = {
+  request: (data: { attendance_id: string; reason?: string }) =>
+    apiClient.post('/overtime/requests', data),
+  getRequests: (params?: { status?: string }) =>
+    apiClient.get('/overtime/requests', { params }),
+  getMyRequests: () =>
+    apiClient.get('/overtime/requests/me'),
+  approveRequest: (id: string) =>
+    apiClient.put(`/overtime/requests/${id}/approve`),
+  rejectRequest: (id: string, reason: string) =>
+    apiClient.put(`/overtime/requests/${id}/reject`, { reason }),
   getRules: () =>
     apiClient.get('/overtime/rules'),
   createRule: (data: { name: string; rule_type: string; threshold_hours: number; multiplier: number; priority?: number }) =>

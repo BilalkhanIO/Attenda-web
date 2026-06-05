@@ -35,6 +35,9 @@ const shiftSchema = z.object({
   early_checkout_tolerance_mins: z.number().min(0),
   auto_checkout:                 z.boolean(),
   auto_checkout_buffer_mins:     z.number().min(0),
+  overtime_enabled:              z.boolean(),
+  overtime_requires_approval:    z.boolean(),
+  extra_time_label:              z.string().min(1),
 });
 type ShiftForm = z.infer<typeof shiftSchema>;
 
@@ -42,20 +45,33 @@ type ShiftForm = z.infer<typeof shiftSchema>;
 interface ShiftBreak {
   id: string;
   name: string;
+  break_kind?: 'fixed' | 'flexible';
   break_minutes: number;
   is_paid: boolean;
   after_minutes: number;
   break_start_time?: string;
   break_end_time?: string;
+  allowed_count_per_shift?: number;
+  paid_within_limit?: boolean;
+  deduct_extra_time?: boolean;
+  applies_days?: number[];
+  exception_dates?: string[];
 }
 
 const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const SHIFT_COLORS = ['#00C896', '#00E5FF', '#8B5CF6', '#F59E0B', '#EF4444', '#10B981'];
+const defaultShiftForm: ShiftForm = {
+  active_days: [], color: '#00C896', name: '', start_time: '', end_time: '',
+  overtime_multiplier: 1.5, min_rest_hours: 11, late_tolerance_mins: 15,
+  early_checkout_tolerance_mins: 15, auto_checkout: true, auto_checkout_buffer_mins: 30,
+  overtime_enabled: false, overtime_requires_approval: true, extra_time_label: 'Extra office time',
+};
 
 function ShiftFormFields({ form }: { form: UseFormReturn<ShiftForm> }) {
   const selectedDays = form.watch('active_days') || [];
   const selectedColor = form.watch('color');
   const autoCheckout = form.watch('auto_checkout');
+  const overtimeEnabled = form.watch('overtime_enabled');
   return (
     <div className="space-y-6">
       <Input label="Shift Name" required placeholder="e.g. Morning Shift"
@@ -132,6 +148,41 @@ function ShiftFormFields({ form }: { form: UseFormReturn<ShiftForm> }) {
         <div className="p-4 rounded-2xl bg-[var(--glass-05)] border border-[var(--glass-border)]">
            <div className="flex items-center justify-between">
               <div>
+                 <p className="text-sm font-bold text-white">Overtime</p>
+                 <p className="text-[10px] text-[var(--on-glass-dim)] uppercase tracking-widest mt-1">Count time after shift end as overtime</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => form.setValue('overtime_enabled', !overtimeEnabled)}
+                className={cn(
+                  "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
+                  overtimeEnabled ? "bg-[var(--primary-600)]" : "bg-[var(--glass-20)]"
+                )}
+              >
+                <span className={cn("inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform", overtimeEnabled ? "translate-x-6" : "translate-x-1")} />
+              </button>
+           </div>
+           {overtimeEnabled ? (
+             <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between">
+                <span className="text-[11px] font-bold text-[var(--on-glass-muted)] uppercase tracking-widest">Requires Approval</span>
+                <button
+                  type="button"
+                  onClick={() => form.setValue('overtime_requires_approval', !form.watch('overtime_requires_approval'))}
+                  className={cn("relative inline-flex h-5 w-9 items-center rounded-full transition-colors", form.watch('overtime_requires_approval') ? "bg-[var(--primary-600)]" : "bg-[var(--glass-20)]")}
+                >
+                  <span className={cn("inline-block h-3 w-3 transform rounded-full bg-white shadow transition-transform", form.watch('overtime_requires_approval') ? "translate-x-5" : "translate-x-1")} />
+                </button>
+             </div>
+           ) : (
+             <div className="mt-4 pt-4 border-t border-white/5">
+                <Input label="Extra Time Label" {...form.register('extra_time_label')} />
+             </div>
+           )}
+        </div>
+
+        <div className="p-4 rounded-2xl bg-[var(--glass-05)] border border-[var(--glass-border)]">
+           <div className="flex items-center justify-between">
+              <div>
                  <p className="text-sm font-bold text-white">Auto Checkout</p>
                  <p className="text-[10px] text-[var(--on-glass-dim)] uppercase tracking-widest mt-1">Automatic shift completion</p>
               </div>
@@ -167,7 +218,18 @@ function BreaksPanel({ shift }: { shift: Shift }) {
   const [breaks, setBreaks] = useState<ShiftBreak[]>([]);
   const [loading, setLoading] = useState(false);
   const [adding, setAdding] = useState(false);
-  const [newBreak, setNewBreak] = useState({ name: '', start_time: '12:00', end_time: '13:00', is_paid: false });
+  const [newBreak, setNewBreak] = useState({
+    name: '',
+    break_kind: 'fixed' as 'fixed' | 'flexible',
+    start_time: '12:00',
+    end_time: '13:00',
+    duration_minutes: 15,
+    allowed_count_per_shift: 1,
+    is_paid: false,
+    paid_within_limit: true,
+    deduct_extra_time: true,
+    applies_days: [] as number[],
+  });
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -189,13 +251,13 @@ function BreaksPanel({ shift }: { shift: Shift }) {
 
   const handleAddBreak = async () => {
     if (!newBreak.name.trim()) { toast.error('Break name required'); return; }
-    if (newBreak.start_time >= newBreak.end_time) { toast.error('End time must be after start time'); return; }
+    if (newBreak.break_kind === 'fixed' && newBreak.start_time >= newBreak.end_time) { toast.error('End time must be after start time'); return; }
     setSaving(true);
     try {
-      await shiftsApi.addBreak(shift.id, { name: newBreak.name, start_time: newBreak.start_time, end_time: newBreak.end_time, is_paid: newBreak.is_paid });
+      await shiftsApi.addBreak(shift.id, newBreak);
       toast.success('Break added');
       setAdding(false);
-      setNewBreak({ name: '', start_time: '12:00', end_time: '13:00', is_paid: false });
+      setNewBreak({ name: '', break_kind: 'fixed', start_time: '12:00', end_time: '13:00', duration_minutes: 15, allowed_count_per_shift: 1, is_paid: false, paid_within_limit: true, deduct_extra_time: true, applies_days: [] });
       loadBreaks();
     } catch (err) {
       toast.error(getApiError(err));
@@ -247,12 +309,16 @@ function BreaksPanel({ shift }: { shift: Shift }) {
                     </div>
                     <div>
                        <p className="text-[13px] font-black text-white uppercase tracking-tight">{b.name}</p>
-                       <p className="text-[10px] font-bold text-[var(--on-glass-muted)] uppercase mt-0.5">{b.break_start_time} &ndash; {b.break_end_time}</p>
+                       <p className="text-[10px] font-bold text-[var(--on-glass-muted)] uppercase mt-0.5">
+                         {b.break_kind === 'flexible'
+                           ? `${b.break_minutes}m x ${b.allowed_count_per_shift ?? 1} per shift`
+                           : `${b.break_start_time} - ${b.break_end_time}`}
+                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
                     <Badge
-                      label={b.is_paid ? 'PAID' : 'UNPAID'}
+                      label={`${b.break_kind === 'flexible' ? 'FLEX' : 'FIXED'} · ${b.is_paid ? 'PAID' : 'UNPAID'}`}
                       color={b.is_paid ? 'var(--success-500)' : 'var(--on-glass-dim)'}
                       bg={b.is_paid ? '#10b981' : '#334155'}
                       size="sm"
@@ -281,9 +347,47 @@ function BreaksPanel({ shift }: { shift: Shift }) {
                     onChange={e => setNewBreak(b => ({ ...b, name: e.target.value }))}
                     placeholder="e.g. Lunch Protocol"
                   />
-                  <div className="grid grid-cols-2 gap-4">
-                    <Input label="Start" type="time" value={newBreak.start_time} onChange={e => setNewBreak(b => ({ ...b, start_time: e.target.value }))} />
-                    <Input label="End" type="time" value={newBreak.end_time} onChange={e => setNewBreak(b => ({ ...b, end_time: e.target.value }))} />
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setNewBreak(b => ({ ...b, break_kind: 'fixed' }))}
+                      className={cn("py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border", newBreak.break_kind === 'fixed' ? "bg-[var(--primary-600)] text-white border-transparent" : "bg-white/5 text-[var(--on-glass-muted)] border-white/10")}
+                    >
+                      Fixed Time
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setNewBreak(b => ({ ...b, break_kind: 'flexible' }))}
+                      className={cn("py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border", newBreak.break_kind === 'flexible' ? "bg-[var(--primary-600)] text-white border-transparent" : "bg-white/5 text-[var(--on-glass-muted)] border-white/10")}
+                    >
+                      Flexible
+                    </button>
+                  </div>
+                  {newBreak.break_kind === 'fixed' ? (
+                    <div className="grid grid-cols-2 gap-4">
+                      <Input label="Start" type="time" value={newBreak.start_time} onChange={e => setNewBreak(b => ({ ...b, start_time: e.target.value }))} />
+                      <Input label="End" type="time" value={newBreak.end_time} onChange={e => setNewBreak(b => ({ ...b, end_time: e.target.value }))} />
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-4">
+                      <Input label="Duration (mins)" type="number" value={newBreak.duration_minutes} onChange={e => setNewBreak(b => ({ ...b, duration_minutes: Number(e.target.value) }))} />
+                      <Input label="Allowed Count" type="number" value={newBreak.allowed_count_per_shift} onChange={e => setNewBreak(b => ({ ...b, allowed_count_per_shift: Number(e.target.value) }))} />
+                    </div>
+                  )}
+                  <div>
+                    <label className="text-[10px] font-black text-[var(--on-glass-muted)] uppercase tracking-widest block mb-2">Applies Days</label>
+                    <div className="flex gap-1.5 flex-wrap">
+                      {DAYS.map((d, i) => (
+                        <button
+                          key={d}
+                          type="button"
+                          onClick={() => setNewBreak(b => ({ ...b, applies_days: b.applies_days.includes(i) ? b.applies_days.filter(x => x !== i) : [...b.applies_days, i] }))}
+                          className={cn("w-8 h-8 rounded-lg text-[9px] font-black uppercase", newBreak.applies_days.includes(i) ? "bg-[var(--primary-600)] text-white" : "bg-white/5 text-[var(--on-glass-muted)]")}
+                        >
+                          {d[0]}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                   <div className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5">
                      <span className="text-[11px] font-bold text-[var(--on-glass-muted)] uppercase tracking-widest">Paid Break</span>
@@ -293,6 +397,16 @@ function BreaksPanel({ shift }: { shift: Shift }) {
                         className={cn("relative inline-flex h-5 w-9 items-center rounded-full transition-colors", newBreak.is_paid ? "bg-[var(--primary-600)]" : "bg-[var(--glass-20)]")}
                       >
                         <span className={cn("inline-block h-3 w-3 transform rounded-full bg-white shadow transition-transform", newBreak.is_paid ? "translate-x-5" : "translate-x-1")} />
+                      </button>
+                  </div>
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5">
+                     <span className="text-[11px] font-bold text-[var(--on-glass-muted)] uppercase tracking-widest">Extra Time Unpaid</span>
+                     <button
+                        type="button"
+                        onClick={() => setNewBreak(b => ({ ...b, deduct_extra_time: !b.deduct_extra_time }))}
+                        className={cn("relative inline-flex h-5 w-9 items-center rounded-full transition-colors", newBreak.deduct_extra_time ? "bg-[var(--primary-600)]" : "bg-[var(--glass-20)]")}
+                      >
+                        <span className={cn("inline-block h-3 w-3 transform rounded-full bg-white shadow transition-transform", newBreak.deduct_extra_time ? "translate-x-5" : "translate-x-1")} />
                       </button>
                   </div>
               </div>
@@ -352,11 +466,7 @@ export default function ShiftsPage() {
 
   const form = useForm<ShiftForm>({
     resolver: zodResolver(shiftSchema),
-    defaultValues: {
-      active_days: [], color: '#00C896', name: '', start_time: '', end_time: '',
-      overtime_multiplier: 1.5, min_rest_hours: 11, late_tolerance_mins: 15,
-      early_checkout_tolerance_mins: 15, auto_checkout: true, auto_checkout_buffer_mins: 30,
-    },
+    defaultValues: defaultShiftForm,
   });
 
   const fetchAll = useCallback(async () => {
@@ -504,7 +614,7 @@ export default function ShiftsPage() {
             )}
             {hasRole('manager', 'hr_admin', 'super_admin') && (
               <Button variant="outline" size="sm" icon={<Plus size={14} />}
-                onClick={() => { form.reset({ active_days: [], color: '#00C896' }); setAddShiftOpen(true); }}>
+                onClick={() => { form.reset(defaultShiftForm); setAddShiftOpen(true); }}>
                 New Template
               </Button>
             )}
@@ -647,7 +757,7 @@ export default function ShiftsPage() {
                 icon={<Clock size={24} />}
                 title="No shift templates"
                 description="Create your first shift template to start building schedules."
-                action={<Button onClick={() => { form.reset({ active_days: [], color: '#00C896' }); setAddShiftOpen(true); }}>Create Template</Button>}
+                action={<Button onClick={() => { form.reset(defaultShiftForm); setAddShiftOpen(true); }}>Create Template</Button>}
               />
             </div>
           ) : shifts.map(shift => (
@@ -666,7 +776,7 @@ export default function ShiftsPage() {
                 </div>
                 <div className="flex gap-2">
                   {hasRole('manager', 'hr_admin', 'super_admin') && (
-                    <button onClick={() => { form.reset({ name: shift.name, start_time: shift.start_time, end_time: shift.end_time, color: shift.color, active_days: shift.active_days ?? [], overtime_multiplier: shift.overtime_multiplier ?? 1.5, min_rest_hours: shift.min_rest_hours ?? 11, late_tolerance_mins: shift.late_tolerance_mins ?? 15, early_checkout_tolerance_mins: shift.early_checkout_tolerance_mins ?? 15, auto_checkout: shift.auto_checkout ?? true, auto_checkout_buffer_mins: shift.auto_checkout_buffer_mins ?? 30 }); setEditShift(shift); }}
+                    <button onClick={() => { form.reset({ name: shift.name, start_time: shift.start_time, end_time: shift.end_time, color: shift.color, active_days: shift.active_days ?? [], overtime_multiplier: shift.overtime_multiplier ?? 1.5, min_rest_hours: shift.min_rest_hours ?? 11, late_tolerance_mins: shift.late_tolerance_mins ?? 15, early_checkout_tolerance_mins: shift.early_checkout_tolerance_mins ?? 15, auto_checkout: shift.auto_checkout ?? true, auto_checkout_buffer_mins: shift.auto_checkout_buffer_mins ?? 30, overtime_enabled: shift.overtime_enabled ?? false, overtime_requires_approval: shift.overtime_requires_approval ?? true, extra_time_label: shift.extra_time_label ?? 'Extra office time' }); setEditShift(shift); }}
                       className="w-9 h-9 flex items-center justify-center rounded-xl bg-[var(--glass-10)] text-[var(--on-glass-dim)] hover:text-white hover:bg-[var(--glass-15)] transition-all">
                       <Edit2 size={16} />
                     </button>

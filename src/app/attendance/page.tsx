@@ -5,7 +5,7 @@ import {
   PageHeader, Card, Table, Avatar, Badge, Button, Modal, Input, Textarea,
   EmptyState
 } from '@/components/ui';
-import { attendanceApi, remoteApi } from '@/lib/api';
+import { attendanceApi, remoteApi, overtimeApi } from '@/lib/api';
 import { statusConfig, formatTime, formatDate, getApiError } from '@/lib/utils';
 import type { AttendanceRecord } from '@/types';
 import {
@@ -30,12 +30,21 @@ interface RemoteSession {
   attendance?: { date: string };
 }
 
+interface OvertimeRequest {
+  id: string;
+  requested_minutes: number;
+  reason?: string;
+  user?: { id: string; name: string; department?: string; avatar_url?: string };
+  attendance?: { date: string; shift?: { name: string } };
+}
+
 interface BreakStatus {
   on_break: boolean;
   break_type?: string;
   started_at?: string;
   total_break_minutes?: number;
   breaks?: { break_type: string; started_at: string; ended_at?: string; minutes?: number }[];
+  available_breaks?: { id: string; name: string; break_kind?: string; break_minutes: number; allowed_count_per_shift?: number; is_paid?: boolean }[];
 }
 
 // ─── helpers ──────────────────────────────────────────
@@ -112,6 +121,7 @@ export default function AttendancePage() {
   const [myRecord, setMyRecord]     = useState<AttendanceRecord | null>(null);
   const [checkInLoading, setCheckInLoading]   = useState(false);
   const [checkOutLoading, setCheckOutLoading] = useState(false);
+  const [overtimeLoading, setOvertimeLoading] = useState(false);
   const elapsed = useElapsed(myRecord?.check_in_at, myRecord?.check_out_at);
 
   // Org-wide table (managers / HR)
@@ -127,6 +137,8 @@ export default function AttendancePage() {
   // Remote requests (managers)
   const [remoteSessions, setRemoteSessions] = useState<RemoteSession[]>([]);
   const [remoteActionId, setRemoteActionId]  = useState<string | null>(null);
+  const [overtimeRequests, setOvertimeRequests] = useState<OvertimeRequest[]>([]);
+  const [overtimeActionId, setOvertimeActionId] = useState<string | null>(null);
 
   // Override modal
   const [overrideRecord, setOverrideRecord] = useState<AttendanceRecord | null>(null);
@@ -199,12 +211,21 @@ export default function AttendancePage() {
     } catch { /* ignore */ }
   }, [hasRole]);
 
+  const loadOvertimeRequests = useCallback(async () => {
+    if (!hasRole('manager', 'hr_admin', 'super_admin')) return;
+    try {
+      const { data } = await overtimeApi.getRequests({ status: 'pending' });
+      setOvertimeRequests(data.data || []);
+    } catch { /* ignore */ }
+  }, [hasRole]);
+
   useEffect(() => {
     loadMyRecord();
     loadBreakStatus();
     loadRemoteSessions();
+    loadOvertimeRequests();
     loadTeamNotices();
-  }, [loadMyRecord, loadBreakStatus, loadRemoteSessions, loadTeamNotices]);
+  }, [loadMyRecord, loadBreakStatus, loadRemoteSessions, loadOvertimeRequests, loadTeamNotices]);
 
   useEffect(() => { fetchOrgAttendance(); }, [fetchOrgAttendance]);
 
@@ -239,11 +260,27 @@ export default function AttendancePage() {
     }
   };
 
+  const handleRequestOvertime = async () => {
+    if (!myRecord) return;
+    setOvertimeLoading(true);
+    try {
+      await overtimeApi.request({
+        attendance_id: myRecord.id,
+        reason: `Worked ${myRecord.extra_office_minutes ?? 0}m after shift end`,
+      });
+      toast.success('Overtime request sent');
+    } catch (err) {
+      toast.error(getApiError(err));
+    } finally {
+      setOvertimeLoading(false);
+    }
+  };
+
   // ─── Break actions ─────────────────────────────────────
-  const handleStartBreak = async (breakType: string) => {
+  const handleStartBreak = async (breakType: string, shiftBreakId?: string) => {
     setBreakLoading(true);
     try {
-      await attendanceApi.startBreak(breakType);
+      await attendanceApi.startBreak(breakType, shiftBreakId);
       toast.success(`${breakType === 'meal' ? 'Meal' : 'Rest'} break started`);
       loadBreakStatus();
     } catch (err) {
@@ -292,6 +329,35 @@ export default function AttendancePage() {
       toast.error(getApiError(err));
     } finally {
       setRemoteActionId(null);
+    }
+  };
+
+  const handleApproveOvertime = async (id: string) => {
+    setOvertimeActionId(id);
+    try {
+      await overtimeApi.approveRequest(id);
+      toast.success('Overtime approved');
+      loadOvertimeRequests();
+      fetchOrgAttendance();
+    } catch (err) {
+      toast.error(getApiError(err));
+    } finally {
+      setOvertimeActionId(null);
+    }
+  };
+
+  const handleRejectOvertime = async (id: string) => {
+    const reason = window.prompt('Rejection reason');
+    if (!reason) return;
+    setOvertimeActionId(id);
+    try {
+      await overtimeApi.rejectRequest(id, reason);
+      toast.success('Overtime rejected');
+      loadOvertimeRequests();
+    } catch (err) {
+      toast.error(getApiError(err));
+    } finally {
+      setOvertimeActionId(null);
     }
   };
 
@@ -525,12 +591,19 @@ export default function AttendancePage() {
                   CHECK OUT
                 </Button>
               ) : isCheckedOut ? (
-                <div className="flex items-center gap-3 text-[var(--on-glass-muted)]">
-                   <div className="w-8 h-8 rounded-full bg-[var(--success-500)]/20 flex items-center justify-center">
-                      <Check size={16} className="text-[var(--success-500)]" />
-                   </div>
-                   <span className="text-sm font-bold uppercase tracking-widest">Attendance Complete</span>
-                </div>
+                <>
+                  <div className="flex items-center gap-3 text-[var(--on-glass-muted)]">
+                     <div className="w-8 h-8 rounded-full bg-[var(--success-500)]/20 flex items-center justify-center">
+                        <Check size={16} className="text-[var(--success-500)]" />
+                     </div>
+                     <span className="text-sm font-bold uppercase tracking-widest">Attendance Complete</span>
+                  </div>
+                  {(myRecord.extra_office_minutes ?? 0) > 0 && (
+                    <Button variant="outline" size="sm" icon={<Clock size={14} />} loading={overtimeLoading} onClick={handleRequestOvertime}>
+                      Request Overtime
+                    </Button>
+                  )}
+                </>
               ) : null}
 
               {/* Late notice pending indicator */}
@@ -586,22 +659,21 @@ export default function AttendancePage() {
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 gap-3">
-                      <button
-                        onClick={() => handleStartBreak('rest')}
-                        disabled={breakLoading}
-                        className="p-5 rounded-2xl bg-[var(--glass-10)] border border-[var(--glass-border)] hover:bg-[var(--glass-15)] hover:border-[var(--primary-600)]/30 transition-all group flex flex-col items-center gap-3"
-                      >
-                         <PlayCircle size={20} className="text-[var(--on-glass-dim)] group-hover:text-[var(--primary-600)] transition-colors" />
-                         <span className="text-[10px] font-black text-white uppercase tracking-widest">Rest Break</span>
-                      </button>
-                      <button
-                        onClick={() => handleStartBreak('meal')}
-                        disabled={breakLoading}
-                        className="p-5 rounded-2xl bg-[var(--glass-10)] border border-[var(--glass-border)] hover:bg-[var(--glass-15)] hover:border-[var(--secondary)]/30 transition-all group flex flex-col items-center gap-3"
-                      >
-                         <Coffee size={20} className="text-[var(--on-glass-dim)] group-hover:text-[var(--secondary)] transition-colors" />
-                         <span className="text-[10px] font-black text-white uppercase tracking-widest">Meal Break</span>
-                      </button>
+                      {(breakStatus?.available_breaks?.length ? breakStatus.available_breaks : [
+                        { id: '', type: 'rest', name: 'Rest Break', break_minutes: 15 },
+                        { id: '', type: 'meal', name: 'Meal Break', break_minutes: 60 },
+                      ]).map(b => (
+                        <button
+                          key={b.id || b.name}
+                          onClick={() => handleStartBreak((b as { type?: string }).type ?? b.name, b.id || undefined)}
+                          disabled={breakLoading}
+                          className="p-5 rounded-2xl bg-[var(--glass-10)] border border-[var(--glass-border)] hover:bg-[var(--glass-15)] hover:border-[var(--primary-600)]/30 transition-all group flex flex-col items-center gap-3"
+                        >
+                           <PlayCircle size={20} className="text-[var(--on-glass-dim)] group-hover:text-[var(--primary-600)] transition-colors" />
+                           <span className="text-[10px] font-black text-white uppercase tracking-widest">{b.name}</span>
+                           <span className="text-[9px] font-bold text-[var(--on-glass-muted)] uppercase">{b.break_minutes}m{b.allowed_count_per_shift ? ` x ${b.allowed_count_per_shift}` : ''}</span>
+                        </button>
+                      ))}
                     </div>
                   )}
                 </div>
@@ -648,8 +720,8 @@ export default function AttendancePage() {
       )}
 
       {/* ── Pending Requests (Managers) ──────────────────── */}
-      {hasRole('manager', 'hr_admin', 'super_admin') && (remoteSessions.length > 0 || teamNotices.length > 0) && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+      {hasRole('manager', 'hr_admin', 'super_admin') && (remoteSessions.length > 0 || teamNotices.length > 0 || overtimeRequests.length > 0) && (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-6">
            {remoteSessions.length > 0 && (
               <Card className="p-6 border-[var(--secondary)]/20 bg-[var(--secondary)]/5">
                  <div className="flex items-center gap-3 mb-6">
@@ -668,6 +740,33 @@ export default function AttendancePage() {
                           <div className="flex gap-2">
                              <button onClick={() => handleApproveRemote(s.id)} disabled={!!remoteActionId} className="w-8 h-8 rounded-lg bg-[var(--success-500)] text-white flex items-center justify-center hover:brightness-110 transition-all"><Check size={14} /></button>
                              <button onClick={() => handleRejectRemote(s.id)} disabled={!!remoteActionId} className="w-8 h-8 rounded-lg bg-[var(--danger-500)] text-white flex items-center justify-center hover:brightness-110 transition-all"><X size={14} /></button>
+                          </div>
+                       </div>
+                    ))}
+                 </div>
+              </Card>
+           )}
+           {overtimeRequests.length > 0 && (
+              <Card className="p-6 border-[var(--primary-600)]/20 bg-[var(--primary-600)]/5">
+                 <div className="flex items-center gap-3 mb-6">
+                    <Clock size={18} className="text-[var(--primary-600)]" />
+                    <h3 className="text-sm font-black text-white uppercase tracking-widest">Overtime Requests</h3>
+                    <span className="ml-auto w-6 h-6 rounded-lg bg-[var(--primary-600)]/20 flex items-center justify-center text-[10px] font-black text-[var(--primary-600)]">{overtimeRequests.length}</span>
+                 </div>
+                 <div className="space-y-3">
+                    {overtimeRequests.map(r => (
+                       <div key={r.id} className="flex items-center gap-4 p-4 rounded-2xl bg-[var(--dark-950)]/40 border border-[var(--glass-border)]">
+                          <Avatar name={r.user?.name || ''} imageUrl={r.user?.avatar_url} size="sm" />
+                          <div className="flex-1 min-w-0">
+                             <p className="text-sm font-black text-white truncate">{r.user?.name}</p>
+                             <p className="text-[10px] font-bold text-[var(--primary-600)] uppercase tracking-widest">
+                               {r.requested_minutes}m · {r.attendance?.shift?.name || 'Shift'}
+                             </p>
+                             {r.reason && <p className="text-xs text-[var(--on-glass-muted)] truncate mt-1">{r.reason}</p>}
+                          </div>
+                          <div className="flex gap-2">
+                             <button onClick={() => handleApproveOvertime(r.id)} disabled={!!overtimeActionId} className="w-8 h-8 rounded-lg bg-[var(--success-500)] text-white flex items-center justify-center hover:brightness-110 transition-all"><Check size={14} /></button>
+                             <button onClick={() => handleRejectOvertime(r.id)} disabled={!!overtimeActionId} className="w-8 h-8 rounded-lg bg-[var(--danger-500)] text-white flex items-center justify-center hover:brightness-110 transition-all"><X size={14} /></button>
                           </div>
                        </div>
                     ))}

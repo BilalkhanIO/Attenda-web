@@ -51,6 +51,8 @@ export interface AttendanceRecord {
   type?: CheckInType;          // legacy alias — prefer check_in_type
   hours_worked?: number;
   net_hours_worked?: number;
+  overtime_hours?: number;
+  extra_office_minutes?: number;
   shift_id?: string;
   scheduled_start?: string;
   scheduled_end?: string;
@@ -131,6 +133,27 @@ export interface Shift {
   early_checkout_tolerance_mins?: number;
   auto_checkout?: boolean;
   auto_checkout_buffer_mins?: number;
+  overtime_enabled?: boolean;
+  overtime_requires_approval?: boolean;
+  extra_time_label?: string;
+  breaks?: ShiftBreak[];
+}
+
+export interface ShiftBreak {
+  id: string;
+  name: string;
+  break_kind: 'fixed' | 'flexible';
+  break_minutes: number;
+  is_paid: boolean;
+  after_minutes: number;
+  break_start_time?: string;
+  break_end_time?: string;
+  allowed_count_per_shift: number;
+  paid_within_limit: boolean;
+  deduct_extra_time: boolean;
+  allow_extra_breaks: boolean;
+  applies_days: number[];
+  exception_dates: string[];
 }
 
 export interface ShiftAssignment {
