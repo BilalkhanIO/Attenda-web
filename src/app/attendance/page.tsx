@@ -44,7 +44,7 @@ interface BreakStatus {
   started_at?: string;
   total_break_minutes?: number;
   breaks?: { break_type: string; started_at: string; ended_at?: string; minutes?: number }[];
-  available_breaks?: { id: string; name: string; break_kind?: string; break_minutes: number; allowed_count_per_shift?: number; is_paid?: boolean }[];
+  available_breaks?: { id: string; name: string; break_kind?: string; break_minutes: number; allowed_count_per_shift?: number; is_paid?: boolean; type?: string }[];
 }
 
 // ─── helpers ──────────────────────────────────────────
@@ -660,9 +660,9 @@ export default function AttendancePage() {
                   ) : (
                     <div className="grid grid-cols-2 gap-3">
                       {(breakStatus?.available_breaks?.length ? breakStatus.available_breaks : [
-                        { id: '', type: 'rest', name: 'Rest Break', break_minutes: 15, allowed_count_per_shift: 0 },
-                        { id: '', type: 'meal', name: 'Meal Break', break_minutes: 60, allowed_count_per_shift: 0 },
-                      ] as { id: string; name: string; break_kind?: string; break_minutes: number; allowed_count_per_shift?: number; is_paid?: boolean; type?: string }[]).map(b => (
+                        { id: '', type: 'rest', name: 'Rest Break', break_minutes: 15 },
+                        { id: '', type: 'meal', name: 'Meal Break', break_minutes: 60 },
+                      ]).map(b => (
                         <button
                           key={b.id || b.name}
                           onClick={() => handleStartBreak(b.type ?? b.name, b.id || undefined)}
