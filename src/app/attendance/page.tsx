@@ -660,12 +660,12 @@ export default function AttendancePage() {
                   ) : (
                     <div className="grid grid-cols-2 gap-3">
                       {(breakStatus?.available_breaks?.length ? breakStatus.available_breaks : [
-                        { id: '', type: 'rest', name: 'Rest Break', break_minutes: 15 },
-                        { id: '', type: 'meal', name: 'Meal Break', break_minutes: 60 },
-                      ]).map(b => (
+                        { id: '', type: 'rest', name: 'Rest Break', break_minutes: 15, allowed_count_per_shift: 0 },
+                        { id: '', type: 'meal', name: 'Meal Break', break_minutes: 60, allowed_count_per_shift: 0 },
+                      ] as { id: string; name: string; break_kind?: string; break_minutes: number; allowed_count_per_shift?: number; is_paid?: boolean; type?: string }[]).map(b => (
                         <button
                           key={b.id || b.name}
-                          onClick={() => handleStartBreak((b as { type?: string }).type ?? b.name, b.id || undefined)}
+                          onClick={() => handleStartBreak(b.type ?? b.name, b.id || undefined)}
                           disabled={breakLoading}
                           className="p-5 rounded-2xl bg-[var(--glass-10)] border border-[var(--glass-border)] hover:bg-[var(--glass-15)] hover:border-[var(--primary-600)]/30 transition-all group flex flex-col items-center gap-3"
                         >
