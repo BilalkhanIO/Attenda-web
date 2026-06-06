@@ -276,14 +276,8 @@ export const analyticsApi = {
     apiClient.get('/analytics/attendance-trend', { params: { days: days || 30 } }),
   getLateArrivals: () =>
     apiClient.get('/analytics/late-arrivals'),
-  getRemoteVsOffice: () =>
-    apiClient.get('/analytics/remote-vs-office'),
-  getLeaveUtilisation: () =>
-    apiClient.get('/analytics/leave-utilisation'),
   getPayrollCost: () =>
     apiClient.get('/analytics/payroll-cost'),
-  getPerformanceScores: () =>
-    apiClient.get('/analytics/performance-scores'),
   generateReport: (type: string, data: Record<string, unknown>) =>
     apiClient.post(`/reports/${type}`, data),
   downloadReport: (id: string) =>

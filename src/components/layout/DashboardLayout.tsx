@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import {
   LayoutDashboard, Clock, Calendar, CalendarClock, Wallet, Users, TrendingUp,
   BarChart2, Settings, LogOut, Bell, Menu, MessageSquare,
-  ChevronDown, Home, Check, Trash2
+  ChevronDown, Home, Check, Trash2, AlarmClock
 } from 'lucide-react';
 import { Avatar } from '@/components/ui';
 import AttendaLogo from '@/components/ui/AttendaLogo';
@@ -35,6 +35,7 @@ const navItems: NavItem[] = [
   { label: 'Remote', href: '/remote', icon: <Home size={18} />, feature: 'remote_work', permission: 'remote.approve', roles: ['super_admin', 'hr_admin', 'manager'] },
   { label: 'Leave', href: '/leave', icon: <Calendar size={18} />, feature: 'leave_management', roles: ['super_admin', 'hr_admin', 'manager', 'employee'] },
   { label: 'Shifts', href: '/shifts', icon: <CalendarClock size={18} />, feature: 'shifts', permission: 'shifts.view', roles: ['super_admin', 'hr_admin', 'manager'] },
+  { label: 'Overtime', href: '/overtime', icon: <AlarmClock size={18} />, feature: 'attendance', permission: 'overtime.manage', roles: ['super_admin', 'hr_admin', 'manager', 'employee'] },
   { label: 'Payroll', href: '/payroll', icon: <Wallet size={18} />, feature: 'payroll', permission: 'payroll.view', roles: ['super_admin', 'hr_admin'] },
   { label: 'Employees', href: '/employees', icon: <Users size={18} />, permission: 'employees.view', permissionsAlt: ['employees.view_team'], roles: ['super_admin', 'hr_admin', 'manager'] },
   { label: 'Performance', href: '/performance', icon: <TrendingUp size={18} />, feature: 'performance_reviews', permission: 'performance.view', roles: ['super_admin', 'hr_admin', 'manager'] },

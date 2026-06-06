@@ -4,7 +4,7 @@ import { ReactNode, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  LayoutDashboard, Building2, Tag, FileText, Users, Settings,
+  LayoutDashboard, Building2, Tag, FileText, Users,
   LogOut, Menu, AlertCircle,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
@@ -25,7 +25,6 @@ const NAV: NavItem[] = [
   { label: 'Plans', href: '/admin/plans', icon: <Tag size={18} /> },
   { label: 'Blog', href: '/admin/blog', icon: <FileText size={18} /> },
   { label: 'Platform users', href: '/admin/users', icon: <Users size={18} /> },
-  { label: 'Audit log', href: '/admin/audit', icon: <Settings size={18} /> },
 ];
 
 function isActive(pathname: string, item: NavItem) {
@@ -43,7 +42,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
   const sidebar = (
     <div className="flex flex-col h-full">
-      <div className="h-16 flex items-center px-6 border-b border-[var(--glass-border)] flex-shrink-0">
+      <div className="h-16 flex items-center px-6 border-b border-(--glass-border) shrink-0">
         <AttendaLogo iconSize={32} variant="dark" />
       </div>
       <nav className="flex-1 px-3 py-6 space-y-1 overflow-y-auto custom-scrollbar">
@@ -57,8 +56,8 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
               className={cn(
                 'flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all',
                 active
-                  ? 'bg-[var(--primary-600)]/15 text-[var(--primary-600)] border border-[var(--primary-600)]/25'
-                  : 'text-[var(--on-glass-dim)] hover:bg-[var(--glass-05)] hover:text-white',
+                  ? 'bg-(--primary-600)/15 text-(--primary-600) border border-(--primary-600)/25'
+                  : 'text-(--on-glass-dim) hover:bg-(--glass-05) hover:text-white',
               )}
             >
               {item.icon}
@@ -67,11 +66,11 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           );
         })}
       </nav>
-      <div className="p-4 border-t border-[var(--glass-border)]">
+      <div className="p-4 border-t border-(--glass-border)">
         <button
           type="button"
           onClick={() => logout()}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold text-[var(--on-glass-dim)] hover:bg-rose-500/10 hover:text-rose-400 transition-all"
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold text-(--on-glass-dim) hover:bg-rose-500/10 hover:text-rose-400 transition-all"
         >
           <LogOut size={18} />
           Logout
@@ -82,22 +81,22 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen bg-[#040D12] text-slate-300 flex">
-      <aside className="hidden lg:flex w-64 flex-col flex-shrink-0 border-r border-[var(--glass-border)] bg-[#040D12]">
+      <aside className="hidden lg:flex w-64 flex-col shrink-0 border-r border-(--glass-border) bg-[#040D12]">
         {sidebar}
       </aside>
 
       {sidebarOpen && (
         <div className="lg:hidden fixed inset-0 z-50 flex">
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
-          <aside className="relative w-64 h-full flex flex-col bg-[var(--dark-800)] border-r border-[var(--glass-border)] z-50 slide-in-left">
+          <aside className="relative w-64 h-full flex flex-col bg-(--dark-800) border-r border-(--glass-border) z-50 slide-in-left">
             {sidebar}
           </aside>
         </div>
       )}
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="lg:hidden h-14 flex items-center justify-between px-4 border-b border-[var(--glass-border)]">
-          <button type="button" onClick={() => setSidebarOpen(true)} className="p-2 text-[var(--on-glass-dim)]">
+        <header className="lg:hidden h-14 flex items-center justify-between px-4 border-b border-(--glass-border)">
+          <button type="button" onClick={() => setSidebarOpen(true)} className="p-2 text-(--on-glass-dim)">
             <Menu size={20} />
           </button>
           <span className="text-sm font-black text-white">Platform Admin</span>
