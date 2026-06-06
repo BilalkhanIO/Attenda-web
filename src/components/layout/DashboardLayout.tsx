@@ -15,33 +15,49 @@ import AttendaLogo from '@/components/ui/AttendaLogo';
 import { notificationApi } from '@/lib/api';
 import type { AuthRole, InAppNotification } from '@/types';
 import TrialBanner from '@/components/TrialBanner';
+import AIChatWidget from '@/components/AIChatWidget';
 
 interface NavItem {
   label: string;
   href: string;
   icon: ReactNode;
-  /** Legacy fallback while capabilities load */
   roles?: string[];
   permission?: string;
-  /** Extra permission keys that also grant access (e.g. manager team scope) */
   permissionsAlt?: string[];
   feature?: string;
   badge?: number;
+  section?: string;
+  sub?: boolean;
 }
 
 const navItems: NavItem[] = [
-  { label: 'Dashboard', href: '/dashboard', icon: <LayoutDashboard size={18} />, roles: ['super_admin', 'hr_admin', 'manager', 'employee'] },
-  { label: 'Attendance', href: '/attendance', icon: <Clock size={18} />, feature: 'attendance', permission: 'attendance.view_team', roles: ['super_admin', 'hr_admin', 'manager'] },
-  { label: 'Remote', href: '/remote', icon: <Home size={18} />, feature: 'remote_work', permission: 'remote.approve', roles: ['super_admin', 'hr_admin', 'manager'] },
-  { label: 'Leave', href: '/leave', icon: <Calendar size={18} />, feature: 'leave_management', roles: ['super_admin', 'hr_admin', 'manager', 'employee'] },
-  { label: 'Shifts', href: '/shifts', icon: <CalendarClock size={18} />, feature: 'shifts', permission: 'shifts.view', roles: ['super_admin', 'hr_admin', 'manager'] },
-  { label: 'Overtime', href: '/overtime', icon: <AlarmClock size={18} />, feature: 'attendance', permission: 'overtime.manage', roles: ['super_admin', 'hr_admin', 'manager', 'employee'] },
-  { label: 'Payroll', href: '/payroll', icon: <Wallet size={18} />, feature: 'payroll', permission: 'payroll.view', roles: ['super_admin', 'hr_admin'] },
-  { label: 'Employees', href: '/employees', icon: <Users size={18} />, permission: 'employees.view', permissionsAlt: ['employees.view_team'], roles: ['super_admin', 'hr_admin', 'manager'] },
-  { label: 'Performance', href: '/performance', icon: <TrendingUp size={18} />, feature: 'performance_reviews', permission: 'performance.view', roles: ['super_admin', 'hr_admin', 'manager'] },
-  { label: 'Analytics', href: '/analytics', icon: <BarChart2 size={18} />, permission: 'analytics.view', roles: ['super_admin', 'hr_admin'] },
-  { label: 'WhatsApp', href: '/settings/whatsapp', icon: <MessageSquare size={18} />, feature: 'whatsapp', permission: 'org.whatsapp.update', roles: ['super_admin'] },
-  { label: 'Settings', href: '/settings', icon: <Settings size={18} />, permission: 'org.settings.view', roles: ['super_admin', 'hr_admin'] },
+  { label: 'Dashboard',   href: '/dashboard',           icon: <LayoutDashboard size={15} />, roles: ['super_admin', 'hr_admin', 'manager', 'employee'] },
+
+  { section: 'Workforce',
+    label: 'Attendance',  href: '/attendance',           icon: <Clock size={15} />,        feature: 'attendance',         permission: 'attendance.view_team', roles: ['super_admin', 'hr_admin', 'manager'] },
+  { label: 'Remote',      href: '/remote',               icon: <Home size={15} />,         feature: 'remote_work',        permission: 'remote.approve',       roles: ['super_admin', 'hr_admin', 'manager'] },
+  { label: 'Leave',       href: '/leave',                icon: <Calendar size={15} />,     feature: 'leave_management',                                       roles: ['super_admin', 'hr_admin', 'manager', 'employee'] },
+  { label: 'Overtime',    href: '/overtime',             icon: <AlarmClock size={15} />,   feature: 'attendance',                                             roles: ['super_admin', 'hr_admin', 'manager', 'employee'] },
+
+  { section: 'Scheduling',
+    label: 'Shifts',      href: '/shifts',               icon: <CalendarClock size={15} />, feature: 'shifts',            permission: 'shifts.view',          roles: ['super_admin', 'hr_admin', 'manager'] },
+  { label: 'Templates',   href: '/shifts/templates',     icon: <CalendarClock size={13} />, feature: 'shifts',            permission: 'shifts.view',          roles: ['super_admin', 'hr_admin', 'manager'], sub: true },
+  { label: 'Swaps',       href: '/shifts/swaps',         icon: <CalendarClock size={13} />, feature: 'shifts',            permission: 'shifts.view',          roles: ['super_admin', 'hr_admin', 'manager'], sub: true },
+
+  { section: 'HR',
+    label: 'Payroll',     href: '/payroll',              icon: <Wallet size={15} />,        feature: 'payroll',           permission: 'payroll.view',         roles: ['super_admin', 'hr_admin'] },
+  { label: 'Employees',   href: '/employees',            icon: <Users size={15} />,                                       permission: 'employees.view',       permissionsAlt: ['employees.view_team'], roles: ['super_admin', 'hr_admin', 'manager'] },
+  { label: 'Performance', href: '/performance',          icon: <TrendingUp size={15} />,    feature: 'performance_reviews', permission: 'performance.view',   roles: ['super_admin', 'hr_admin', 'manager'] },
+  { label: 'Goals',       href: '/performance/goals',    icon: <TrendingUp size={13} />,    feature: 'performance_reviews', permission: 'performance.view',   roles: ['super_admin', 'hr_admin', 'manager'], sub: true },
+
+  { section: 'Insights',
+    label: 'Analytics',   href: '/analytics',            icon: <BarChart2 size={15} />,                                   permission: 'analytics.view',       roles: ['super_admin', 'hr_admin'] },
+  { label: 'Reports',     href: '/analytics/reports',    icon: <BarChart2 size={13} />,                                   permission: 'analytics.view',       roles: ['super_admin', 'hr_admin'], sub: true },
+  { label: 'AI Chat',     href: '/analytics/ai',         icon: <BarChart2 size={13} />,                                   permission: 'analytics.view',       roles: ['super_admin', 'hr_admin'], sub: true },
+
+  { section: 'Admin',
+    label: 'WhatsApp',    href: '/settings/whatsapp',    icon: <MessageSquare size={15} />, feature: 'whatsapp',          permission: 'org.whatsapp.update',  roles: ['super_admin'] },
+  { label: 'Settings',    href: '/settings',             icon: <Settings size={15} />,                                    permission: 'org.settings.view',    roles: ['super_admin', 'hr_admin'] },
 ];
 
 function navItemVisible(
@@ -210,55 +226,60 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const sidebarContent = (
     <div className="flex flex-col h-full">
       {/* Logo */}
-      <div className="h-16 flex items-center px-6 border-b border-white/10 flex-shrink-0">
-        <AttendaLogo iconSize={32} variant="dark" />
+      <div className="h-11 flex items-center px-4 border-b border-white/10 shrink-0">
+        <AttendaLogo iconSize={24} variant="dark" />
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto custom-scrollbar">
+      <nav className="flex-1 px-2 py-3 overflow-y-auto custom-scrollbar space-y-0.5">
         {filteredNav.map((item) => {
-          const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+          const isActive = item.sub
+            ? pathname === item.href
+            : pathname === item.href || pathname.startsWith(item.href + '/');
           return (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={() => setSidebarOpen(false)}
-              className={cn(
-                'group flex items-center gap-3.5 px-4 py-3 rounded-2xl text-sm font-bold transition-all duration-200',
-                isActive
-                  ? 'bg-[var(--primary-600)] text-white shadow-lg shadow-[var(--primary-600)]/20'
-                  : 'text-[var(--on-glass-muted)] hover:bg-[var(--glass-10)] hover:text-white'
+            <div key={item.href}>
+              {item.section && (
+                <p className="px-3 pt-3 pb-1 text-[10px] font-bold uppercase tracking-widest text-[var(--on-glass-dim)] select-none">
+                  {item.section}
+                </p>
               )}
-            >
-              <span className={cn('transition-colors', isActive ? 'text-white' : 'text-[var(--on-glass-dim)] group-hover:text-white')}>
-                {item.icon}
-              </span>
-              {item.label}
-              {item.badge != null && (
-                <span className="ml-auto bg-[var(--accent)] text-white text-[10px] font-black rounded-full px-2 py-0.5 min-w-[20px] text-center shadow-sm">
-                  {item.badge}
+              <Link
+                href={item.href}
+                onClick={() => setSidebarOpen(false)}
+                className={cn(
+                  'group flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[13px] font-medium transition-colors',
+                  item.sub && 'ml-3 text-[12px]',
+                  isActive
+                    ? 'bg-[var(--primary-600)] text-white'
+                    : 'text-[var(--on-glass-muted)] hover:bg-[var(--glass-10)] hover:text-white'
+                )}
+              >
+                <span className={cn('shrink-0', isActive ? 'text-white' : 'text-[var(--on-glass-dim)] group-hover:text-white')}>
+                  {item.icon}
                 </span>
-              )}
-            </Link>
+                {item.label}
+                {item.badge != null && (
+                  <span className="ml-auto bg-[var(--accent)] text-white text-[10px] font-bold rounded-full px-1.5 py-0.5 min-w-[18px] text-center">
+                    {item.badge}
+                  </span>
+                )}
+              </Link>
+            </div>
           );
         })}
       </nav>
 
-      {/* User profile at bottom */}
+      {/* User at bottom */}
       {user && (
-        <div className="p-4 border-t border-[var(--glass-border)] bg-[var(--glass-05)] flex-shrink-0">
-          <div className="flex items-center gap-3 px-3 py-2.5 rounded-2xl hover:bg-[var(--glass-10)] transition-colors group cursor-pointer">
+        <div className="p-3 border-t border-[var(--glass-border)] shrink-0">
+          <div className="flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-[var(--glass-10)] transition-colors">
             <Avatar name={user.name} size="sm" />
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-white truncate">{user.name}</p>
-              <p className="text-[10px] text-[var(--on-glass-muted)] uppercase tracking-widest font-black truncate">{roleLabel}</p>
+              <p className="text-[13px] font-semibold text-white truncate">{user.name}</p>
+              <p className="text-[10px] text-[var(--on-glass-muted)] uppercase tracking-wider truncate">{roleLabel}</p>
             </div>
-            <button
-              onClick={logout}
-              className="text-[var(--on-glass-dim)] hover:text-[var(--danger-500)] transition-colors p-1"
-              title="Logout"
-            >
-              <LogOut size={16} />
+            <button onClick={logout} className="text-[var(--on-glass-dim)] hover:text-[var(--danger-500)] transition-colors p-1 shrink-0" title="Logout">
+              <LogOut size={14} />
             </button>
           </div>
         </div>
@@ -269,7 +290,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex h-screen overflow-hidden bg-[var(--dark-950)]">
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex w-64 flex-col flex-shrink-0 bg-[var(--dark-800)] border-r border-[var(--glass-border)]">
+      <aside className="hidden lg:flex w-48 flex-col shrink-0 bg-[var(--dark-800)] border-r border-[var(--glass-border)]">
         {sidebarContent}
       </aside>
 
@@ -277,7 +298,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       {sidebarOpen && (
         <div className="lg:hidden fixed inset-0 z-40 flex">
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
-          <aside className="relative w-64 bg-[var(--dark-800)] border-r border-[var(--glass-border)] flex flex-col z-50 slide-in-left">
+          <aside className="relative w-48 bg-[var(--dark-800)] border-r border-[var(--glass-border)] flex flex-col z-50 slide-in-left">
             {sidebarContent}
           </aside>
         </div>
@@ -289,7 +310,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         <div className="absolute inset-0 pointer-events-none opacity-20" style={{ background: 'radial-gradient(circle at 10% 20%, var(--primary-600) 0%, transparent 40%), radial-gradient(circle at 90% 80%, var(--secondary) 0%, transparent 40%)' }} />
 
         {/* Top Header */}
-        <header className="h-16 bg-[var(--dark-950)]/50 backdrop-blur-md border-b border-[var(--glass-border)] flex items-center justify-between px-6 flex-shrink-0 z-10">
+        <header className="h-11 bg-[var(--dark-950)]/50 backdrop-blur-md border-b border-[var(--glass-border)] flex items-center justify-between px-4 shrink-0 z-10">
           <div className="flex items-center gap-4">
             <button
               className="lg:hidden text-[var(--on-glass-sub)] hover:text-white transition-colors"
@@ -446,11 +467,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         {/* Page content */}
         <main className="flex-1 overflow-y-auto flex flex-col custom-scrollbar z-10">
           <TrialBanner />
-          <div className="flex-1 p-6 page-fade-in" key={pathname}>
+          <div className="flex-1 p-4 page-fade-in" key={pathname}>
             {children}
           </div>
         </main>
       </div>
+      <AIChatWidget />
     </div>
   );
 }

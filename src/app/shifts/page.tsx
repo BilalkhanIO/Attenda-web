@@ -8,11 +8,11 @@ import {
 } from '@/components/ui';
 import { shiftsApi, usersApi } from '@/lib/api';
 import { getApiError } from '@/lib/utils';
-import type { Shift, ShiftAssignment, SwapRequest } from '@/types';
+import type { Shift, ShiftAssignment } from '@/types';
 
 interface UserOption { id: string; name: string; }
 import {
-  Plus, Calendar, ChevronLeft, ChevronRight, Send,
+  Plus, ChevronLeft, ChevronRight, Send,
   Check, X, Clock, Edit2, Trash2, Sparkles, ChevronDown, ChevronUp, Coffee, AlertTriangle
 } from 'lucide-react';
 import { useForm, UseFormReturn } from 'react-hook-form';
@@ -556,10 +556,8 @@ export default function ShiftsPage() {
   const { hasRole } = useAuth();
   const [shifts, setShifts]         = useState<Shift[]>([]);
   const [assignments, setAssignments] = useState<ShiftAssignment[]>([]);
-  const [swapRequests, setSwapRequests] = useState<SwapRequest[]>([]);
   const [loading, setLoading]         = useState(true);
   const [weekStart, setWeekStart]     = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
-  const [activeTab, setActiveTab]     = useState<'schedule' | 'templates' | 'swaps'>('schedule');
 
   // Modals
   const [addShiftOpen, setAddShiftOpen]     = useState(false);
@@ -568,10 +566,6 @@ export default function ShiftsPage() {
   const [deleting, setDeleting]             = useState(false);
   const [publishConfirm, setPublishConfirm] = useState(false);
   const [publishing, setPublishing]         = useState(false);
-  const [approveSwap, setApproveSwap]       = useState<SwapRequest | null>(null);
-  const [rejectSwap, setRejectSwap]         = useState<SwapRequest | null>(null);
-  const [rejectReason, setRejectReason]     = useState('');
-  const [actionLoading, setActionLoading]   = useState(false);
 
   // AI Scheduling
   const [aiOpen, setAiOpen]               = useState(false);
@@ -599,15 +593,13 @@ export default function ShiftsPage() {
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [tRes, aRes, sRes, uRes] = await Promise.all([
+      const [tRes, aRes, uRes] = await Promise.all([
         shiftsApi.getTemplates(),
         shiftsApi.getAssignments({ week_start: format(weekStart, 'yyyy-MM-dd') }),
-        shiftsApi.getSwapRequests(),
         usersApi.getAll({ status: 'active', limit: 200 }),
       ]);
       setShifts(tRes.data.data || []);
       setAssignments(aRes.data.data || []);
-      setSwapRequests(sRes.data.data || []);
       setUsers((uRes.data.data || []).map((u: { id: string; name: string }) => ({ id: u.id, name: u.name })));
     } catch (err) {
       toast.error(getApiError(err));
@@ -732,41 +724,6 @@ export default function ShiftsPage() {
     }
   };
 
-  const onApproveSwap = async () => {
-    if (!approveSwap) return;
-    setActionLoading(true);
-    try {
-      await shiftsApi.approveSwap(approveSwap.id);
-      toast.success('Shift swap approved');
-      setApproveSwap(null);
-      fetchAll();
-    } catch (err) {
-      toast.error(getApiError(err));
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const onRejectSwap = async () => {
-    if (!rejectSwap || !rejectReason.trim()) {
-      toast.error('Please enter a rejection reason');
-      return;
-    }
-    setActionLoading(true);
-    try {
-      await shiftsApi.rejectSwap(rejectSwap.id, rejectReason);
-      toast.success('Shift swap rejected');
-      setRejectSwap(null);
-      setRejectReason('');
-      fetchAll();
-    } catch (err) {
-      toast.error(getApiError(err));
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const pendingSwaps = swapRequests.filter(s => s.status === 'pending');
 
   return (
     <DashboardLayout>
@@ -795,29 +752,8 @@ export default function ShiftsPage() {
         }
       />
 
-      {/* Tabs */}
-      <div className="flex items-center gap-1 px-5 pt-4 pb-0 mb-6 border-b border-[var(--glass-border)] overflow-x-auto bg-[var(--glass-05)] rounded-t-3xl">
-        {(['schedule', 'templates', 'swaps'] as const).map(tab => (
-          <button key={tab} onClick={() => setActiveTab(tab)}
-            className={cn(
-              "px-6 py-4 text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap border-b-2",
-              activeTab === tab
-                ? "text-[var(--primary-600)] border-[var(--primary-600)]"
-                : "text-[var(--on-glass-dim)] border-transparent hover:text-white"
-            )}
-          >
-            {tab === 'swaps' ? 'Swaps' : tab.charAt(0).toUpperCase() + tab.slice(1)}
-            {tab === 'swaps' && pendingSwaps.length > 0 && (
-              <span className="ml-2 bg-[var(--danger-500)] text-white text-[9px] font-black rounded-full px-2 py-0.5 shadow-lg shadow-[var(--danger-500)]/30 animate-pulse">
-                {pendingSwaps.length}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
-
-      {/* ── SCHEDULE TAB ────────────────────────────── */}
-      {activeTab === 'schedule' && (
+      {/* ── SCHEDULE ──────────────────────────────── */}
+      {(
         <Card className="overflow-hidden">
           {/* Week navigator */}
           <div className="flex items-center justify-between px-6 py-5 bg-[var(--glass-05)] border-b border-[var(--glass-border)]">
@@ -926,137 +862,6 @@ export default function ShiftsPage() {
         </Card>
       )}
 
-      {/* ── TEMPLATES TAB ───────────────────────────── */}
-      {activeTab === 'templates' && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {loading ? (
-            Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="h-44 bg-[var(--glass-10)] rounded-[2.5rem] border border-[var(--glass-border)] animate-pulse" />
-            ))
-          ) : shifts.length === 0 ? (
-            <div className="col-span-3">
-              <EmptyState
-                icon={<Clock size={24} />}
-                title="No shift templates"
-                description="Create your first shift template to start building schedules."
-                action={<Button onClick={() => { form.reset(defaultShiftForm); setAddShiftOpen(true); }}>Create Template</Button>}
-              />
-            </div>
-          ) : shifts.map(shift => (
-            <Card key={shift.id} className="p-6 relative overflow-hidden group hover:bg-[var(--glass-15)] transition-all">
-              <div className="absolute top-0 right-0 w-24 h-24 blur-[40px] opacity-10 rounded-full" style={{ backgroundColor: shift.color }} />
-
-              <div className="flex items-start justify-between mb-6 relative z-10">
-                <div className="flex items-center gap-4">
-                  <div className="w-1 h-12 rounded-full shadow-lg" style={{ backgroundColor: shift.color }} />
-                  <div>
-                    <h3 className="text-lg font-black text-white uppercase tracking-tight">{shift.name}</h3>
-                    <p className="text-xs font-bold text-[var(--on-glass-muted)] font-mono mt-1">
-                      {shift.start_time} &mdash; {shift.end_time}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  {hasRole('manager', 'hr_admin', 'super_admin') && (
-                    <button onClick={() => { form.reset({ name: shift.name, start_time: shift.start_time, end_time: shift.end_time, color: shift.color, active_days: shift.active_days ?? [], overtime_multiplier: shift.overtime_multiplier ?? 1.5, min_rest_hours: shift.min_rest_hours ?? 11, late_tolerance_mins: shift.late_tolerance_mins ?? 15, early_checkout_tolerance_mins: shift.early_checkout_tolerance_mins ?? 15, auto_checkout: shift.auto_checkout ?? true, auto_checkout_buffer_mins: shift.auto_checkout_buffer_mins ?? 30, overtime_enabled: shift.overtime_enabled ?? false, overtime_requires_approval: shift.overtime_requires_approval ?? true, extra_time_label: shift.extra_time_label ?? 'Extra office time' }); setEditShift(shift); }}
-                      className="w-9 h-9 flex items-center justify-center rounded-xl bg-[var(--glass-10)] text-[var(--on-glass-dim)] hover:text-white hover:bg-[var(--glass-15)] transition-all">
-                      <Edit2 size={16} />
-                    </button>
-                  )}
-                  {hasRole('manager', 'hr_admin', 'super_admin') && (
-                    <button onClick={() => setDeleteShift(shift)}
-                      className="w-9 h-9 flex items-center justify-center rounded-xl bg-[var(--glass-10)] text-[var(--on-glass-dim)] hover:text-[var(--danger-500)] hover:bg-[var(--danger-500)]/10 transition-all">
-                      <Trash2 size={16} />
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between relative z-10">
-                <div className="flex gap-1.5">
-                  {DAYS.map((d, i) => {
-                    const isActive = shift.active_days?.includes(i);
-                    return (
-                      <div key={d} className={cn(
-                        "w-8 h-8 rounded-xl flex items-center justify-center text-[10px] font-black uppercase transition-all border",
-                        isActive
-                          ? "text-white border-white/20"
-                          : "bg-[var(--glass-05)] text-[var(--on-glass-dim)] border-transparent"
-                      )} style={isActive ? { backgroundColor: shift.color } : {}}>
-                        {d[0]}
-                      </div>
-                    );
-                  })}
-                </div>
-                {(shift.breaks?.length ?? 0) > 0 && (
-                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[var(--glass-10)] border border-[var(--glass-border)]">
-                    <Coffee size={11} className="text-[var(--on-glass-dim)]" />
-                    <span className="text-[10px] font-black text-[var(--on-glass-muted)] uppercase tracking-widest">{shift.breaks!.length} break{shift.breaks!.length !== 1 ? 's' : ''}</span>
-                  </div>
-                )}
-              </div>
-            </Card>
-          ))}
-        </div>
-      )}
-
-      {/* ── SWAPS TAB ───────────────────────────────── */}
-      {activeTab === 'swaps' && (
-        <Card className="overflow-hidden">
-          <Table
-            headers={['Requester', 'Current Assignment', 'Recipient', 'Target Assignment', 'Status', 'Actions']}
-            loading={loading}
-            emptyState={
-              <div className="py-24 text-center">
-                 <Calendar size={32} className="mx-auto text-[var(--on-glass-dim)] mb-4" />
-                 <p className="text-[11px] font-black text-[var(--on-glass-dim)] uppercase tracking-[0.3em]">No swap requests found</p>
-              </div>
-            }
-          >
-            {swapRequests.map(req => (
-              <tr key={req.id} className="hover:bg-[var(--glass-05)] transition-all">
-                <td className="py-4 px-6">
-                  <div className="flex items-center gap-4">
-                    <Avatar name={req.requester.name} size="md" />
-                    <span className="text-sm font-black text-white truncate">{req.requester.name}</span>
-                  </div>
-                </td>
-                <td className="py-4 px-6">
-                  <p className="text-sm font-bold text-white uppercase tracking-tight">{req.requester_assignment?.shift?.name}</p>
-                  <p className="text-[10px] font-bold text-[var(--on-glass-dim)] uppercase tracking-widest mt-0.5">{req.requester_assignment?.date}</p>
-                </td>
-                <td className="py-4 px-6">
-                  <div className="flex items-center gap-4">
-                    <Avatar name={req.target.name} size="md" />
-                    <span className="text-sm font-black text-white truncate">{req.target.name}</span>
-                  </div>
-                </td>
-                <td className="py-4 px-6">
-                  <p className="text-sm font-bold text-white uppercase tracking-tight">{req.target_assignment?.shift?.name}</p>
-                  <p className="text-[10px] font-bold text-[var(--on-glass-dim)] uppercase tracking-widest mt-0.5">{req.target_assignment?.date}</p>
-                </td>
-                <td className="py-4 px-6">
-                  <Badge
-                    label={req.status.toUpperCase()}
-                    color={req.status === 'pending' ? 'var(--warning-500)' : req.status === 'approved' ? 'var(--success-500)' : 'var(--danger-500)'}
-                    bg={req.status === 'pending' ? '#f59e0b' : req.status === 'approved' ? '#10b981' : '#ef4444'}
-                    size="sm"
-                  />
-                </td>
-                <td className="py-4 px-6">
-                  {req.status === 'pending' && hasRole('manager', 'hr_admin', 'super_admin') && (
-                    <div className="flex gap-2">
-                       <button onClick={() => setApproveSwap(req)} className="w-8 h-8 rounded-lg bg-[var(--success-500)] text-white flex items-center justify-center hover:brightness-110 shadow-lg shadow-[var(--success-500)]/20"><Check size={14} /></button>
-                       <button onClick={() => { setRejectSwap(req); setRejectReason(''); }} className="w-8 h-8 rounded-lg bg-[var(--danger-500)] text-white flex items-center justify-center hover:brightness-110 shadow-lg shadow-[var(--danger-500)]/20"><X size={14} /></button>
-                    </div>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </Table>
-        </Card>
-      )}
-
       {/* ─── Modals ─────────────────────────────────── */}
 
       {/* Add / Edit template */}
@@ -1115,43 +920,6 @@ export default function ShiftsPage() {
         variant="primary"
       />
 
-      {/* Approve swap */}
-      <ConfirmDialog
-        isOpen={!!approveSwap}
-        onClose={() => setApproveSwap(null)}
-        onConfirm={onApproveSwap}
-        loading={actionLoading}
-        title="Approve Shift Swap"
-        message={`Approve swap between ${approveSwap?.requester.name} and ${approveSwap?.target.name}? Both employees' schedules will be updated.`}
-        confirmLabel="Approve Swap"
-        variant="primary"
-      />
-
-      {/* Reject swap modal */}
-      <Modal
-        isOpen={!!rejectSwap}
-        onClose={() => setRejectSwap(null)}
-        title="Reject Shift Swap"
-        size="sm"
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setRejectSwap(null)}>Cancel</Button>
-            <Button variant="danger" onClick={onRejectSwap} loading={actionLoading}>Reject Swap</Button>
-          </>
-        }
-      >
-        <p className="text-sm font-medium text-[var(--on-glass-muted)] mb-6 leading-relaxed">
-          Rejecting swap between <strong>{rejectSwap?.requester.name}</strong> and <strong>{rejectSwap?.target.name}</strong>. A reason is required.
-        </p>
-        <Textarea
-          label="Rejection Reason"
-          required
-          rows={3}
-          value={rejectReason}
-          onChange={e => setRejectReason(e.target.value)}
-          placeholder="Explain why this swap cannot be approved..."
-        />
-      </Modal>
       {/* Assign shift modal */}
       <Modal
         isOpen={!!assignModal}

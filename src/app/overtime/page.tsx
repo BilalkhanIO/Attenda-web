@@ -5,7 +5,7 @@ import { PageHeader, Card, Button, Badge, EmptyState, Modal, Input } from '@/com
 import { overtimeApi } from '@/lib/api';
 import { getApiError } from '@/lib/utils';
 import { useAuth } from '@/lib/auth';
-import { Clock, CheckCircle, XCircle, AlertCircle, TrendingUp } from 'lucide-react';
+import { Clock, CheckCircle, XCircle, TrendingUp } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface OvertimeRequest {
@@ -54,7 +54,6 @@ export default function OvertimePage() {
   const [teamRequests, setTeamRequests] = useState<OvertimeRequest[]>([]);
   const [summary, setSummary] = useState<SummaryRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<'my' | 'team' | 'summary'>(canManage ? 'team' : 'my');
 
   const [rejectModal, setRejectModal] = useState<{ open: boolean; id: string }>({ open: false, id: '' });
   const [rejectReason, setRejectReason] = useState('');
@@ -111,14 +110,6 @@ export default function OvertimePage() {
       setActionLoading(null);
     }
   };
-
-  const pendingCount = teamRequests.filter(r => r.status === 'pending').length;
-
-  const tabs = [
-    ...(canManage ? [{ key: 'team' as const, label: `Approvals${pendingCount ? ` (${pendingCount})` : ''}` }] : []),
-    { key: 'my' as const, label: 'My Requests' },
-    ...(canManage ? [{ key: 'summary' as const, label: 'Weekly Summary' }] : []),
-  ];
 
   const RequestCard = ({ req, showUser }: { req: OvertimeRequest; showUser: boolean }) => {
     const badge = STATUS_BADGE[req.status] || STATUS_BADGE.pending;
@@ -180,23 +171,6 @@ export default function OvertimePage() {
         subtitle="Track and manage overtime requests"
       />
 
-      {/* Tabs */}
-      <div className="flex gap-1 mb-6 border-b border-white/5">
-        {tabs.map(t => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            className={`px-4 py-2.5 text-sm font-semibold transition-colors border-b-2 -mb-px ${
-              tab === t.key
-                ? 'border-emerald-500 text-emerald-400'
-                : 'border-transparent text-slate-500 hover:text-slate-300'
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-
       {loading ? (
         <div className="space-y-3">
           {Array.from({ length: 4 }).map((_, i) => (
@@ -204,9 +178,9 @@ export default function OvertimePage() {
           ))}
         </div>
       ) : (
-        <>
-          {/* Team approvals tab */}
-          {tab === 'team' && canManage && (
+        <div className="space-y-4">
+          {/* Team approvals */}
+          {canManage && (
             <Card className="glass-card">
               <div className="p-5 border-b border-white/5">
                 <h2 className="text-sm font-bold text-slate-200">Pending Approvals</h2>
@@ -227,30 +201,28 @@ export default function OvertimePage() {
             </Card>
           )}
 
-          {/* My requests tab */}
-          {tab === 'my' && (
-            <Card className="glass-card">
-              <div className="p-5 border-b border-white/5">
-                <h2 className="text-sm font-bold text-slate-200">My Overtime Requests</h2>
-              </div>
-              <div className="p-4 space-y-2">
-                {myRequests.length === 0 ? (
-                  <EmptyState
-                    icon={<Clock size={22} />}
-                    title="No overtime requests"
-                    description="Your overtime requests will appear here once submitted from your attendance records."
-                  />
-                ) : (
-                  myRequests.map(req => (
-                    <RequestCard key={req.id} req={req} showUser={false} />
-                  ))
-                )}
-              </div>
-            </Card>
-          )}
+          {/* My requests */}
+          <Card className="glass-card">
+            <div className="p-5 border-b border-white/5">
+              <h2 className="text-sm font-bold text-slate-200">My Overtime Requests</h2>
+            </div>
+            <div className="p-4 space-y-2">
+              {myRequests.length === 0 ? (
+                <EmptyState
+                  icon={<Clock size={22} />}
+                  title="No overtime requests"
+                  description="Your overtime requests will appear here once submitted from your attendance records."
+                />
+              ) : (
+                myRequests.map(req => (
+                  <RequestCard key={req.id} req={req} showUser={false} />
+                ))
+              )}
+            </div>
+          </Card>
 
-          {/* Weekly summary tab */}
-          {tab === 'summary' && canManage && (
+          {/* Weekly summary */}
+          {canManage && (
             <Card className="glass-card overflow-hidden">
               <div className="p-5 border-b border-white/5">
                 <h2 className="text-sm font-bold text-slate-200">Weekly Overtime Summary</h2>
@@ -300,7 +272,7 @@ export default function OvertimePage() {
               )}
             </Card>
           )}
-        </>
+        </div>
       )}
 
       {/* Reject modal */}

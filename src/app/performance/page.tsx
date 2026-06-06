@@ -4,31 +4,18 @@ import { useAuth } from '@/lib/auth';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import {
   PageHeader, Card, Table, Avatar, Badge, Button, Modal, ConfirmDialog,
-  Input, Textarea, Select, EmptyState, Skeleton
+  Input, Textarea, Skeleton
 } from '@/components/ui';
 import { performanceApi } from '@/lib/api';
 import { getApiError } from '@/lib/utils';
 import type { PerformanceReview } from '@/types';
-import { TrendingUp, Star, Target, CheckCircle, Clock, Plus, Sparkles } from 'lucide-react';
+import { TrendingUp, Star, Target, CheckCircle, Clock, Sparkles } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
 import { format, subMonths } from 'date-fns';
 import { cn } from '@/lib/utils';
-
-// ─── Types ──────────────────────────────────────────────
-interface Goal {
-  id: string;
-  user_id: string;
-  review_id: string;
-  title: string;
-  description?: string;
-  weight: number;
-  target_date?: string;
-  completion: number;
-  user?: { id: string; name: string; department?: string };
-}
 
 // ─── Schemas ────────────────────────────────────────────
 const reviewSchema = z.object({
@@ -38,13 +25,6 @@ const reviewSchema = z.object({
 });
 type ReviewForm = z.infer<typeof reviewSchema>;
 
-const goalSchema = z.object({
-  title:       z.string().min(2, 'Title required'),
-  description: z.string().optional(),
-  weight:      z.number().min(1).max(100),
-  target_date: z.string().optional(),
-});
-type GoalForm = z.infer<typeof goalSchema>;
 
 // ─── Helpers ────────────────────────────────────────────
 const MONTHS = Array.from({ length: 12 }, (_, i) => {
@@ -93,7 +73,6 @@ function CompletionBar({ value }: { value: number }) {
 // ─── Main Component ──────────────────────────────────────
 export default function PerformancePage() {
   const { hasRole } = useAuth();
-  const [activeTab, setActiveTab] = useState<'reviews' | 'goals'>('reviews');
 
   // Reviews state
   const [reviews, setReviews]   = useState<PerformanceReview[]>([]);
@@ -110,25 +89,9 @@ export default function PerformancePage() {
   const [insights, setInsights]         = useState<string>('');
   const [insightsLoading, setInsightsLoading] = useState(false);
 
-  // Goals state
-  const [goals, setGoals]         = useState<Goal[]>([]);
-  const [goalLoading, setGoalLoading] = useState(false);
-  const [goalUserFilter, setGoalUserFilter] = useState('');
-  const [addGoalOpen, setAddGoalOpen] = useState(false);
-  const [editGoal, setEditGoal]   = useState<Goal | null>(null);
-  const [goalReviewId, setGoalReviewId] = useState('');
-  const [goalUserId, setGoalUserId]     = useState('');
-  const [savingGoal, setSavingGoal]     = useState(false);
-  const [completionEdit, setCompletionEdit] = useState<Goal | null>(null);
-  const [newCompletion, setNewCompletion]   = useState(0);
-
   const reviewForm = useForm<ReviewForm>({
     resolver: zodResolver(reviewSchema),
     defaultValues: { score: 0, comments: '', month: MONTHS[0].value },
-  });
-  const goalForm = useForm<GoalForm>({
-    resolver: zodResolver(goalSchema),
-    defaultValues: { title: '', description: '', weight: 25, target_date: '' },
   });
 
   // ── Fetch reviews ────────────────────────────────────
@@ -146,22 +109,6 @@ export default function PerformancePage() {
 
   useEffect(() => { fetchReviews(); }, [fetchReviews]);
 
-  // ── Fetch goals ──────────────────────────────────────
-  const fetchGoals = useCallback(async () => {
-    setGoalLoading(true);
-    try {
-      const { data } = await performanceApi.getGoals(goalUserFilter || undefined);
-      setGoals(data.data || []);
-    } catch (err) {
-      toast.error(getApiError(err));
-    } finally {
-      setGoalLoading(false);
-    }
-  }, [goalUserFilter]);
-
-  useEffect(() => {
-    if (activeTab === 'goals') fetchGoals();
-  }, [activeTab, fetchGoals]);
 
   // ── Review logic ─────────────────────────────────────
   const openReview = (review: PerformanceReview) => {
@@ -209,54 +156,6 @@ export default function PerformancePage() {
     }
   };
 
-  const openAddGoal = (review: PerformanceReview) => {
-    setGoalUserId(review.user_id);
-    setGoalReviewId(review.id);
-    goalForm.reset({ title: '', description: '', weight: 25, target_date: '' });
-    setAddGoalOpen(true);
-  };
-
-  const onSaveGoal = async (data: GoalForm) => {
-    setSavingGoal(true);
-    try {
-      if (editGoal) {
-        await performanceApi.updateGoal(editGoal.id, data);
-        toast.success('Goal updated');
-        setEditGoal(null);
-      } else {
-        await performanceApi.createGoal({ user_id: goalUserId, review_id: goalReviewId, ...data });
-        toast.success('Goal created');
-        setAddGoalOpen(false);
-      }
-      goalForm.reset();
-      fetchGoals();
-    } catch (err) {
-      toast.error(getApiError(err));
-    } finally {
-      setSavingGoal(false);
-    }
-  };
-
-  const openEditCompletion = (goal: Goal) => {
-    setCompletionEdit(goal);
-    setNewCompletion(goal.completion);
-  };
-
-  const onUpdateCompletion = async () => {
-    if (!completionEdit) return;
-    setSavingGoal(true);
-    try {
-      await performanceApi.updateGoal(completionEdit.id, { completion: newCompletion });
-      toast.success('Goal progress updated');
-      setCompletionEdit(null);
-      fetchGoals();
-    } catch (err) {
-      toast.error(getApiError(err));
-    } finally {
-      setSavingGoal(false);
-    }
-  };
-
   // ── Derived ──────────────────────────────────────────
   const scoreColor = (s: number) => {
     if (s >= 80) return ['var(--success-500)', '#10b981'];
@@ -268,9 +167,6 @@ export default function PerformancePage() {
   const submitted = reviews.filter(r => r.submitted_at).length;
   const pending   = reviews.length - submitted;
 
-  // Unique employees from reviews for goal creation dropdown
-  const reviewEmployees = reviews.map(r => ({ id: r.id, userId: r.user_id, name: r.user?.name || 'Unknown' }));
-
   return (
     <DashboardLayout>
       <PageHeader
@@ -278,44 +174,15 @@ export default function PerformancePage() {
         subtitle="Monthly reviews and goal tracking"
         actions={
           <div className="flex items-center gap-3 bg-[var(--glass-10)] p-1.5 pl-4 rounded-2xl border border-[var(--glass-border)] shadow-xl backdrop-blur-md">
-            {activeTab === 'reviews' && (
-              <select value={selectedMonth} onChange={e => setMth(e.target.value)}
-                className="bg-transparent text-[11px] font-black text-white uppercase tracking-widest outline-none cursor-pointer pr-2">
-                {MONTHS.map(m => <option key={m.value} value={m.value} className="bg-[var(--dark-950)]">{m.label.toUpperCase()}</option>)}
-              </select>
-            )}
-            {activeTab === 'goals' && (
-              <select value={goalUserFilter} onChange={e => setGoalUserFilter(e.target.value)}
-                className="bg-transparent text-[11px] font-black text-white uppercase tracking-widest outline-none cursor-pointer pr-2">
-                <option value="" className="bg-[var(--dark-950)]">ALL EMPLOYEES</option>
-                {reviewEmployees.map(e => (
-                  <option key={e.userId} value={e.userId} className="bg-[var(--dark-950)]">{e.name.toUpperCase()}</option>
-                ))}
-              </select>
-            )}
+            <select value={selectedMonth} onChange={e => setMth(e.target.value)}
+              className="bg-transparent text-[11px] font-black text-white uppercase tracking-widest outline-none cursor-pointer pr-2">
+              {MONTHS.map(m => <option key={m.value} value={m.value} className="bg-[var(--dark-950)]">{m.label.toUpperCase()}</option>)}
+            </select>
           </div>
         }
       />
 
-      {/* Tabs */}
-      <div className="flex items-center gap-1 px-5 pt-4 pb-0 mb-6 border-b border-[var(--glass-border)] overflow-x-auto bg-[var(--glass-05)] rounded-t-3xl">
-        {(['reviews', 'goals'] as const).map(tab => (
-          <button key={tab} onClick={() => setActiveTab(tab)}
-            className={cn(
-              "px-6 py-4 text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap border-b-2",
-              activeTab === tab
-                ? "text-[var(--primary-600)] border-[var(--primary-600)]"
-                : "text-[var(--on-glass-dim)] border-transparent hover:text-white"
-            )}
-          >
-            {tab === 'reviews' ? `Reviews${pending > 0 ? ` (${pending})` : ''}` : tab.toUpperCase()}
-          </button>
-        ))}
-      </div>
-
-      {/* ── REVIEWS TAB ─────────────────────────────── */}
-      {activeTab === 'reviews' && (<>
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
           {reviewLoading ? Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-2xl" />) : (<>
             <Card className="p-6 relative overflow-hidden group hover:bg-[var(--glass-10)] transition-all">
               <div className="absolute top-0 right-0 w-24 h-24 bg-[var(--success-500)]/5 blur-[40px] rounded-full translate-x-1/2 -translate-y-1/2" />
@@ -374,7 +241,7 @@ export default function PerformancePage() {
             {reviews.map(review => {
               const isSubmitted = !!review.submitted_at;
               const score = starToScore(review.score);
-              const [c, b] = scoreColor(isSubmitted ? score : 0);
+              const [c] = scoreColor(isSubmitted ? score : 0);
               return (
                 <tr key={review.id} className="hover:bg-[var(--glass-05)] transition-all group">
                   <td className="py-4 px-6">
@@ -415,15 +282,6 @@ export default function PerformancePage() {
                           {isSubmitted ? <TrendingUp size={16} /> : <Star size={16} />}
                         </button>
                       )}
-                      {hasRole('manager', 'hr_admin', 'super_admin') && (
-                        <button
-                          onClick={() => openAddGoal(review)}
-                          title="Assign Goal"
-                          className="w-9 h-9 flex items-center justify-center rounded-xl bg-[var(--glass-10)] text-[var(--on-glass-dim)] hover:text-[var(--primary-600)] hover:bg-[var(--glass-15)] transition-all"
-                        >
-                           <Target size={16} />
-                        </button>
-                      )}
                       <button
                         onClick={() => openInsights(review)}
                         title="AI Analysis"
@@ -438,63 +296,6 @@ export default function PerformancePage() {
             })}
           </Table>
         </Card>
-      </>)}
-
-      {/* ── GOALS TAB ───────────────────────────────── */}
-      {activeTab === 'goals' && (<>
-        <Card className="overflow-hidden">
-          <Table
-            headers={['Employee', 'Goal', 'Weight', 'Target Date', 'Progress', 'Actions']}
-            loading={goalLoading}
-            emptyState={
-              <div className="py-24 text-center">
-                 <Target size={32} className="mx-auto text-[var(--on-glass-dim)] mb-4" />
-                 <p className="text-[11px] font-black text-[var(--on-glass-dim)] uppercase tracking-[0.3em]">No goals set</p>
-              </div>
-            }
-          >
-            {goals.map(goal => (
-              <tr key={goal.id} className="hover:bg-[var(--glass-05)] transition-all group">
-                <td className="py-4 px-6">
-                  {goal.user ? (
-                    <div className="flex items-center gap-4">
-                      <Avatar name={goal.user.name} size="md" />
-                      <p className="text-[15px] font-black text-white group-hover:text-[var(--primary-600)] transition-colors truncate">{goal.user.name}</p>
-                    </div>
-                  ) : '—'}
-                </td>
-                <td className="py-4 px-6 max-w-xs">
-                  <p className="text-sm font-black text-white uppercase tracking-tight truncate">{goal.title}</p>
-                  {goal.description && (
-                    <p className="text-[10px] font-bold text-[var(--on-glass-muted)] uppercase tracking-widest mt-1 truncate">{goal.description}</p>
-                  )}
-                </td>
-                <td className="py-4 px-6">
-                  <span className="text-[13px] font-black text-white">{goal.weight}%</span>
-                </td>
-                <td className="py-4 px-6">
-                  <span className="text-[11px] font-black text-[var(--on-glass-dim)] uppercase tracking-widest font-mono">
-                    {goal.target_date ? format(new Date(goal.target_date), 'dd MMM yyyy').toUpperCase() : '—'}
-                  </span>
-                </td>
-                <td className="py-4 px-6 min-w-[160px]">
-                  <CompletionBar value={goal.completion} />
-                </td>
-                <td className="py-4 px-6">
-                  {hasRole('manager', 'hr_admin', 'super_admin') && (
-                    <button
-                      onClick={() => openEditCompletion(goal)}
-                      className="w-10 h-10 flex items-center justify-center rounded-xl bg-[var(--glass-10)] text-[var(--on-glass-dim)] hover:text-white hover:bg-[var(--glass-15)] transition-all"
-                    >
-                      <CheckCircle size={18} />
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </Table>
-        </Card>
-      </>)}
 
       {/* ── REVIEW MODAL ────────────────────────────── */}
       <Modal
@@ -558,73 +359,6 @@ export default function PerformancePage() {
                 Review submitted on {format(new Date(reviewUser.submitted_at), 'MMM d, yyyy')} by {reviewUser.reviewer?.name}
               </p>
             )}
-          </div>
-        )}
-      </Modal>
-
-      {/* ── ADD GOAL MODAL ─────────────────────────── */}
-      <Modal
-        isOpen={addGoalOpen || !!editGoal}
-        onClose={() => { setAddGoalOpen(false); setEditGoal(null); goalForm.reset(); setGoalUserId(''); setGoalReviewId(''); }}
-        title={editGoal ? 'Edit Goal' : 'Set New Goal'}
-        size="md"
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => { setAddGoalOpen(false); setEditGoal(null); goalForm.reset(); }}>
-              Cancel
-            </Button>
-            <Button loading={savingGoal} onClick={goalForm.handleSubmit(onSaveGoal)}>
-              {editGoal ? 'Save Changes' : 'Create Goal'}
-            </Button>
-          </>
-        }
-      >
-        <div className="space-y-6">
-          <Input label="Goal Title" required error={goalForm.formState.errors.title?.message}
-            placeholder="e.g. Complete onboarding process" {...goalForm.register('title')} />
-          <Textarea label="Description" placeholder="Optional details about this goal..."
-            {...goalForm.register('description')} />
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-[13px] font-bold text-[var(--on-glass-sub)] uppercase tracking-wide">
-                Weight (%)
-              </label>
-              <input type="number" min={1} max={100}
-                className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--glass-05)] px-4 py-3 text-sm text-white focus:border-[var(--primary-600)] outline-none transition-all"
-                {...goalForm.register('weight', { valueAsNumber: true })}
-              />
-            </div>
-            <Input label="Target Date" type="date" {...goalForm.register('target_date')} />
-          </div>
-        </div>
-      </Modal>
-
-      {/* ── UPDATE COMPLETION MODAL ────────────────── */}
-      <Modal
-        isOpen={!!completionEdit}
-        onClose={() => setCompletionEdit(null)}
-        title="Update Goal Progress"
-        size="sm"
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setCompletionEdit(null)}>Cancel</Button>
-            <Button loading={savingGoal} onClick={onUpdateCompletion}>Apply Update</Button>
-          </>
-        }
-      >
-        {completionEdit && (
-          <div className="space-y-6">
-            <p className="text-sm font-black text-white uppercase tracking-tight">{completionEdit.title}</p>
-            <div className="space-y-4">
-              <label className="text-[10px] font-black text-[var(--on-glass-muted)] uppercase tracking-[0.2em] block">
-                COMPLETION RATIO: {newCompletion}%
-              </label>
-              <input type="range" min={0} max={100} value={newCompletion}
-                onChange={e => setNewCompletion(parseInt(e.target.value))}
-                className="w-full h-1.5 bg-[var(--glass-20)] rounded-lg appearance-none cursor-pointer accent-[var(--primary-600)]"
-              />
-              <CompletionBar value={newCompletion} />
-            </div>
           </div>
         )}
       </Modal>
