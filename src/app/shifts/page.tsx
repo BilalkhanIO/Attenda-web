@@ -3,11 +3,11 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/lib/auth';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import {
-  PageHeader, Card, Button, Modal, ConfirmDialog, Input, Select,
+  PageHeader, Card, Button, Modal, ConfirmDialog, Input,
   Badge, Avatar, EmptyState, Table, Textarea
 } from '@/components/ui';
 import { shiftsApi, usersApi } from '@/lib/api';
-import { getApiError, formatTime } from '@/lib/utils';
+import { getApiError } from '@/lib/utils';
 import type { Shift, ShiftAssignment, SwapRequest } from '@/types';
 
 interface UserOption { id: string; name: string; }
@@ -56,6 +56,39 @@ interface ShiftBreak {
   deduct_extra_time?: boolean;
   applies_days?: number[];
   exception_dates?: string[];
+  auto_start?: boolean;
+  reminder_after_mins?: number;
+  deduct_if_skipped?: boolean;
+}
+
+// ─── Shared primitives ────────────────────────────────
+function ToggleRow({ label, description, checked, onChange }: {
+  label: string;
+  description?: string;
+  checked: boolean;
+  onChange: () => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4 p-3 rounded-xl bg-white/5 border border-white/5">
+      <div className="min-w-0">
+        <p className="text-[11px] font-bold text-[var(--on-glass-muted)] uppercase tracking-widest">{label}</p>
+        {description && <p className="text-[10px] text-[var(--on-glass-dim)] mt-0.5 leading-relaxed">{description}</p>}
+      </div>
+      <button
+        type="button"
+        onClick={onChange}
+        className={cn(
+          'relative inline-flex h-5 w-9 items-center rounded-full transition-colors flex-shrink-0',
+          checked ? 'bg-[var(--primary-600)]' : 'bg-[var(--glass-20)]',
+        )}
+      >
+        <span className={cn(
+          'inline-block h-3 w-3 transform rounded-full bg-white shadow transition-transform',
+          checked ? 'translate-x-5' : 'translate-x-1',
+        )} />
+      </button>
+    </div>
+  );
 }
 
 const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -212,24 +245,209 @@ function ShiftFormFields({ form }: { form: UseFormReturn<ShiftForm> }) {
   );
 }
 
+// ─── Break Card ───────────────────────────────────────
+function BreakCard({ b, deleting, onDelete }: { b: ShiftBreak; deleting: boolean; onDelete: () => void }) {
+  const isFixed = b.break_kind !== 'flexible';
+  const timing = isFixed
+    ? `${b.break_start_time} – ${b.break_end_time}`
+    : `${b.break_minutes}m · up to ${b.allowed_count_per_shift ?? 1}×/shift`;
+
+  return (
+    <div className="flex items-center justify-between p-4 bg-[var(--glass-10)] border border-[var(--glass-border)] rounded-2xl hover:border-[var(--primary-600)]/30 transition-all">
+      <div className="flex items-center gap-3 min-w-0">
+        <div className="w-8 h-8 rounded-xl bg-[var(--glass-05)] flex items-center justify-center flex-shrink-0">
+          <Coffee size={14} className="text-[var(--on-glass-muted)]" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-[13px] font-black text-white uppercase tracking-tight truncate">{b.name}</p>
+          <p className="text-[10px] font-medium text-[var(--on-glass-muted)] mt-0.5">{timing}</p>
+        </div>
+      </div>
+      <div className="flex items-center gap-2 flex-shrink-0 ml-3">
+        <Badge label={isFixed ? 'FIXED' : 'FLEX'} color={isFixed ? 'var(--primary-400)' : 'var(--on-glass-dim)'} bg={isFixed ? 'rgba(99,102,241,0.18)' : '#1e2533'} size="sm" />
+        {b.is_paid && <Badge label="PAID" color="#10b981" bg="rgba(16,185,129,0.12)" size="sm" />}
+        {b.auto_start && <Badge label="AUTO" color="#f59e0b" bg="rgba(245,158,11,0.12)" size="sm" />}
+        <button
+          type="button"
+          onClick={onDelete}
+          disabled={deleting}
+          className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--on-glass-dim)] hover:text-[var(--danger-500)] hover:bg-[var(--danger-500)]/10 transition-colors disabled:opacity-50"
+        >
+          <Trash2 size={14} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Break Form ───────────────────────────────────────
+const EMPTY_BREAK = {
+  name: '',
+  break_kind: 'fixed' as 'fixed' | 'flexible',
+  start_time: '12:00',
+  end_time: '13:00',
+  duration_minutes: 15,
+  allowed_count_per_shift: 1,
+  is_paid: false,
+  paid_within_limit: true,
+  deduct_extra_time: true,
+  applies_days: [] as number[],
+  auto_start: false,
+  reminder_after_mins: 30,
+  deduct_if_skipped: true,
+};
+
+type BreakFormState = typeof EMPTY_BREAK;
+
+function BreakForm({
+  form, setField, saving, onSave, onCancel,
+}: {
+  form: BreakFormState;
+  setField: <K extends keyof BreakFormState>(k: K, v: BreakFormState[K]) => void;
+  saving: boolean;
+  onSave: () => void;
+  onCancel: () => void;
+}) {
+  const isFixed = form.break_kind === 'fixed';
+  const toggleDay = (i: number) => setField(
+    'applies_days',
+    form.applies_days.includes(i)
+      ? form.applies_days.filter(x => x !== i)
+      : [...form.applies_days, i],
+  );
+
+  return (
+    <div className="bg-[var(--glass-10)] border border-[var(--glass-border)] rounded-2xl p-5 space-y-5 slide-in-bottom">
+      <p className="text-[10px] font-black text-[var(--primary-600)] uppercase tracking-widest">New Break</p>
+
+      {/* Name */}
+      <Input
+        label="Break Name"
+        value={form.name}
+        onChange={e => setField('name', e.target.value)}
+        placeholder="e.g. Lunch, Tea Break, Prayer"
+      />
+
+      {/* Type */}
+      <div>
+        <p className="text-[10px] font-black text-[var(--on-glass-muted)] uppercase tracking-widest mb-2">Type</p>
+        <div className="grid grid-cols-2 gap-2">
+          {(['fixed', 'flexible'] as const).map(kind => (
+            <button
+              key={kind}
+              type="button"
+              onClick={() => setField('break_kind', kind)}
+              className={cn(
+                'py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-colors',
+                form.break_kind === kind
+                  ? 'bg-[var(--primary-600)] text-white border-transparent'
+                  : 'bg-white/5 text-[var(--on-glass-muted)] border-white/10 hover:border-white/20',
+              )}
+            >
+              {kind === 'fixed' ? 'Fixed Window' : 'Flexible'}
+            </button>
+          ))}
+        </div>
+        <p className="text-[10px] text-[var(--on-glass-dim)] mt-1.5">
+          {isFixed ? 'Break must happen between set wall-clock times (e.g. 13:00 – 14:00).' : 'Employee takes a break of set duration at any time after check-in.'}
+        </p>
+      </div>
+
+      {/* Time / duration inputs */}
+      {isFixed ? (
+        <div className="grid grid-cols-2 gap-3">
+          <Input label="Window Start" type="time" value={form.start_time} onChange={e => setField('start_time', e.target.value)} />
+          <Input label="Window End" type="time" value={form.end_time} onChange={e => setField('end_time', e.target.value)} />
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-3">
+          <Input label="Duration (min)" type="number" min={1} value={form.duration_minutes} onChange={e => setField('duration_minutes', Number(e.target.value))} />
+          <Input label="Max per shift" type="number" min={1} value={form.allowed_count_per_shift} onChange={e => setField('allowed_count_per_shift', Number(e.target.value))} />
+        </div>
+      )}
+
+      {/* Days */}
+      <div>
+        <p className="text-[10px] font-black text-[var(--on-glass-muted)] uppercase tracking-widest mb-2">
+          Applies Days <span className="font-normal normal-case text-[var(--on-glass-dim)]">(empty = every shift day)</span>
+        </p>
+        <div className="flex gap-1.5">
+          {DAYS.map((d, i) => (
+            <button
+              key={d}
+              type="button"
+              onClick={() => toggleDay(i)}
+              className={cn(
+                'w-8 h-8 rounded-lg text-[9px] font-black uppercase transition-colors',
+                form.applies_days.includes(i) ? 'bg-[var(--primary-600)] text-white' : 'bg-white/5 text-[var(--on-glass-muted)] hover:bg-white/10',
+              )}
+            >
+              {d[0]}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Behaviour */}
+      <div className="space-y-2">
+        <p className="text-[10px] font-black text-[var(--on-glass-dim)] uppercase tracking-widest">Behaviour</p>
+        <ToggleRow
+          label="Paid Break"
+          description="Break time counts as worked hours — not deducted from net pay"
+          checked={form.is_paid}
+          onChange={() => setField('is_paid', !form.is_paid)}
+        />
+        <ToggleRow
+          label="Deduct overtime"
+          description="Time taken beyond the allowed window is unpaid"
+          checked={form.deduct_extra_time}
+          onChange={() => setField('deduct_extra_time', !form.deduct_extra_time)}
+        />
+        {isFixed && (
+          <ToggleRow
+            label="Auto-Start"
+            description="System opens the break at window start — employee taps 'I'm on it' or defers"
+            checked={form.auto_start}
+            onChange={() => setField('auto_start', !form.auto_start)}
+          />
+        )}
+      </div>
+
+      {/* Auto-start sub-settings */}
+      {isFixed && form.auto_start && (
+        <div className="space-y-2 pl-3 border-l-2 border-[var(--primary-600)]/30">
+          <Input
+            label="Remind after (mins)"
+            type="number"
+            min={1}
+            value={form.reminder_after_mins}
+            hint="How long after 'Take it later' before the reminder fires"
+            onChange={e => setField('reminder_after_mins', Math.max(1, Number(e.target.value)))}
+          />
+          <ToggleRow
+            label="Deduct if skipped"
+            description="If employee never takes this break, deduct the time from net hours at checkout"
+            checked={form.deduct_if_skipped}
+            onChange={() => setField('deduct_if_skipped', !form.deduct_if_skipped)}
+          />
+        </div>
+      )}
+
+      <div className="flex gap-3 justify-end pt-1">
+        <Button variant="ghost" size="sm" onClick={onCancel}>Cancel</Button>
+        <Button size="sm" loading={saving} onClick={onSave}>Add Break</Button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Breaks Panel ─────────────────────────────────────
 function BreaksPanel({ shift }: { shift: Shift }) {
   const [open, setOpen] = useState(false);
   const [breaks, setBreaks] = useState<ShiftBreak[]>([]);
   const [loading, setLoading] = useState(false);
   const [adding, setAdding] = useState(false);
-  const [newBreak, setNewBreak] = useState({
-    name: '',
-    break_kind: 'fixed' as 'fixed' | 'flexible',
-    start_time: '12:00',
-    end_time: '13:00',
-    duration_minutes: 15,
-    allowed_count_per_shift: 1,
-    is_paid: false,
-    paid_within_limit: true,
-    deduct_extra_time: true,
-    applies_days: [] as number[],
-  });
+  const [form, setFormState] = useState<BreakFormState>(EMPTY_BREAK);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -238,26 +456,27 @@ function BreaksPanel({ shift }: { shift: Shift }) {
     try {
       const { data } = await shiftsApi.getBreaks(shift.id);
       setBreaks(data.data || []);
-    } catch {
-      // silently fail — breaks endpoint may not exist yet
-    } finally {
-      setLoading(false);
-    }
+    } catch { /* endpoint may not exist yet */ }
+    finally { setLoading(false); }
   }, [shift.id]);
 
-  useEffect(() => {
-    if (open) loadBreaks();
-  }, [open, loadBreaks]);
+  useEffect(() => { if (open) loadBreaks(); }, [open, loadBreaks]);
 
-  const handleAddBreak = async () => {
-    if (!newBreak.name.trim()) { toast.error('Break name required'); return; }
-    if (newBreak.break_kind === 'fixed' && newBreak.start_time >= newBreak.end_time) { toast.error('End time must be after start time'); return; }
+  const setField = useCallback(
+    <K extends keyof BreakFormState>(k: K, v: BreakFormState[K]) =>
+      setFormState(f => ({ ...f, [k]: v })),
+    [],
+  );
+
+  const handleAdd = async () => {
+    if (!form.name.trim()) { toast.error('Break name required'); return; }
+    if (form.break_kind === 'fixed' && form.start_time >= form.end_time) { toast.error('End time must be after start time'); return; }
     setSaving(true);
     try {
-      await shiftsApi.addBreak(shift.id, newBreak);
+      await shiftsApi.addBreak(shift.id, form);
       toast.success('Break added');
       setAdding(false);
-      setNewBreak({ name: '', break_kind: 'fixed', start_time: '12:00', end_time: '13:00', duration_minutes: 15, allowed_count_per_shift: 1, is_paid: false, paid_within_limit: true, deduct_extra_time: true, applies_days: [] });
+      setFormState(EMPTY_BREAK);
       loadBreaks();
     } catch (err) {
       toast.error(getApiError(err));
@@ -266,12 +485,12 @@ function BreaksPanel({ shift }: { shift: Shift }) {
     }
   };
 
-  const handleDeleteBreak = async (breakId: string) => {
-    setDeletingId(breakId);
+  const handleDelete = async (id: string) => {
+    setDeletingId(id);
     try {
-      await shiftsApi.deleteBreak(shift.id, breakId);
+      await shiftsApi.deleteBreak(shift.id, id);
       toast.success('Break removed');
-      setBreaks(prev => prev.filter(b => b.id !== breakId));
+      setBreaks(prev => prev.filter(b => b.id !== id));
     } catch (err) {
       toast.error(getApiError(err));
     } finally {
@@ -288,7 +507,10 @@ function BreaksPanel({ shift }: { shift: Shift }) {
       >
         <div className="flex items-center gap-3 text-sm font-black text-white uppercase tracking-widest">
           <Coffee size={16} className="text-[var(--primary-600)]" />
-          Breaks {breaks.length > 0 && !open && <span className="text-[10px] text-[var(--on-glass-muted)] font-bold ml-1">({breaks.length})</span>}
+          Breaks
+          {breaks.length > 0 && !open && (
+            <span className="text-[10px] text-[var(--on-glass-muted)] font-bold ml-1">({breaks.length})</span>
+          )}
         </div>
         {open ? <ChevronUp size={16} className="text-[var(--on-glass-dim)]" /> : <ChevronDown size={16} className="text-[var(--on-glass-dim)]" />}
       </button>
@@ -296,131 +518,32 @@ function BreaksPanel({ shift }: { shift: Shift }) {
       {open && (
         <div className="p-5 space-y-4 border-t border-[var(--glass-border)]">
           {loading ? (
-            <div className="text-[10px] font-black text-[var(--on-glass-dim)] text-center py-6 uppercase tracking-widest">Retrieving Break Config...</div>
+            <div className="text-[10px] font-black text-[var(--on-glass-dim)] text-center py-6 uppercase tracking-widest">Loading…</div>
           ) : breaks.length === 0 ? (
-            <p className="text-xs text-[var(--on-glass-muted)] text-center py-4 font-medium uppercase tracking-widest">No breaks defined.</p>
+            <p className="text-xs text-[var(--on-glass-muted)] text-center py-4 font-medium uppercase tracking-widest">No breaks defined</p>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {breaks.map(b => (
-                <div key={b.id} className="flex items-center justify-between p-4 bg-[var(--glass-10)] border border-[var(--glass-border)] rounded-2xl group transition-all hover:border-[var(--primary-600)]/30">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-[var(--glass-05)] flex items-center justify-center">
-                       <Coffee size={14} className="text-[var(--on-glass-muted)]" />
-                    </div>
-                    <div>
-                       <p className="text-[13px] font-black text-white uppercase tracking-tight">{b.name}</p>
-                       <p className="text-[10px] font-bold text-[var(--on-glass-muted)] uppercase mt-0.5">
-                         {b.break_kind === 'flexible'
-                           ? `${b.break_minutes}m x ${b.allowed_count_per_shift ?? 1} per shift`
-                           : `${b.break_start_time} - ${b.break_end_time}`}
-                       </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <Badge
-                      label={`${b.break_kind === 'flexible' ? 'FLEX' : 'FIXED'} · ${b.is_paid ? 'PAID' : 'UNPAID'}`}
-                      color={b.is_paid ? 'var(--success-500)' : 'var(--on-glass-dim)'}
-                      bg={b.is_paid ? '#10b981' : '#334155'}
-                      size="sm"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteBreak(b.id)}
-                      disabled={deletingId === b.id}
-                      className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--on-glass-dim)] hover:text-[var(--danger-500)] hover:bg-[var(--danger-500)]/10 transition-colors disabled:opacity-50"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                </div>
+                <BreakCard key={b.id} b={b} deleting={deletingId === b.id} onDelete={() => handleDelete(b.id)} />
               ))}
             </div>
           )}
 
           {adding ? (
-            <div className="bg-[var(--glass-10)] border border-[var(--glass-border)] rounded-[2rem] p-6 space-y-4 slide-in-bottom">
-              <p className="text-[10px] font-black text-[var(--primary-600)] uppercase tracking-widest mb-2">New Break Configuration</p>
-              <div className="space-y-4">
-                  <Input
-                    label="Description"
-                    value={newBreak.name}
-                    onChange={e => setNewBreak(b => ({ ...b, name: e.target.value }))}
-                    placeholder="e.g. Lunch Protocol"
-                  />
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setNewBreak(b => ({ ...b, break_kind: 'fixed' }))}
-                      className={cn("py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border", newBreak.break_kind === 'fixed' ? "bg-[var(--primary-600)] text-white border-transparent" : "bg-white/5 text-[var(--on-glass-muted)] border-white/10")}
-                    >
-                      Fixed Time
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setNewBreak(b => ({ ...b, break_kind: 'flexible' }))}
-                      className={cn("py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border", newBreak.break_kind === 'flexible' ? "bg-[var(--primary-600)] text-white border-transparent" : "bg-white/5 text-[var(--on-glass-muted)] border-white/10")}
-                    >
-                      Flexible
-                    </button>
-                  </div>
-                  {newBreak.break_kind === 'fixed' ? (
-                    <div className="grid grid-cols-2 gap-4">
-                      <Input label="Start" type="time" value={newBreak.start_time} onChange={e => setNewBreak(b => ({ ...b, start_time: e.target.value }))} />
-                      <Input label="End" type="time" value={newBreak.end_time} onChange={e => setNewBreak(b => ({ ...b, end_time: e.target.value }))} />
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-2 gap-4">
-                      <Input label="Duration (mins)" type="number" value={newBreak.duration_minutes} onChange={e => setNewBreak(b => ({ ...b, duration_minutes: Number(e.target.value) }))} />
-                      <Input label="Allowed Count" type="number" value={newBreak.allowed_count_per_shift} onChange={e => setNewBreak(b => ({ ...b, allowed_count_per_shift: Number(e.target.value) }))} />
-                    </div>
-                  )}
-                  <div>
-                    <label className="text-[10px] font-black text-[var(--on-glass-muted)] uppercase tracking-widest block mb-2">Applies Days</label>
-                    <div className="flex gap-1.5 flex-wrap">
-                      {DAYS.map((d, i) => (
-                        <button
-                          key={d}
-                          type="button"
-                          onClick={() => setNewBreak(b => ({ ...b, applies_days: b.applies_days.includes(i) ? b.applies_days.filter(x => x !== i) : [...b.applies_days, i] }))}
-                          className={cn("w-8 h-8 rounded-lg text-[9px] font-black uppercase", newBreak.applies_days.includes(i) ? "bg-[var(--primary-600)] text-white" : "bg-white/5 text-[var(--on-glass-muted)]")}
-                        >
-                          {d[0]}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5">
-                     <span className="text-[11px] font-bold text-[var(--on-glass-muted)] uppercase tracking-widest">Paid Break</span>
-                     <button
-                        type="button"
-                        onClick={() => setNewBreak(b => ({ ...b, is_paid: !b.is_paid }))}
-                        className={cn("relative inline-flex h-5 w-9 items-center rounded-full transition-colors", newBreak.is_paid ? "bg-[var(--primary-600)]" : "bg-[var(--glass-20)]")}
-                      >
-                        <span className={cn("inline-block h-3 w-3 transform rounded-full bg-white shadow transition-transform", newBreak.is_paid ? "translate-x-5" : "translate-x-1")} />
-                      </button>
-                  </div>
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5">
-                     <span className="text-[11px] font-bold text-[var(--on-glass-muted)] uppercase tracking-widest">Extra Time Unpaid</span>
-                     <button
-                        type="button"
-                        onClick={() => setNewBreak(b => ({ ...b, deduct_extra_time: !b.deduct_extra_time }))}
-                        className={cn("relative inline-flex h-5 w-9 items-center rounded-full transition-colors", newBreak.deduct_extra_time ? "bg-[var(--primary-600)]" : "bg-[var(--glass-20)]")}
-                      >
-                        <span className={cn("inline-block h-3 w-3 transform rounded-full bg-white shadow transition-transform", newBreak.deduct_extra_time ? "translate-x-5" : "translate-x-1")} />
-                      </button>
-                  </div>
-              </div>
-              <div className="flex gap-3 justify-end pt-2">
-                <Button variant="ghost" size="sm" onClick={() => setAdding(false)}>Cancel</Button>
-                <Button size="sm" loading={saving} onClick={handleAddBreak}>Add Break</Button>
-              </div>
-            </div>
+            <BreakForm
+              form={form}
+              setField={setField}
+              saving={saving}
+              onSave={handleAdd}
+              onCancel={() => { setAdding(false); setFormState(EMPTY_BREAK); }}
+            />
           ) : (
             <button
-               onClick={() => setAdding(true)}
-               className="w-full py-4 rounded-2xl border border-dashed border-[var(--glass-border)] text-[10px] font-black text-[var(--on-glass-dim)] uppercase tracking-[0.2em] hover:text-white hover:border-[var(--primary-600)] transition-all"
+              type="button"
+              onClick={() => setAdding(true)}
+              className="w-full py-4 rounded-2xl border border-dashed border-[var(--glass-border)] text-[10px] font-black text-[var(--on-glass-dim)] uppercase tracking-[0.2em] hover:text-white hover:border-[var(--primary-600)] transition-all"
             >
-              + Add Break Segment
+              + Add Break
             </button>
           )}
         </div>
@@ -461,8 +584,12 @@ export default function ShiftsPage() {
   // Assign shift from calendar
   const [users, setUsers]                 = useState<UserOption[]>([]);
   const [assignModal, setAssignModal]     = useState<{ shiftId: string; date: Date } | null>(null);
-  const [assignUserId, setAssignUserId]   = useState('');
+  const [assignUserIds, setAssignUserIds] = useState<string[]>([]);
   const [assigning, setAssigning]         = useState(false);
+  const [removingAssignId, setRemovingAssignId] = useState<string | null>(null);
+
+  // AI apply
+  const [aiApplying, setAiApplying]       = useState(false);
 
   const form = useForm<ShiftForm>({
     resolver: zodResolver(shiftSchema),
@@ -490,22 +617,63 @@ export default function ShiftsPage() {
   }, [weekStart]);
 
   const onAssignShift = async () => {
-    if (!assignModal || !assignUserId) { toast.error('Select an employee'); return; }
+    if (!assignModal || assignUserIds.length === 0) { toast.error('Select at least one employee'); return; }
     setAssigning(true);
     try {
-      await shiftsApi.assignShift({
-        user_id:  assignUserId,
-        shift_id: assignModal.shiftId,
-        date:     format(assignModal.date, 'yyyy-MM-dd'),
-      });
-      toast.success('Shift assigned');
+      await Promise.all(assignUserIds.map(uid =>
+        shiftsApi.assignShift({
+          user_id:  uid,
+          shift_id: assignModal.shiftId,
+          date:     format(assignModal.date, 'yyyy-MM-dd'),
+        })
+      ));
+      toast.success(assignUserIds.length === 1 ? 'Shift assigned' : `${assignUserIds.length} shifts assigned`);
       setAssignModal(null);
-      setAssignUserId('');
+      setAssignUserIds([]);
       fetchAll();
     } catch (err) {
       toast.error(getApiError(err));
     } finally {
       setAssigning(false);
+    }
+  };
+
+  const onApplyAiPlan = async () => {
+    if (!aiPlan.length) return;
+    setAiApplying(true);
+    let applied = 0;
+    let skipped = 0;
+    try {
+      for (const entry of aiPlan) {
+        const user  = users.find(u => u.name.toLowerCase() === entry.user_name.toLowerCase());
+        const shift = shifts.find(s => s.name.toLowerCase() === entry.shift_name.toLowerCase());
+        if (!user || !shift || !entry.dates?.length) { skipped++; continue; }
+        await Promise.all(entry.dates.map((date: string) =>
+          shiftsApi.assignShift({ user_id: user.id, shift_id: shift.id, date }).catch(() => { skipped++; })
+        ));
+        applied += entry.dates.length;
+      }
+      toast.success(`Plan applied — ${applied} assignments created${skipped ? `, ${skipped} skipped` : ''}`);
+      setAiOpen(false);
+      setAiPlan([]); setAiSummary(''); setAiWarnings([]); setAiPrompt('');
+      fetchAll();
+    } catch (err) {
+      toast.error(getApiError(err));
+    } finally {
+      setAiApplying(false);
+    }
+  };
+
+  const onRemoveAssignment = async (id: string) => {
+    setRemovingAssignId(id);
+    try {
+      await shiftsApi.deleteAssignment(id);
+      toast.success('Assignment removed');
+      setAssignments(prev => prev.filter(a => a.id !== id));
+    } catch (err) {
+      toast.error(getApiError(err));
+    } finally {
+      setRemovingAssignId(null);
     }
   };
 
@@ -721,14 +889,28 @@ export default function ShiftsPage() {
                         )}>
                         {dayAssignments.map(a => a.user && (
                           <div key={a.id}
-                            className="mb-2 px-3 py-1.5 rounded-xl text-white text-[11px] font-black uppercase tracking-tight truncate shadow-xl border border-white/10"
+                            className="mb-2 pl-3 pr-1.5 py-1.5 rounded-xl text-white text-[11px] font-black uppercase tracking-tight shadow-xl border border-white/10 flex items-center gap-1 group/chip"
                             style={{ backgroundColor: shift.color }}>
-                            {a.user.name.split(' ')[0]}
+                            <span className="truncate flex-1">{a.user.name.split(' ')[0]}</span>
+                            {hasRole('manager', 'hr_admin', 'super_admin') && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); onRemoveAssignment(a.id); }}
+                                disabled={removingAssignId === a.id}
+                                title="Remove assignment"
+                                className="w-4 h-4 rounded flex items-center justify-center hover:bg-white/20 transition-all opacity-0 group-hover/chip:opacity-100 flex-shrink-0 disabled:cursor-not-allowed"
+                              >
+                                {removingAssignId === a.id ? (
+                                  <span className="block w-2 h-2 border border-white/60 border-t-transparent rounded-full animate-spin" />
+                                ) : (
+                                  <X size={9} />
+                                )}
+                              </button>
+                            )}
                           </div>
                         ))}
                         {isActiveDay && hasRole('manager', 'hr_admin', 'super_admin') && (
                           <button
-                            onClick={() => { setAssignUserId(''); setAssignModal({ shiftId: shift.id, date: day }); }}
+                            onClick={() => { setAssignUserIds([]); setAssignModal({ shiftId: shift.id, date: day }); }}
                             className="w-full mt-1 border border-dashed border-[var(--glass-border)] text-[9px] font-black text-[var(--on-glass-dim)] hover:text-[var(--primary-600)] hover:border-[var(--primary-600)]/50 rounded-xl py-2 transition-all uppercase tracking-widest"
                           >
                             + Add
@@ -790,20 +972,28 @@ export default function ShiftsPage() {
                 </div>
               </div>
 
-              <div className="flex gap-1.5 relative z-10">
-                {DAYS.map((d, i) => {
-                  const isActive = shift.active_days?.includes(i);
-                  return (
-                    <div key={d} className={cn(
-                      "w-8 h-8 rounded-xl flex items-center justify-center text-[10px] font-black uppercase transition-all border",
-                      isActive
-                        ? "text-white border-white/20"
-                        : "bg-[var(--glass-05)] text-[var(--on-glass-dim)] border-transparent"
-                    )} style={isActive ? { backgroundColor: shift.color } : {}}>
-                      {d[0]}
-                    </div>
-                  );
-                })}
+              <div className="flex items-center justify-between relative z-10">
+                <div className="flex gap-1.5">
+                  {DAYS.map((d, i) => {
+                    const isActive = shift.active_days?.includes(i);
+                    return (
+                      <div key={d} className={cn(
+                        "w-8 h-8 rounded-xl flex items-center justify-center text-[10px] font-black uppercase transition-all border",
+                        isActive
+                          ? "text-white border-white/20"
+                          : "bg-[var(--glass-05)] text-[var(--on-glass-dim)] border-transparent"
+                      )} style={isActive ? { backgroundColor: shift.color } : {}}>
+                        {d[0]}
+                      </div>
+                    );
+                  })}
+                </div>
+                {(shift.breaks?.length ?? 0) > 0 && (
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[var(--glass-10)] border border-[var(--glass-border)]">
+                    <Coffee size={11} className="text-[var(--on-glass-dim)]" />
+                    <span className="text-[10px] font-black text-[var(--on-glass-muted)] uppercase tracking-widest">{shift.breaks!.length} break{shift.breaks!.length !== 1 ? 's' : ''}</span>
+                  </div>
+                )}
               </div>
             </Card>
           ))}
@@ -965,31 +1155,58 @@ export default function ShiftsPage() {
       {/* Assign shift modal */}
       <Modal
         isOpen={!!assignModal}
-        onClose={() => { setAssignModal(null); setAssignUserId(''); }}
+        onClose={() => { setAssignModal(null); setAssignUserIds([]); }}
         title="Assign Shift"
         size="sm"
         footer={
           <>
-            <Button variant="ghost" onClick={() => { setAssignModal(null); setAssignUserId(''); }}>Cancel</Button>
-            <Button loading={assigning} onClick={onAssignShift}>Assign</Button>
+            <Button variant="ghost" onClick={() => { setAssignModal(null); setAssignUserIds([]); }}>Cancel</Button>
+            <Button loading={assigning} onClick={onAssignShift}>
+              {assignUserIds.length > 1 ? `Assign ${assignUserIds.length} Employees` : 'Assign'}
+            </Button>
           </>
         }
       >
         {assignModal && (
-          <div className="space-y-6">
+          <div className="space-y-5">
             <div className="p-4 rounded-2xl bg-[var(--glass-05)] border border-[var(--glass-border)]">
                <p className="text-[10px] font-black text-[var(--on-glass-dim)] uppercase tracking-widest mb-1">Date</p>
                <p className="text-sm font-black text-white uppercase">{format(assignModal.date, 'EEEE, MMM d')}</p>
                <p className="text-xs font-bold text-[var(--primary-600)] uppercase mt-2 tracking-widest">{shifts.find(s => s.id === assignModal.shiftId)?.name}</p>
             </div>
-            <Select
-              label="Employee"
-              required
-              options={users.map(u => ({ value: u.id, label: u.name }))}
-              value={assignUserId}
-              onChange={e => setAssignUserId(e.target.value)}
-              placeholder="Select employee…"
-            />
+            <div>
+              <p className="text-[10px] font-black text-[var(--on-glass-dim)] uppercase tracking-widest mb-2">
+                Employees {assignUserIds.length > 0 && <span className="text-[var(--primary-600)]">· {assignUserIds.length} selected</span>}
+              </p>
+              <div className="space-y-1 max-h-56 overflow-y-auto custom-scrollbar pr-1">
+                {users.map(u => {
+                  const checked = assignUserIds.includes(u.id);
+                  return (
+                    <button
+                      key={u.id}
+                      type="button"
+                      onClick={() => setAssignUserIds(prev =>
+                        checked ? prev.filter(id => id !== u.id) : [...prev, u.id]
+                      )}
+                      className={cn(
+                        'w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-all text-left',
+                        checked
+                          ? 'bg-[var(--primary-600)]/10 border-[var(--primary-600)]/40 text-white'
+                          : 'bg-[var(--glass-05)] border-[var(--glass-border)] text-[var(--on-glass-muted)] hover:bg-[var(--glass-10)] hover:text-white'
+                      )}
+                    >
+                      <span className={cn(
+                        'w-4 h-4 rounded flex items-center justify-center border flex-shrink-0 transition-all',
+                        checked ? 'bg-[var(--primary-600)] border-[var(--primary-600)]' : 'border-[var(--glass-border)]'
+                      )}>
+                        {checked && <Check size={10} className="text-white" />}
+                      </span>
+                      <span className="text-sm font-bold truncate">{u.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         )}
       </Modal>
@@ -1001,9 +1218,16 @@ export default function ShiftsPage() {
         title="AI Shift Scheduling"
         size="xl"
         footer={
-          <Button variant="ghost" onClick={() => { setAiOpen(false); setAiPrompt(''); setAiPlan([]); setAiSummary(''); setAiWarnings([]); }}>
-            Close
-          </Button>
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" onClick={() => { setAiOpen(false); setAiPrompt(''); setAiPlan([]); setAiSummary(''); setAiWarnings([]); }}>
+              Close
+            </Button>
+            {aiPlan.length > 0 && (
+              <Button icon={<Check size={14} />} loading={aiApplying} onClick={onApplyAiPlan}>
+                Apply Plan ({aiPlan.reduce((n, e) => n + (e.dates?.length ?? 0), 0)} assignments)
+              </Button>
+            )}
+          </div>
         }
       >
         <div className="space-y-6">
@@ -1064,7 +1288,9 @@ export default function ShiftsPage() {
                   </div>
                 ))}
               </div>
-              <p className="text-[10px] font-bold text-[var(--on-glass-dim)] uppercase text-center mt-6 tracking-widest">Review this plan and create assignments manually from the schedule view.</p>
+              <p className="text-[10px] font-bold text-[var(--on-glass-dim)] uppercase text-center mt-6 tracking-widest">
+                Click <span className="text-[var(--primary-600)]">Apply Plan</span> to create all assignments at once, or assign manually from the schedule.
+              </p>
             </div>
           )}
         </div>

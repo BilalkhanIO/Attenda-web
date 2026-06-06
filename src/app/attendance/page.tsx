@@ -139,6 +139,8 @@ export default function AttendancePage() {
   const [remoteActionId, setRemoteActionId]  = useState<string | null>(null);
   const [overtimeRequests, setOvertimeRequests] = useState<OvertimeRequest[]>([]);
   const [overtimeActionId, setOvertimeActionId] = useState<string | null>(null);
+  const [rejectOvertimeId, setRejectOvertimeId] = useState<string | null>(null);
+  const [rejectOvertimeReason, setRejectOvertimeReason] = useState('');
 
   // Override modal
   const [overrideRecord, setOverrideRecord] = useState<AttendanceRecord | null>(null);
@@ -346,13 +348,22 @@ export default function AttendancePage() {
     }
   };
 
-  const handleRejectOvertime = async (id: string) => {
-    const reason = window.prompt('Rejection reason');
-    if (!reason) return;
-    setOvertimeActionId(id);
+  const handleRejectOvertime = (id: string) => {
+    setRejectOvertimeId(id);
+    setRejectOvertimeReason('');
+  };
+
+  const handleConfirmRejectOvertime = async () => {
+    if (!rejectOvertimeId || !rejectOvertimeReason.trim()) {
+      toast.error('Please enter a rejection reason');
+      return;
+    }
+    setOvertimeActionId(rejectOvertimeId);
     try {
-      await overtimeApi.rejectRequest(id, reason);
+      await overtimeApi.rejectRequest(rejectOvertimeId, rejectOvertimeReason);
       toast.success('Overtime rejected');
+      setRejectOvertimeId(null);
+      setRejectOvertimeReason('');
       loadOvertimeRequests();
     } catch (err) {
       toast.error(getApiError(err));
@@ -956,6 +967,39 @@ export default function AttendancePage() {
             />
           </div>
         )}
+      </Modal>
+
+      {/* Reject Overtime Modal */}
+      <Modal
+        isOpen={!!rejectOvertimeId}
+        onClose={() => { setRejectOvertimeId(null); setRejectOvertimeReason(''); }}
+        title="Reject Overtime Request"
+        size="sm"
+        footer={
+          <div className="flex gap-4 justify-end">
+            <Button variant="ghost" onClick={() => { setRejectOvertimeId(null); setRejectOvertimeReason(''); }}>Cancel</Button>
+            <Button
+              onClick={handleConfirmRejectOvertime}
+              loading={!!overtimeActionId}
+              className="bg-[var(--danger-500)] hover:bg-[var(--danger-600)] text-white"
+            >
+              Reject
+            </Button>
+          </div>
+        }
+      >
+        <div className="flex flex-col gap-5">
+          <p className="text-sm font-medium text-[var(--on-glass-muted)] leading-relaxed">
+            Provide a reason for rejecting this overtime request. The employee will be notified.
+          </p>
+          <Textarea
+            label="Rejection Reason"
+            placeholder="e.g. Overtime not approved for this period…"
+            rows={3}
+            value={rejectOvertimeReason}
+            onChange={(e) => setRejectOvertimeReason(e.target.value)}
+          />
+        </div>
       </Modal>
 
       {/* ── Late Arrival Notice Modal ─────────────────────── */}

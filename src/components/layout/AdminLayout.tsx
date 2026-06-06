@@ -4,7 +4,7 @@ import { ReactNode, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  LayoutDashboard, Building2, Clock, Tag, FileText, Users, Settings,
+  LayoutDashboard, Building2, Tag, FileText, Users, Settings,
   LogOut, Menu, AlertCircle,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
@@ -57,8 +57,8 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
               className={cn(
                 'flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all',
                 active
-                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                  : 'text-slate-400 hover:bg-white/5 hover:text-slate-100',
+                  ? 'bg-[var(--primary-600)]/15 text-[var(--primary-600)] border border-[var(--primary-600)]/25'
+                  : 'text-[var(--on-glass-dim)] hover:bg-[var(--glass-05)] hover:text-white',
               )}
             >
               {item.icon}
@@ -71,7 +71,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         <button
           type="button"
           onClick={() => logout()}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold text-slate-400 hover:bg-rose-500/10 hover:text-rose-400 transition-all"
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold text-[var(--on-glass-dim)] hover:bg-rose-500/10 hover:text-rose-400 transition-all"
         >
           <LogOut size={18} />
           Logout
@@ -89,7 +89,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       {sidebarOpen && (
         <div className="lg:hidden fixed inset-0 z-50 flex">
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
-          <aside className="relative w-64 h-full bg-[#040D12] border-r border-[var(--glass-border)] z-50">
+          <aside className="relative w-64 h-full flex flex-col bg-[var(--dark-800)] border-r border-[var(--glass-border)] z-50 slide-in-left">
             {sidebar}
           </aside>
         </div>
@@ -97,10 +97,10 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
       <div className="flex-1 flex flex-col min-w-0">
         <header className="lg:hidden h-14 flex items-center justify-between px-4 border-b border-[var(--glass-border)]">
-          <button type="button" onClick={() => setSidebarOpen(true)} className="p-2 text-slate-400">
+          <button type="button" onClick={() => setSidebarOpen(true)} className="p-2 text-[var(--on-glass-dim)]">
             <Menu size={20} />
           </button>
-          <span className="text-sm font-bold text-slate-200">Platform Admin</span>
+          <span className="text-sm font-black text-white">Platform Admin</span>
           <div className="w-9" />
         </header>
         <main className="flex-1 overflow-y-auto custom-scrollbar">

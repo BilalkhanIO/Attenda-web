@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { KPICard, Card, Avatar, Badge, Skeleton, PageHeader, Button } from '@/components/ui';
+import { KPICard, Card, Avatar, Badge, Skeleton, PageHeader, Button, Modal } from '@/components/ui';
 import { attendanceApi } from '@/lib/api';
 import { statusConfig, formatTime, getApiError } from '@/lib/utils';
 import type { AttendanceRecord } from '@/types';
@@ -40,6 +40,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [filter, setFilter] = useState<string>('all');
+  const [selectedEmployee, setSelectedEmployee] = useState<AttendanceRecord | null>(null);
 
   const fetchLive = useCallback(async () => {
     try {
@@ -161,7 +162,8 @@ export default function DashboardPage() {
                     return (
                       <div
                         key={entry.user!.id}
-                        className="flex items-start gap-3 p-4 rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-05)] hover:bg-[var(--glass-10)] hover:shadow-xl transition-all group"
+                        onClick={() => setSelectedEmployee(entry)}
+                        className="flex items-start gap-3 p-4 rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-05)] hover:bg-[var(--glass-10)] hover:shadow-xl transition-all group cursor-pointer"
                       >
                         <Avatar name={entry.user!.name} imageUrl={entry.user!.avatar_url} size="md" />
                         <div className="flex-1 min-w-0">
@@ -264,6 +266,117 @@ export default function DashboardPage() {
           </Card>
         </div>
       </div>
+      {/* Employee Detail Modal */}
+      <Modal
+        isOpen={!!selectedEmployee}
+        onClose={() => setSelectedEmployee(null)}
+        title="Attendance Detail"
+        size="md"
+      >
+        {selectedEmployee && (() => {
+          const cfg = statusConfig[selectedEmployee.status];
+          const typeLabels: Record<string, string> = {
+            auto_ip: 'Auto (WiFi)',
+            qr:      'QR Scan',
+            manual:  'Manual',
+            remote:  'Remote',
+          };
+          const checkedIn  = !!selectedEmployee.check_in_at;
+          const checkedOut = !!selectedEmployee.check_out_at;
+          return (
+            <div className="space-y-5">
+              {/* Header */}
+              <div className="flex items-center gap-4 p-5 rounded-3xl bg-[var(--glass-05)] border border-[var(--glass-border)]">
+                <Avatar name={selectedEmployee.user!.name} imageUrl={selectedEmployee.user!.avatar_url} size="lg" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-lg font-black text-white tracking-tight truncate">{selectedEmployee.user!.name}</p>
+                  <p className="text-xs font-bold text-[var(--on-glass-muted)] uppercase tracking-widest mt-1 truncate">
+                    {selectedEmployee.user!.job_title || selectedEmployee.user!.department || 'Employee'}
+                  </p>
+                </div>
+                <Badge label={cfg.label} color={cfg.color} bg={cfg.bg} />
+              </div>
+
+              {/* Check-in / Check-out */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 rounded-2xl bg-[var(--glass-05)] border border-[var(--glass-border)]">
+                  <p className="text-[10px] font-black text-[var(--on-glass-dim)] uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                    <LogIn size={11} className="text-[var(--success-500)]" /> Check-In
+                  </p>
+                  {checkedIn ? (
+                    <div>
+                      <p className="text-2xl font-black text-white font-mono">{formatTime(selectedEmployee.check_in_at!)}</p>
+                      {(selectedEmployee.late_minutes ?? 0) > 0 && (
+                        <p className="text-[10px] font-black text-[var(--warning-500)] uppercase tracking-widest mt-1">+{selectedEmployee.late_minutes}m late</p>
+                      )}
+                      {(selectedEmployee.early_checkin_minutes ?? 0) > 0 && (
+                        <p className="text-[10px] font-black text-[var(--success-500)] uppercase tracking-widest mt-1">{selectedEmployee.early_checkin_minutes}m early</p>
+                      )}
+                      <p className="text-[10px] font-bold text-[var(--on-glass-dim)] uppercase tracking-widest mt-1.5">
+                        {typeLabels[selectedEmployee.check_in_type] || selectedEmployee.check_in_type}
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-2xl font-black text-[var(--on-glass-dim)]">—</p>
+                  )}
+                </div>
+
+                <div className="p-4 rounded-2xl bg-[var(--glass-05)] border border-[var(--glass-border)]">
+                  <p className="text-[10px] font-black text-[var(--on-glass-dim)] uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                    <LogOut size={11} className="text-[var(--gray-400)]" /> Check-Out
+                  </p>
+                  {checkedOut ? (
+                    <div>
+                      <p className="text-2xl font-black text-white font-mono">{formatTime(selectedEmployee.check_out_at!)}</p>
+                      {(selectedEmployee.early_out_minutes ?? 0) > 0 && (
+                        <p className="text-[10px] font-black text-[var(--warning-500)] uppercase tracking-widest mt-1">-{selectedEmployee.early_out_minutes}m early</p>
+                      )}
+                      {selectedEmployee.auto_checked_out && (
+                        <p className="text-[10px] font-bold text-[var(--on-glass-dim)] uppercase tracking-widest mt-1.5">Auto (WiFi lost)</p>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-2xl font-black text-[var(--on-glass-dim)]">—</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Hours */}
+              {checkedIn && (
+                <div className="flex items-center justify-between p-4 rounded-2xl bg-[var(--glass-05)] border border-[var(--glass-border)]">
+                  <p className="text-[10px] font-black text-[var(--on-glass-dim)] uppercase tracking-widest">Time in Office</p>
+                  {selectedEmployee.hours_worked != null ? (
+                    <p className="text-lg font-black text-[var(--primary-600)]">{fmtHours(n(selectedEmployee.hours_worked))}</p>
+                  ) : !checkedOut ? (
+                    <p className="text-lg font-black text-[var(--primary-600)]"><CardElapsed checkInAt={selectedEmployee.check_in_at!} /></p>
+                  ) : null}
+                </div>
+              )}
+
+              {/* Break summary */}
+              {(selectedEmployee.break_minutes ?? 0) > 0 && (
+                <div className="flex items-center justify-between p-4 rounded-2xl bg-[var(--glass-05)] border border-[var(--glass-border)]">
+                  <p className="text-[10px] font-black text-[var(--on-glass-dim)] uppercase tracking-widest">Break Time</p>
+                  <div className="text-right">
+                    <p className="text-lg font-black text-white">{selectedEmployee.break_minutes}m</p>
+                    {(selectedEmployee.paid_break_minutes ?? 0) > 0 && (
+                      <p className="text-[10px] font-bold text-[var(--on-glass-dim)] uppercase tracking-widest">{selectedEmployee.paid_break_minutes}m paid</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Overtime */}
+              {(selectedEmployee.overtime_hours ?? 0) > 0 && (
+                <div className="flex items-center justify-between p-4 rounded-2xl bg-[var(--primary-600)]/10 border border-[var(--primary-600)]/20">
+                  <p className="text-[10px] font-black text-[var(--primary-600)] uppercase tracking-widest">Overtime</p>
+                  <p className="text-lg font-black text-[var(--primary-600)]">{fmtHours(n(selectedEmployee.overtime_hours))}</p>
+                </div>
+              )}
+            </div>
+          );
+        })()}
+      </Modal>
     </DashboardLayout>
   );
 }
