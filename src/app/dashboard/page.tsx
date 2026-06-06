@@ -105,26 +105,26 @@ export default function DashboardPage() {
       />
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
         {loading ? (
-          Array.from({length:6}).map((_,i) => <Skeleton key={i} className="h-28 rounded-xl" />)
+          Array.from({length:6}).map((_,i) => <Skeleton key={i} className="h-24 rounded-xl" />)
         ) : (<>
-          <KPICard title="In Office"   value={counts.in}     icon={<Wifi size={20} />}           color="var(--success-500)" bg="#10b981" />
-          <KPICard title="Late"        value={counts.late}   icon={<AlertTriangle size={20} />}  color="var(--warning-500)" bg="#f59e0b"
+          <KPICard title="In Office"   value={counts.in}     icon={<Wifi size={16} />}           color="var(--success-500)" bg="#10b981" />
+          <KPICard title="Late"        value={counts.late}   icon={<AlertTriangle size={16} />}  color="var(--warning-500)" bg="#f59e0b"
             delta={counts.late > 0 ? `${live.filter(e => e.status === 'late' && e.check_in_at).length} arrived` : undefined}
             deltaPositive={false}
           />
-          <KPICard title="Checked Out" value={counts.out}    icon={<Clock size={20} />}          color="var(--on-glass-muted)" bg="#94a3b8" />
-          <KPICard title="Remote"      value={counts.remote} icon={<Wifi size={20} />}           color="#a78bfa" bg="#8b5cf6" />
-          <KPICard title="On Leave"    value={counts.leave}  icon={<Calendar size={20} />}       color="var(--primary-500)" bg="#00C896" />
-          <KPICard title="Absent"      value={counts.absent} icon={<AlertTriangle size={20} />}  color="var(--danger-500)" bg="#ef4444"
+          <KPICard title="Checked Out" value={counts.out}    icon={<Clock size={16} />}          color="var(--on-glass-muted)" bg="#94a3b8" />
+          <KPICard title="Remote"      value={counts.remote} icon={<Wifi size={16} />}           color="#a78bfa" bg="#8b5cf6" />
+          <KPICard title="On Leave"    value={counts.leave}  icon={<Calendar size={16} />}       color="var(--primary-500)" bg="#00C896" />
+          <KPICard title="Absent"      value={counts.absent} icon={<AlertTriangle size={16} />}  color="var(--danger-500)" bg="#ef4444"
             delta={counts.absent > 0 ? `${counts.absent} no-show` : undefined}
             deltaPositive={false}
           />
         </>)}
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-4">
         {/* Main attendance grid */}
         <div className="xl:col-span-3">
           <Card>
@@ -271,7 +271,7 @@ export default function DashboardPage() {
         isOpen={!!selectedEmployee}
         onClose={() => setSelectedEmployee(null)}
         title="Attendance Detail"
-        size="md"
+        size="sm"
       >
         {selectedEmployee && (() => {
           const cfg = statusConfig[selectedEmployee.status];
@@ -284,95 +284,88 @@ export default function DashboardPage() {
           const checkedIn  = !!selectedEmployee.check_in_at;
           const checkedOut = !!selectedEmployee.check_out_at;
           return (
-            <div className="space-y-5">
+            <div className="space-y-3">
               {/* Header */}
-              <div className="flex items-center gap-4 p-5 rounded-3xl bg-[var(--glass-05)] border border-[var(--glass-border)]">
-                <Avatar name={selectedEmployee.user!.name} imageUrl={selectedEmployee.user!.avatar_url} size="lg" />
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-[var(--glass-05)] border border-[var(--glass-border)]">
+                <Avatar name={selectedEmployee.user!.name} imageUrl={selectedEmployee.user!.avatar_url} size="md" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-lg font-black text-white tracking-tight truncate">{selectedEmployee.user!.name}</p>
-                  <p className="text-xs font-bold text-[var(--on-glass-muted)] uppercase tracking-widest mt-1 truncate">
+                  <p className="text-sm font-bold text-white truncate">{selectedEmployee.user!.name}</p>
+                  <p className="text-[11px] text-[var(--on-glass-muted)] truncate">
                     {selectedEmployee.user!.job_title || selectedEmployee.user!.department || 'Employee'}
                   </p>
                 </div>
-                <Badge label={cfg.label} color={cfg.color} bg={cfg.bg} />
+                <Badge label={cfg.label} color={cfg.color} bg={cfg.bg} size="sm" />
               </div>
 
               {/* Check-in / Check-out */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 rounded-2xl bg-[var(--glass-05)] border border-[var(--glass-border)]">
-                  <p className="text-[10px] font-black text-[var(--on-glass-dim)] uppercase tracking-widest mb-3 flex items-center gap-1.5">
-                    <LogIn size={11} className="text-[var(--success-500)]" /> Check-In
+              <div className="grid grid-cols-2 gap-2">
+                <div className="p-3 rounded-xl bg-[var(--glass-05)] border border-[var(--glass-border)]">
+                  <p className="text-[10px] font-bold text-[var(--on-glass-dim)] uppercase tracking-widest mb-2 flex items-center gap-1">
+                    <LogIn size={10} className="text-[var(--success-500)]" /> Check-In
                   </p>
                   {checkedIn ? (
                     <div>
-                      <p className="text-2xl font-black text-white font-mono">{formatTime(selectedEmployee.check_in_at!)}</p>
+                      <p className="text-lg font-black text-white font-mono">{formatTime(selectedEmployee.check_in_at!)}</p>
                       {(selectedEmployee.late_minutes ?? 0) > 0 && (
-                        <p className="text-[10px] font-black text-[var(--warning-500)] uppercase tracking-widest mt-1">+{selectedEmployee.late_minutes}m late</p>
+                        <p className="text-[10px] font-bold text-[var(--warning-500)] mt-0.5">+{selectedEmployee.late_minutes}m late</p>
                       )}
                       {(selectedEmployee.early_checkin_minutes ?? 0) > 0 && (
-                        <p className="text-[10px] font-black text-[var(--success-500)] uppercase tracking-widest mt-1">{selectedEmployee.early_checkin_minutes}m early</p>
+                        <p className="text-[10px] font-bold text-[var(--success-500)] mt-0.5">{selectedEmployee.early_checkin_minutes}m early</p>
                       )}
-                      <p className="text-[10px] font-bold text-[var(--on-glass-dim)] uppercase tracking-widest mt-1.5">
+                      <p className="text-[10px] text-[var(--on-glass-dim)] mt-1">
                         {typeLabels[selectedEmployee.check_in_type] || selectedEmployee.check_in_type}
                       </p>
                     </div>
                   ) : (
-                    <p className="text-2xl font-black text-[var(--on-glass-dim)]">—</p>
+                    <p className="text-lg font-black text-[var(--on-glass-dim)]">—</p>
                   )}
                 </div>
 
-                <div className="p-4 rounded-2xl bg-[var(--glass-05)] border border-[var(--glass-border)]">
-                  <p className="text-[10px] font-black text-[var(--on-glass-dim)] uppercase tracking-widest mb-3 flex items-center gap-1.5">
-                    <LogOut size={11} className="text-[var(--gray-400)]" /> Check-Out
+                <div className="p-3 rounded-xl bg-[var(--glass-05)] border border-[var(--glass-border)]">
+                  <p className="text-[10px] font-bold text-[var(--on-glass-dim)] uppercase tracking-widest mb-2 flex items-center gap-1">
+                    <LogOut size={10} className="text-[var(--gray-400)]" /> Check-Out
                   </p>
                   {checkedOut ? (
                     <div>
-                      <p className="text-2xl font-black text-white font-mono">{formatTime(selectedEmployee.check_out_at!)}</p>
+                      <p className="text-lg font-black text-white font-mono">{formatTime(selectedEmployee.check_out_at!)}</p>
                       {(selectedEmployee.early_out_minutes ?? 0) > 0 && (
-                        <p className="text-[10px] font-black text-[var(--warning-500)] uppercase tracking-widest mt-1">-{selectedEmployee.early_out_minutes}m early</p>
+                        <p className="text-[10px] font-bold text-[var(--warning-500)] mt-0.5">-{selectedEmployee.early_out_minutes}m early</p>
                       )}
                       {selectedEmployee.auto_checked_out && (
-                        <p className="text-[10px] font-bold text-[var(--on-glass-dim)] uppercase tracking-widest mt-1.5">Auto (WiFi lost)</p>
+                        <p className="text-[10px] text-[var(--on-glass-dim)] mt-1">Auto (WiFi lost)</p>
                       )}
                     </div>
                   ) : (
-                    <p className="text-2xl font-black text-[var(--on-glass-dim)]">—</p>
+                    <p className="text-lg font-black text-[var(--on-glass-dim)]">—</p>
                   )}
                 </div>
               </div>
 
-              {/* Hours */}
-              {checkedIn && (
-                <div className="flex items-center justify-between p-4 rounded-2xl bg-[var(--glass-05)] border border-[var(--glass-border)]">
-                  <p className="text-[10px] font-black text-[var(--on-glass-dim)] uppercase tracking-widest">Time in Office</p>
-                  {selectedEmployee.hours_worked != null ? (
-                    <p className="text-lg font-black text-[var(--primary-600)]">{fmtHours(n(selectedEmployee.hours_worked))}</p>
-                  ) : !checkedOut ? (
-                    <p className="text-lg font-black text-[var(--primary-600)]"><CardElapsed checkInAt={selectedEmployee.check_in_at!} /></p>
-                  ) : null}
-                </div>
-              )}
-
-              {/* Break summary */}
-              {(selectedEmployee.break_minutes ?? 0) > 0 && (
-                <div className="flex items-center justify-between p-4 rounded-2xl bg-[var(--glass-05)] border border-[var(--glass-border)]">
-                  <p className="text-[10px] font-black text-[var(--on-glass-dim)] uppercase tracking-widest">Break Time</p>
-                  <div className="text-right">
-                    <p className="text-lg font-black text-white">{selectedEmployee.break_minutes}m</p>
-                    {(selectedEmployee.paid_break_minutes ?? 0) > 0 && (
-                      <p className="text-[10px] font-bold text-[var(--on-glass-dim)] uppercase tracking-widest">{selectedEmployee.paid_break_minutes}m paid</p>
-                    )}
+              {/* Hours row */}
+              <div className="flex gap-2">
+                {checkedIn && (
+                  <div className="flex-1 flex items-center justify-between p-3 rounded-xl bg-[var(--glass-05)] border border-[var(--glass-border)]">
+                    <p className="text-[10px] font-bold text-[var(--on-glass-dim)] uppercase tracking-widest">Time In</p>
+                    {selectedEmployee.hours_worked != null ? (
+                      <p className="text-sm font-black text-[var(--primary-600)]">{fmtHours(n(selectedEmployee.hours_worked))}</p>
+                    ) : !checkedOut ? (
+                      <p className="text-sm font-black text-[var(--primary-600)]"><CardElapsed checkInAt={selectedEmployee.check_in_at!} /></p>
+                    ) : null}
                   </div>
-                </div>
-              )}
-
-              {/* Overtime */}
-              {(selectedEmployee.overtime_hours ?? 0) > 0 && (
-                <div className="flex items-center justify-between p-4 rounded-2xl bg-[var(--primary-600)]/10 border border-[var(--primary-600)]/20">
-                  <p className="text-[10px] font-black text-[var(--primary-600)] uppercase tracking-widest">Overtime</p>
-                  <p className="text-lg font-black text-[var(--primary-600)]">{fmtHours(n(selectedEmployee.overtime_hours))}</p>
-                </div>
-              )}
+                )}
+                {(selectedEmployee.break_minutes ?? 0) > 0 && (
+                  <div className="flex-1 flex items-center justify-between p-3 rounded-xl bg-[var(--glass-05)] border border-[var(--glass-border)]">
+                    <p className="text-[10px] font-bold text-[var(--on-glass-dim)] uppercase tracking-widest">Break</p>
+                    <p className="text-sm font-black text-white">{selectedEmployee.break_minutes}m</p>
+                  </div>
+                )}
+                {(selectedEmployee.overtime_hours ?? 0) > 0 && (
+                  <div className="flex-1 flex items-center justify-between p-3 rounded-xl bg-[var(--primary-600)]/10 border border-[var(--primary-600)]/20">
+                    <p className="text-[10px] font-bold text-[var(--primary-600)] uppercase tracking-widest">OT</p>
+                    <p className="text-sm font-black text-[var(--primary-600)]">{fmtHours(n(selectedEmployee.overtime_hours))}</p>
+                  </div>
+                )}
+              </div>
             </div>
           );
         })()}

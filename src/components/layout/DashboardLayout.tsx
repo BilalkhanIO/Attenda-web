@@ -342,10 +342,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               </button>
 
               {bellOpen && (
-                <div className="absolute right-0 top-12 z-30 w-96 bg-[var(--dark-800)] rounded-2xl shadow-2xl border border-[var(--glass-border)] flex flex-col max-h-[520px] fade-in-up overflow-hidden">
+                <div className="absolute right-0 top-11 z-30 w-80 bg-[var(--dark-800)] rounded-2xl shadow-2xl border border-[var(--glass-border)] flex flex-col max-h-100 fade-in-up overflow-hidden">
                   {/* Header */}
-                  <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--glass-border)]">
-                    <span className="text-sm font-bold text-white uppercase tracking-wide">
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--glass-border)]">
+                    <span className="text-xs font-bold text-white uppercase tracking-wide">
                       Notifications {unreadCount > 0 && <span className="ml-1 text-[var(--primary-600)]">({unreadCount})</span>}
                     </span>
                     {unreadCount > 0 && (
@@ -353,7 +353,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                         onClick={handleMarkAllRead}
                         className="text-xs text-[var(--primary-600)] hover:text-[var(--secondary)] font-bold transition-colors flex items-center gap-1"
                       >
-                        <Check size={14} /> Mark all read
+                        <Check size={12} /> Mark all read
                       </button>
                     )}
                   </div>
@@ -373,36 +373,36 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                       <div
                         key={n.id}
                         className={cn(
-                          'flex gap-4 px-5 py-4 border-b border-[var(--glass-border)] hover:bg-[var(--glass-05)] transition-colors group',
+                          'flex gap-3 px-4 py-3 border-b border-[var(--glass-border)] hover:bg-[var(--glass-05)] transition-colors group',
                           !n.read_at && 'bg-[var(--primary-600)]/5'
                         )}
                       >
-                        <span className="text-xl flex-shrink-0 mt-0.5">
+                        <span className="text-base flex-shrink-0 mt-0.5">
                           {NOTIF_ICONS[n.type] ?? '🔔'}
                         </span>
                         <div className="flex-1 min-w-0">
-                          <p className={cn('text-sm leading-snug', !n.read_at ? 'font-bold text-white' : 'text-[var(--on-glass-sub)]')}>
+                          <p className={cn('text-xs leading-snug', !n.read_at ? 'font-bold text-white' : 'text-[var(--on-glass-sub)]')}>
                             {n.title}
                           </p>
-                          <p className="text-xs text-[var(--on-glass-muted)] mt-1 line-clamp-2">{n.body}</p>
-                          <p className="text-[10px] text-[var(--on-glass-dim)] mt-2 font-medium">{timeAgo(n.created_at)}</p>
+                          <p className="text-[11px] text-[var(--on-glass-muted)] mt-0.5 line-clamp-1">{n.body}</p>
+                          <p className="text-[10px] text-[var(--on-glass-dim)] mt-1">{timeAgo(n.created_at)}</p>
                         </div>
-                        <div className="flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                        <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
                           {!n.read_at && (
                             <button
                               onClick={() => handleMarkRead(n.id)}
-                              className="p-1.5 rounded-lg text-[var(--primary-600)] hover:bg-[var(--primary-600)]/10 transition-colors"
+                              className="p-1 rounded text-[var(--primary-600)] hover:bg-[var(--primary-600)]/10 transition-colors"
                               title="Mark as read"
                             >
-                              <Check size={14} />
+                              <Check size={12} />
                             </button>
                           )}
                           <button
                             onClick={() => handleDelete(n.id, !n.read_at)}
-                            className="p-1.5 rounded-lg text-[var(--danger-500)] hover:bg-[var(--danger-500)]/10 transition-colors"
+                            className="p-1 rounded text-[var(--danger-500)] hover:bg-[var(--danger-500)]/10 transition-colors"
                             title="Delete"
                           >
-                            <Trash2 size={14} />
+                            <Trash2 size={12} />
                           </button>
                         </div>
                       </div>

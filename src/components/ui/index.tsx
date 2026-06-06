@@ -226,19 +226,19 @@ interface KPICardProps {
 
 export function KPICard({ title, value, icon, color, bg, delta, deltaPositive }: KPICardProps) {
   return (
-    <Card className="p-5 hover:bg-[var(--glass-15)] hover:border-[var(--glass-high)] transition-all duration-300 group cursor-default">
+    <Card className="p-4 hover:bg-[var(--glass-15)] hover:border-[var(--glass-high)] transition-all duration-300 group cursor-default">
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <p className="text-[11px] text-[var(--on-glass-muted)] font-black uppercase tracking-[0.1em]">{title}</p>
-          <p className="text-3xl font-black mt-2.5 tracking-tight text-white group-hover:text-[var(--primary-600)] transition-colors">{value}</p>
+          <p className="text-[10px] text-[var(--on-glass-muted)] font-black uppercase tracking-[0.1em]">{title}</p>
+          <p className="text-2xl font-black mt-2 tracking-tight text-white group-hover:text-[var(--primary-600)] transition-colors">{value}</p>
           {delta && (
-            <div className={cn('inline-flex items-center gap-1 mt-3 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider', deltaPositive ? 'bg-[var(--success-500)]/20 text-[var(--success-500)]' : 'bg-[var(--danger-500)]/20 text-[var(--danger-500)]')}>
+            <div className={cn('inline-flex items-center gap-1 mt-2 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider', deltaPositive ? 'bg-[var(--success-500)]/20 text-[var(--success-500)]' : 'bg-[var(--danger-500)]/20 text-[var(--danger-500)]')}>
               <span>{deltaPositive ? '↑' : '↓'}</span>
               <span>{delta}</span>
             </div>
           )}
         </div>
-        <div className="w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-500 group-hover:scale-110 group-hover:rotate-6 shadow-xl" style={{ backgroundColor: bg + '20', color: bg, border: `1px solid ${bg}40` }}>
+        <div className="w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-500 group-hover:scale-110 group-hover:rotate-6 shadow-lg" style={{ backgroundColor: bg + '20', color: bg, border: `1px solid ${bg}40` }}>
           {icon}
         </div>
       </div>
@@ -285,22 +285,22 @@ export function Modal({ isOpen, onClose, title, children, size = 'md', footer }:
       style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
       onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}
     >
-      <div className={cn('w-full bg-[var(--dark-950)]/80 backdrop-blur-xl rounded-3xl border border-[var(--glass-border)] shadow-2xl modal-animate flex flex-col max-h-[90vh] overflow-hidden', sizes[size])}>
+      <div className={cn('w-full bg-[var(--dark-950)]/80 backdrop-blur-xl rounded-2xl border border-[var(--glass-border)] shadow-2xl modal-animate flex flex-col max-h-[85vh] overflow-hidden', sizes[size])}>
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-[var(--glass-border)] flex-shrink-0">
-          <h2 className="text-xl font-black text-white tracking-tight">{title}</h2>
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-[var(--glass-border)] flex-shrink-0">
+          <h2 className="text-base font-black text-white tracking-tight">{title}</h2>
           <button
             onClick={onClose}
-            className="w-10 h-10 flex items-center justify-center rounded-xl text-[var(--on-glass-dim)] hover:bg-[var(--glass-10)] hover:text-white transition-all active:scale-90"
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--on-glass-dim)] hover:bg-[var(--glass-10)] hover:text-white transition-all active:scale-90"
           >
-            <X size={20} />
+            <X size={16} />
           </button>
         </div>
         {/* Body */}
-        <div className="p-6 overflow-y-auto flex-1 custom-scrollbar">{children}</div>
+        <div className="p-5 overflow-y-auto flex-1 custom-scrollbar">{children}</div>
         {/* Footer */}
         {footer && (
-          <div className="flex items-center justify-end gap-4 p-6 border-t border-[var(--glass-border)] bg-[var(--glass-05)] flex-shrink-0">
+          <div className="flex items-center justify-end gap-3 px-5 py-3.5 border-t border-[var(--glass-border)] bg-[var(--glass-05)] flex-shrink-0">
             {footer}
           </div>
         )}
@@ -513,13 +513,13 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, subtitle, breadcrumb, actions }: PageHeaderProps) {
   return (
-    <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
+    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-5">
       <div>
         {breadcrumb && breadcrumb.length > 0 && (
-          <nav className="flex items-center gap-2 mb-3">
+          <nav className="flex items-center gap-1.5 mb-2">
             {breadcrumb.map((crumb, i) => (
-              <span key={crumb.label} className="flex items-center gap-2">
-                {i > 0 && <ChevronRight size={14} className="text-[var(--on-glass-dim)]" />}
+              <span key={crumb.label} className="flex items-center gap-1.5">
+                {i > 0 && <ChevronRight size={12} className="text-[var(--on-glass-dim)]" />}
                 {crumb.href ? (
                   <a href={crumb.href} className="text-xs font-bold text-[var(--primary-600)] hover:text-[var(--secondary)] transition-colors">{crumb.label}</a>
                 ) : (
@@ -529,10 +529,10 @@ export function PageHeader({ title, subtitle, breadcrumb, actions }: PageHeaderP
             ))}
           </nav>
         )}
-        <h1 className="text-3xl font-black text-white tracking-tight">{title}</h1>
-        {subtitle && <p className="text-sm font-medium text-[var(--on-glass-muted)] mt-1.5">{subtitle}</p>}
+        <h1 className="text-2xl font-black text-white tracking-tight">{title}</h1>
+        {subtitle && <p className="text-xs font-medium text-[var(--on-glass-muted)] mt-1">{subtitle}</p>}
       </div>
-      {actions && <div className="flex items-center gap-3">{actions}</div>}
+      {actions && <div className="flex items-center gap-2.5">{actions}</div>}
     </div>
   );
 }
@@ -815,6 +815,20 @@ export function ActionMenu({ items }: { items: ActionMenuItem[] }) {
       ))}
     </div>
   );
+}
+
+// ─── Role Badge ────────────────────────────────────────────
+const ROLE_STYLES: Record<string, { label: string; color: string; bg: string }> = {
+  super_admin:    { label: 'Super Admin',  color: '#a78bfa', bg: '#8b5cf6' },
+  hr_admin:       { label: 'HR Admin',     color: '#38bdf8', bg: '#0ea5e9' },
+  manager:        { label: 'Manager',      color: '#00C896', bg: '#00C896' },
+  employee:       { label: 'Employee',     color: '#94a3b8', bg: '#64748b' },
+  platform_admin: { label: 'Platform',     color: '#f59e0b', bg: '#f59e0b' },
+};
+
+export function RoleBadge({ role, size = 'sm' }: { role: string; size?: 'sm' | 'md' }) {
+  const s = ROLE_STYLES[role] ?? { label: role.replace(/_/g, ' '), color: '#94a3b8', bg: '#64748b' };
+  return <Badge label={s.label} color={s.color} bg={s.bg} size={size} />;
 }
 
 // ─── Notification Toast wrapper (used with react-hot-toast) ─
