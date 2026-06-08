@@ -1,6 +1,7 @@
 'use client';
 import {
   ReactNode,
+  CSSProperties,
   Children,
   ButtonHTMLAttributes,
   InputHTMLAttributes,
@@ -205,9 +206,9 @@ export function Avatar({ name, imageUrl, size = 'md' }: AvatarProps) {
 }
 
 // ─── Card ─────────────────────────────────────────────
-export function Card({ children, className }: { children: ReactNode; className?: string }) {
+export function Card({ children, className, style }: { children: ReactNode; className?: string; style?: CSSProperties }) {
   return (
-    <div className={cn('bg-[var(--glass-10)] backdrop-blur-md rounded-2xl border border-[var(--glass-border)] shadow-xl overflow-hidden', className)}>
+    <div className={cn('bg-[var(--glass-10)] backdrop-blur-md rounded-2xl border border-[var(--glass-border)] shadow-xl overflow-hidden', className)} style={style}>
       {children}
     </div>
   );
@@ -989,7 +990,7 @@ export function RequestItem({ name, avatarUrl, primary, primaryColor, secondary,
       </div>
       {actions ?? ((onApprove || onReject) && (
         <div className="flex gap-1.5 shrink-0">
-          {onApprove && <button onClick={onApprove} disabled={loading} className="action-btn action-btn-approve"><Check size={12} /></button>}
+          {onApprove && <button onClick={onApprove} disabled={loading} className="action-btn action-btn-approve"><CheckIcon size={12} /></button>}
           {onReject  && <button onClick={onReject}  disabled={loading} className="action-btn action-btn-reject"><X size={12} /></button>}
         </div>
       ))}

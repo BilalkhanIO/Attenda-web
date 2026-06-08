@@ -99,7 +99,7 @@ export default function OvertimeSettingsPage() {
         await overtimeApi.updateRule(editRule.id, form as unknown as Record<string, unknown>);
         toast.success('Overtime rule updated');
       } else {
-        await overtimeApi.createRule(form);
+        await overtimeApi.createRule(form as unknown as Record<string, unknown>);
         toast.success('Overtime rule created');
       }
       setModalOpen(false);

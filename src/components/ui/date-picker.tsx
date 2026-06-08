@@ -294,9 +294,10 @@ interface DatePickerProps {
   disabled?: boolean;
   minDate?: string;
   maxDate?: string;
+  className?: string;
 }
 
-export function DatePicker({ label, value, onChange, placeholder = 'Select date', error, required, disabled, minDate, maxDate }: DatePickerProps) {
+export function DatePicker({ label, value, onChange, placeholder = 'Select date', error, required, disabled, minDate, maxDate, className }: DatePickerProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -316,7 +317,7 @@ export function DatePicker({ label, value, onChange, placeholder = 'Select date'
   const nextMonth = () => viewMonth === 11 ? (setViewYear(y => y + 1), setViewMonth(0)) : setViewMonth(m => m + 1);
 
   return (
-    <div className="relative" ref={ref}>
+    <div className={cn('relative', className)} ref={ref}>
       <Trigger
         icon={<Calendar size={15} />}
         hasValue={!!value}
