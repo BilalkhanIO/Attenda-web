@@ -139,6 +139,65 @@ body {
   background: var(--gray-300);
 }
 
+/* ── Reusable utility classes ────────────────────────────── */
+
+/* Compact glass info panel */
+.panel {
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  background: var(--glass-05);
+  border: 1px solid var(--glass-border);
+}
+
+/* Tiny uppercase label */
+.label-xs {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--on-glass-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* Standard glass card — use instead of repeating bg/border/backdrop */
+.glass-card {
+  background: var(--glass-10);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 1rem;
+  border: 1px solid var(--glass-border);
+  overflow: hidden;
+}
+
+/* Compact item row (e.g. approval lists) */
+.item-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  background: var(--glass-05);
+  border: 1px solid var(--glass-border);
+}
+
+/* Icon action button (approve/reject small squares) */
+.action-btn {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: filter 0.15s;
+  color: white;
+  flex-shrink: 0;
+}
+.action-btn:hover { filter: brightness(1.15); }
+.action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.action-btn-approve { background: var(--success-500); }
+.action-btn-reject  { background: var(--danger-500); }
+
+/* ─────────────────────────────────────────────────────────── */
+
 /* Glass effect — Aurora Liquid Glass 2026 */
 .glass {
   background: var(--glass-12);

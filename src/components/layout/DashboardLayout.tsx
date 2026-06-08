@@ -2,7 +2,6 @@
 import { ReactNode, useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import Cookies from 'js-cookie';
 import { useAuth } from '@/lib/auth';
 import { cn } from '@/lib/utils';
 import {
@@ -12,7 +11,7 @@ import {
 } from 'lucide-react';
 import { Avatar } from '@/components/ui';
 import AttendaLogo from '@/components/ui/AttendaLogo';
-import { notificationApi } from '@/lib/api';
+import { notificationApi, getAccessToken } from '@/lib/api';
 import type { AuthRole, InAppNotification } from '@/types';
 import TrialBanner from '@/components/TrialBanner';
 import AIChatWidget from '@/components/AIChatWidget';
@@ -138,7 +137,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   // SSE: subscribe to live unread count
   useEffect(() => {
     if (!user) return;
-    const token = Cookies.get('access_token');
+    const token = getAccessToken();
     if (!token) return;
 
     const apiBase = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1');

@@ -3,8 +3,9 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import {
   PageHeader, Card, Table, Avatar, Badge, Button, Modal, Input, Textarea,
-  EmptyState
+  EmptyState, StatBox, SectionCard, RequestItem, Dropdown, DatePicker, DateTimePicker,
 } from '@/components/ui';
+import type { DropdownOption } from '@/components/ui';
 import { attendanceApi, remoteApi, overtimeApi } from '@/lib/api';
 import { statusConfig, formatTime, formatDate, getApiError } from '@/lib/utils';
 import type { AttendanceRecord } from '@/types';
@@ -12,7 +13,7 @@ import {
   Clock, Edit2, Download, Calendar, Coffee, PlayCircle, StopCircle,
   Home, Check, X, LogIn, LogOut, Wifi, WifiOff, AlertTriangle, CheckCircle2,
 } from 'lucide-react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
@@ -38,13 +39,10 @@ interface OvertimeRequest {
   attendance?: { date: string; shift?: { name: string } };
 }
 
-interface BreakStatus {
-  on_break: boolean;
-  break_type?: string;
-  started_at?: string;
-  total_break_minutes?: number;
-  breaks?: { break_type: string; started_at: string; ended_at?: string; minutes?: number }[];
-  available_breaks?: { id: string; name: string; break_kind?: string; break_minutes: number; allowed_count_per_shift?: number; is_paid?: boolean; type?: string }[];
+interface TodayStatus {
+  active_break?: { break_type: string; break_start: string; break_end?: string } | null;
+  attendance?: { break_minutes?: number; break_records?: { break_type: string; break_start: string; break_end?: string; duration_mins?: number }[] } | null;
+  shift?: { breaks?: { id: string; name: string; break_kind?: string; break_minutes: number; allowed_count_per_shift?: number; is_paid?: boolean }[] } | null;
 }
 
 // ─── helpers ──────────────────────────────────────────
@@ -130,8 +128,8 @@ export default function AttendancePage() {
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [statusFilter, setStatusFilter] = useState('');
 
-  // Break tracking
-  const [breakStatus, setBreakStatus] = useState<BreakStatus | null>(null);
+  // Break tracking — sourced from today-status (single source of truth)
+  const [todayStatus, setTodayStatus] = useState<TodayStatus | null>(null);
   const [breakLoading, setBreakLoading] = useState(false);
 
   // Remote requests (managers)
@@ -185,11 +183,11 @@ export default function AttendancePage() {
     } catch { /* ignore */ }
   }, [hasRole]);
 
-  const loadBreakStatus = useCallback(async () => {
+  const loadTodayStatus = useCallback(async () => {
     try {
-      const { data } = await attendanceApi.getBreakStatus();
-      setBreakStatus(data.data || null);
-    } catch { /* break endpoint may not be live */ }
+      const { data } = await attendanceApi.getTodayStatus();
+      setTodayStatus(data.data || null);
+    } catch { /* ignore */ }
   }, []);
 
   const fetchOrgAttendance = useCallback(async () => {
@@ -223,11 +221,11 @@ export default function AttendancePage() {
 
   useEffect(() => {
     loadMyRecord();
-    loadBreakStatus();
+    loadTodayStatus();
     loadRemoteSessions();
     loadOvertimeRequests();
     loadTeamNotices();
-  }, [loadMyRecord, loadBreakStatus, loadRemoteSessions, loadOvertimeRequests, loadTeamNotices]);
+  }, [loadMyRecord, loadTodayStatus, loadRemoteSessions, loadOvertimeRequests, loadTeamNotices]);
 
   useEffect(() => { fetchOrgAttendance(); }, [fetchOrgAttendance]);
 
@@ -238,7 +236,7 @@ export default function AttendancePage() {
       await attendanceApi.checkIn({ type: 'manual' });
       toast.success('Checked in successfully');
       loadMyRecord();
-      loadBreakStatus();
+      loadTodayStatus();
       fetchOrgAttendance();
     } catch (err) {
       toast.error(getApiError(err));
@@ -253,7 +251,7 @@ export default function AttendancePage() {
       await attendanceApi.checkOut();
       toast.success('Checked out successfully');
       loadMyRecord();
-      loadBreakStatus();
+      loadTodayStatus();
       fetchOrgAttendance();
     } catch (err) {
       toast.error(getApiError(err));
@@ -284,7 +282,7 @@ export default function AttendancePage() {
     try {
       await attendanceApi.startBreak(breakType, shiftBreakId);
       toast.success(`${breakType === 'meal' ? 'Meal' : 'Rest'} break started`);
-      loadBreakStatus();
+      loadTodayStatus();
     } catch (err) {
       toast.error(getApiError(err));
     } finally {
@@ -297,7 +295,7 @@ export default function AttendancePage() {
     try {
       await attendanceApi.endBreak();
       toast.success('Break ended');
-      loadBreakStatus();
+      loadTodayStatus();
     } catch (err) {
       toast.error(getApiError(err));
     } finally {
@@ -428,7 +426,8 @@ export default function AttendancePage() {
   };
 
   // ─── Derived values ────────────────────────────────────
-  const filtered    = records.filter(r => !statusFilter || r.status === statusFilter);
+  const filtered = records.filter(r => !statusFilter || r.status === statusFilter);
+  const statusOptions: DropdownOption[] = Object.entries(statusConfig).map(([key, cfg]) => ({ value: key, label: cfg.label }));
   const isCheckedIn  = myRecord?.check_in_at && !myRecord?.check_out_at;
   const isCheckedOut = !!myRecord?.check_out_at;
 
@@ -476,90 +475,68 @@ export default function AttendancePage() {
         }
       />
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 mb-4">
         {/* ── My Attendance Status Card ───────────────────── */}
         <div className="xl:col-span-2">
-          <Card className="p-6 relative overflow-hidden h-full">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-[var(--primary-600)]/5 blur-[80px] rounded-full translate-x-1/2 -translate-y-1/2 pointer-events-none" />
+          <Card className="p-4 relative overflow-hidden h-full">
+            <div className="absolute top-0 right-0 w-48 h-48 bg-[var(--primary-600)]/5 blur-[60px] rounded-full translate-x-1/2 -translate-y-1/2 pointer-events-none" />
 
-            <div className="flex items-start justify-between mb-8 relative z-10">
+            <div className="flex items-center justify-between mb-3 relative z-10">
               <div>
-                <p className="text-[10px] font-black text-[var(--primary-600)] uppercase tracking-[0.2em] mb-1.5">Employee Status</p>
-                <h3 className="text-2xl font-black text-white tracking-tight">My Attendance</h3>
+                <p className="text-[10px] font-black text-[var(--primary-600)] uppercase tracking-[0.2em]">Employee Status</p>
+                <h3 className="text-lg font-black text-white tracking-tight">My Attendance</h3>
               </div>
-              <div className="flex flex-col items-end">
+              <div>
                 {myStatusConfig ? (
-                  <Badge label={myStatusConfig.label} color={myStatusConfig.color} bg={myStatusConfig.bg} />
+                  <Badge label={myStatusConfig.label} color={myStatusConfig.color} bg={myStatusConfig.bg} size="sm" />
                 ) : (
-                  <Badge label="NOT CHECKED IN" color="var(--on-glass-dim)" bg="#334155" />
+                  <Badge label="NOT CHECKED IN" color="var(--on-glass-dim)" bg="#334155" size="sm" />
                 )}
               </div>
             </div>
 
             {/* Content Strip */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8 relative z-10">
-              {/* Check In */}
-              <div className="p-4 rounded-2xl bg-[var(--glass-05)] border border-[var(--glass-border)]">
-                 <p className="text-[10px] font-black text-[var(--on-glass-muted)] uppercase tracking-widest mb-2 flex items-center gap-1.5">
-                   <LogIn size={12} className="text-[var(--success-500)]" /> Check In
-                 </p>
-                 <p className="text-xl font-black text-white font-mono">
-                   {myRecord?.check_in_at ? formatTime(myRecord.check_in_at) : '--:--'}
-                 </p>
-              </div>
-
-              {/* Check Out / Elapsed */}
-              <div className="p-4 rounded-2xl bg-[var(--glass-05)] border border-[var(--glass-border)]">
-                 {myRecord?.check_out_at ? (
-                   <>
-                    <p className="text-[10px] font-black text-[var(--on-glass-muted)] uppercase tracking-widest mb-2 flex items-center gap-1.5">
-                      <LogOut size={12} className="text-[var(--on-glass-dim)]" /> Check Out
-                    </p>
-                    <p className="text-xl font-black text-white font-mono">{formatTime(myRecord.check_out_at)}</p>
-                   </>
-                 ) : (
-                   <>
-                    <p className="text-[10px] font-black text-[var(--on-glass-muted)] uppercase tracking-widest mb-2 flex items-center gap-1.5">
-                      <Clock size={12} className="text-[var(--primary-600)]" /> Hours Worked
-                    </p>
-                    <p className="text-xl font-black text-[var(--primary-600)] font-mono">{elapsed || '00:00'}</p>
-                   </>
-                 )}
-              </div>
-
-              {/* Total Hours */}
-              <div className="p-4 rounded-2xl bg-[var(--glass-05)] border border-[var(--glass-border)]">
-                 <p className="text-[10px] font-black text-[var(--on-glass-muted)] uppercase tracking-widest mb-2 flex items-center gap-1.5">
-                   <CheckCircle2 size={12} className="text-[var(--secondary)]" /> Total Hours
-                 </p>
-                 <p className="text-xl font-black text-white">
-                   {myRecord?.hours_worked != null ? `${n(myRecord.hours_worked).toFixed(1)}h` : '0.0h'}
-                 </p>
-              </div>
-
-              {/* Method */}
-              <div className="p-4 rounded-2xl bg-[var(--glass-05)] border border-[var(--glass-border)]">
-                 <p className="text-[10px] font-black text-[var(--on-glass-muted)] uppercase tracking-widest mb-2 flex items-center gap-1.5">
-                   <Wifi size={12} className="text-[var(--on-glass-dim)]" /> Method
-                 </p>
-                 <p className="text-sm font-bold text-white/70 truncate">
-                   {myRecord ? (typeLabel[myRecord.check_in_type || myRecord.type!] || 'MANUAL') : '---'}
-                 </p>
-              </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3 relative z-10">
+              <StatBox
+                label="Check In"
+                labelIcon={<LogIn size={10} className="text-[var(--success-500)]" />}
+                value={<span className="font-mono">{myRecord?.check_in_at ? formatTime(myRecord.check_in_at) : '--:--'}</span>}
+              />
+              <StatBox
+                label={myRecord?.check_out_at ? 'Check Out' : 'Live'}
+                labelIcon={myRecord?.check_out_at
+                  ? <LogOut size={10} className="text-[var(--on-glass-dim)]" />
+                  : <Clock size={10} className="text-[var(--primary-600)]" />}
+                value={
+                  <span className={`font-mono ${myRecord?.check_out_at ? 'text-white' : 'text-[var(--primary-600)]'}`}>
+                    {myRecord?.check_out_at ? formatTime(myRecord.check_out_at) : (elapsed || '00:00')}
+                  </span>
+                }
+              />
+              <StatBox
+                label="Hours"
+                labelIcon={<CheckCircle2 size={10} className="text-[var(--secondary)]" />}
+                value={myRecord?.hours_worked != null ? `${n(myRecord.hours_worked).toFixed(1)}h` : '0.0h'}
+              />
+              <StatBox
+                label="Method"
+                labelIcon={<Wifi size={10} className="text-[var(--on-glass-dim)]" />}
+                value={<span className="text-xs text-white/70 font-mono">{myRecord ? (typeLabel[myRecord.check_in_type || myRecord.type!] || 'MANUAL') : '---'}</span>}
+              />
             </div>
 
             {/* Compliance Alerts */}
             {myRecord?.check_in_at && (
               ((myRecord.late_minutes ?? 0) > 0 || (myRecord.early_out_minutes ?? 0) > 0) && (
-                <div className="flex flex-wrap gap-2 mb-8">
+                <div className="flex flex-wrap gap-2 mb-3">
                   {(myRecord.late_minutes ?? 0) > 0 && (
-                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[var(--danger-500)]/10 border border-[var(--danger-500)]/20 text-[10px] font-black text-[var(--danger-500)] uppercase tracking-widest">
-                       <AlertTriangle size={12} /> {myRecord.late_minutes}M Late Arrival
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[var(--danger-500)]/10 border border-[var(--danger-500)]/20 text-[10px] font-black text-[var(--danger-500)] uppercase tracking-widest">
+                       <AlertTriangle size={10} /> {myRecord.late_minutes}M Late
                     </div>
                   )}
                   {(myRecord.early_out_minutes ?? 0) > 0 && (
-                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[var(--warning-500)]/10 border border-[var(--warning-500)]/20 text-[10px] font-black text-[var(--warning-500)] uppercase tracking-widest">
-                       <LogOut size={12} /> {myRecord.early_out_minutes}M Early Exit
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[var(--warning-500)]/10 border border-[var(--warning-500)]/20 text-[10px] font-black text-[var(--warning-500)] uppercase tracking-widest">
+                       <LogOut size={10} /> {myRecord.early_out_minutes}M Early
                     </div>
                   )}
                 </div>
@@ -567,13 +544,12 @@ export default function AttendancePage() {
             )}
 
             {/* Main Actions */}
-            <div className="flex items-center gap-4 relative z-10 pt-4 border-t border-[var(--glass-border)]">
+            <div className="flex items-center gap-3 relative z-10 pt-3 border-t border-[var(--glass-border)]">
               {!myRecord?.check_in_at ? (
                 <>
                   <Button
-                    size="lg"
-                    className="px-10"
-                    icon={<LogIn size={18} />}
+                    size="sm"
+                    icon={<LogIn size={14} />}
                     loading={checkInLoading}
                     onClick={handleCheckIn}
                   >
@@ -582,8 +558,8 @@ export default function AttendancePage() {
                   {!myLateNotice && (
                     <Button
                       variant="ghost"
-                      size="lg"
-                      icon={<AlertTriangle size={18} />}
+                      size="sm"
+                      icon={<AlertTriangle size={14} />}
                       onClick={() => setLateNoticeModalOpen(true)}
                     >
                       Report Late
@@ -593,9 +569,9 @@ export default function AttendancePage() {
               ) : isCheckedIn && !isCheckedOut ? (
                 <Button
                   variant="outline"
-                  size="lg"
-                  className="px-10 border-[var(--danger-500)]/30 text-[var(--danger-500)] hover:bg-[var(--danger-500)]/10"
-                  icon={<LogOut size={18} />}
+                  size="sm"
+                  className="border-[var(--danger-500)]/30 text-[var(--danger-500)] hover:bg-[var(--danger-500)]/10"
+                  icon={<LogOut size={14} />}
                   loading={checkOutLoading}
                   onClick={handleCheckOut}
                 >
@@ -603,26 +579,25 @@ export default function AttendancePage() {
                 </Button>
               ) : isCheckedOut ? (
                 <>
-                  <div className="flex items-center gap-3 text-[var(--on-glass-muted)]">
-                     <div className="w-8 h-8 rounded-full bg-[var(--success-500)]/20 flex items-center justify-center">
-                        <Check size={16} className="text-[var(--success-500)]" />
+                  <div className="flex items-center gap-2 text-[var(--on-glass-muted)]">
+                     <div className="w-6 h-6 rounded-full bg-[var(--success-500)]/20 flex items-center justify-center">
+                        <Check size={12} className="text-[var(--success-500)]" />
                      </div>
-                     <span className="text-sm font-bold uppercase tracking-widest">Attendance Complete</span>
+                     <span className="text-xs font-bold uppercase tracking-widest">Complete</span>
                   </div>
                   {(myRecord.extra_office_minutes ?? 0) > 0 && (
-                    <Button variant="outline" size="sm" icon={<Clock size={14} />} loading={overtimeLoading} onClick={handleRequestOvertime}>
+                    <Button variant="outline" size="sm" icon={<Clock size={13} />} loading={overtimeLoading} onClick={handleRequestOvertime}>
                       Request Overtime
                     </Button>
                   )}
                 </>
               ) : null}
 
-              {/* Late notice pending indicator */}
               {myLateNotice && !myRecord?.check_in_at && (
-                <div className="flex items-center gap-3 px-4 py-2 bg-[var(--warning-500)]/10 border border-[var(--warning-500)]/20 rounded-2xl text-[10px] font-black text-[var(--warning-500)] uppercase tracking-widest">
-                   <Clock size={12} /> Late notice active: {myLateNotice.expected_time}
-                   <button onClick={handleCancelMyNotice} className="ml-2 hover:text-white transition-colors">
-                     <X size={14} />
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-[var(--warning-500)]/10 border border-[var(--warning-500)]/20 rounded-xl text-[10px] font-black text-[var(--warning-500)] uppercase tracking-widest">
+                   <Clock size={10} /> Late: {myLateNotice.expected_time}
+                   <button onClick={handleCancelMyNotice} className="ml-1 hover:text-white transition-colors">
+                     <X size={12} />
                    </button>
                 </div>
               )}
@@ -633,19 +608,19 @@ export default function AttendancePage() {
         {/* ── Break Tracking Card ─────────────────────────── */}
         <div className="xl:col-span-1">
           <Card className={cn(
-            "p-6 h-full flex flex-col transition-all duration-500",
-            breakStatus?.on_break ? "bg-[var(--warning-500)]/10 border-[var(--warning-500)]/30" : "bg-[var(--glass-05)]"
+            "p-4 h-full flex flex-col transition-all duration-500",
+            todayStatus?.active_break != null ? "bg-[var(--warning-500)]/10 border-[var(--warning-500)]/30" : "bg-[var(--glass-05)]"
           )}>
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                 <div className="w-10 h-10 rounded-xl bg-[var(--glass-10)] flex items-center justify-center">
-                    <Coffee size={20} className={breakStatus?.on_break ? "text-[var(--warning-500)]" : "text-[var(--on-glass-dim)]"} />
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2.5">
+                 <div className="w-8 h-8 rounded-xl bg-[var(--glass-10)] flex items-center justify-center">
+                    <Coffee size={16} className={todayStatus?.active_break != null ? "text-[var(--warning-500)]" : "text-[var(--on-glass-dim)]"} />
                  </div>
                  <div>
-                    <h3 className="text-sm font-black text-white uppercase tracking-widest">Break Tracking</h3>
-                    {breakStatus?.total_break_minutes != null && (
-                      <p className="text-[10px] font-bold text-[var(--on-glass-muted)] uppercase tracking-widest mt-0.5">
-                        {breakStatus.total_break_minutes}m total today
+                    <h3 className="text-xs font-black text-white uppercase tracking-widest">Break Tracking</h3>
+                    {todayStatus?.attendance?.break_minutes != null && (
+                      <p className="text-[10px] text-[var(--on-glass-muted)] mt-0.5">
+                        {todayStatus.attendance.break_minutes}m today
                       </p>
                     )}
                  </div>
@@ -654,61 +629,60 @@ export default function AttendancePage() {
 
             {isCheckedIn ? (
               <div className="flex-1 flex flex-col">
-                <div className="flex flex-col gap-3 mb-6">
-                  {breakStatus?.on_break ? (
-                    <div className="space-y-4">
-                      <div className="p-4 rounded-2xl bg-white/5 border border-[var(--warning-500)]/20">
-                         <p className="text-[10px] font-black text-[var(--warning-500)] uppercase tracking-[0.2em] mb-1">Status: On Break</p>
-                         <p className="text-lg font-black text-white uppercase">{breakStatus.break_type} Break Active</p>
-                         {breakStatus.started_at && (
-                           <p className="text-xs font-medium text-[var(--on-glass-muted)] mt-1">Started at {formatTime(breakStatus.started_at)}</p>
+                <div className="flex flex-col gap-2 mb-3">
+                  {todayStatus?.active_break != null ? (
+                    <div className="space-y-2">
+                      <div className="p-3 rounded-xl bg-white/5 border border-[var(--warning-500)]/20">
+                         <p className="text-[10px] font-black text-[var(--warning-500)] uppercase tracking-[0.2em] mb-0.5">On Break</p>
+                         <p className="text-sm font-black text-white uppercase">{todayStatus.active_break.break_type} Break</p>
+                         {todayStatus.active_break.break_start && (
+                           <p className="text-[11px] text-[var(--on-glass-muted)] mt-0.5">Since {formatTime(todayStatus.active_break.break_start)}</p>
                          )}
                       </div>
-                      <Button className="w-full h-14 bg-white text-black hover:bg-white/90" icon={<StopCircle size={18} />} loading={breakLoading} onClick={handleEndBreak}>
+                      <Button className="w-full bg-white text-black hover:bg-white/90" size="sm" icon={<StopCircle size={14} />} loading={breakLoading} onClick={handleEndBreak}>
                         END BREAK
                       </Button>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-2 gap-3">
-                      {(breakStatus?.available_breaks?.length ? breakStatus.available_breaks : [
-                        { id: '', type: 'rest', name: 'Rest Break', break_minutes: 15 },
-                        { id: '', type: 'meal', name: 'Meal Break', break_minutes: 60 },
+                    <div className="grid grid-cols-2 gap-2">
+                      {(todayStatus?.shift?.breaks?.length ? todayStatus.shift.breaks : [
+                        { id: '', name: 'Rest Break', break_minutes: 15 },
+                        { id: '', name: 'Meal Break', break_minutes: 60 },
                       ]).map(b => (
                         <button
                           key={b.id || b.name}
-                          onClick={() => handleStartBreak(b.type ?? b.name, b.id || undefined)}
+                          onClick={() => handleStartBreak(b.name, b.id || undefined)}
                           disabled={breakLoading}
-                          className="p-5 rounded-2xl bg-[var(--glass-10)] border border-[var(--glass-border)] hover:bg-[var(--glass-15)] hover:border-[var(--primary-600)]/30 transition-all group flex flex-col items-center gap-3"
+                          className="p-3 rounded-xl bg-[var(--glass-10)] border border-[var(--glass-border)] hover:bg-[var(--glass-15)] hover:border-[var(--primary-600)]/30 transition-all group flex flex-col items-center gap-2"
                         >
-                           <PlayCircle size={20} className="text-[var(--on-glass-dim)] group-hover:text-[var(--primary-600)] transition-colors" />
+                           <PlayCircle size={16} className="text-[var(--on-glass-dim)] group-hover:text-[var(--primary-600)] transition-colors" />
                            <span className="text-[10px] font-black text-white uppercase tracking-widest">{b.name}</span>
-                           <span className="text-[9px] font-bold text-[var(--on-glass-muted)] uppercase">{b.break_minutes}m{b.allowed_count_per_shift ? ` x ${b.allowed_count_per_shift}` : ''}</span>
+                           <span className="text-[9px] font-bold text-[var(--on-glass-muted)] uppercase">{b.break_minutes}m</span>
                         </button>
                       ))}
                     </div>
                   )}
                 </div>
 
-                {/* History Scroll */}
-                <div className="mt-auto pt-4 border-t border-[var(--glass-border)] overflow-y-auto max-h-32 custom-scrollbar">
-                   {breakStatus?.breaks && breakStatus.breaks.length > 0 ? (
-                     <div className="space-y-2">
-                        {breakStatus.breaks.map((b, i) => (
-                          <div key={i} className="flex items-center justify-between text-[11px] px-2">
+                <div className="mt-auto pt-3 border-t border-[var(--glass-border)] overflow-y-auto max-h-28 custom-scrollbar">
+                   {todayStatus?.attendance?.break_records && todayStatus.attendance.break_records.length > 0 ? (
+                     <div className="space-y-1">
+                        {todayStatus.attendance.break_records.map((b, i) => (
+                          <div key={i} className="flex items-center justify-between text-[11px] px-1">
                              <span className="font-bold text-[var(--on-glass-muted)] uppercase">{b.break_type}</span>
-                             <span className="font-mono text-white/50">{formatTime(b.started_at)} {b.ended_at && `- ${formatTime(b.ended_at)}`}</span>
+                             <span className="font-mono text-white/50">{formatTime(b.break_start)} {b.break_end && `- ${formatTime(b.break_end)}`}</span>
                           </div>
                         ))}
                      </div>
                    ) : (
-                     <p className="text-[10px] text-center font-black text-[var(--on-glass-dim)] uppercase tracking-widest py-4">No activity logged</p>
+                     <p className="text-[10px] text-center font-black text-[var(--on-glass-dim)] uppercase tracking-widest py-3">No breaks logged</p>
                    )}
                 </div>
               </div>
             ) : (
-              <div className="flex-1 flex flex-col items-center justify-center text-center p-4">
-                 <WifiOff size={32} className="text-[var(--on-glass-dim)] mb-4" />
-                 <p className="text-xs font-black text-[var(--on-glass-dim)] uppercase tracking-widest leading-relaxed">Check-in required for break tracking</p>
+              <div className="flex-1 flex flex-col items-center justify-center text-center p-3">
+                 <WifiOff size={24} className="text-[var(--on-glass-dim)] mb-3" />
+                 <p className="text-[10px] font-black text-[var(--on-glass-dim)] uppercase tracking-widest">Check-in required</p>
               </div>
             )}
           </Card>
@@ -717,14 +691,12 @@ export default function AttendancePage() {
 
       {/* ── Banner: approved leave today ───────────────── */}
       {leaveToday && !myRecord?.check_in_at && (
-        <div className="mb-6 p-5 rounded-[2rem] border border-[var(--primary-600)]/20 bg-[var(--primary-600)]/5 backdrop-blur-xl flex items-center gap-4 slide-in-bottom">
-          <div className="w-12 h-12 rounded-2xl bg-[var(--primary-600)]/20 flex items-center justify-center">
-            <Calendar size={20} className="text-[var(--primary-600)]" />
-          </div>
+        <div className="mb-4 px-4 py-3 rounded-xl border border-[var(--primary-600)]/20 bg-[var(--primary-600)]/5 backdrop-blur-xl flex items-center gap-3 slide-in-bottom">
+          <Calendar size={16} className="text-[var(--primary-600)] shrink-0" />
           <div>
-            <p className="text-sm font-black text-white tracking-tight">Approved Leave in Progress</p>
-            <p className="text-xs font-medium text-[var(--on-glass-muted)] uppercase tracking-widest mt-1">
-              {leaveToday.leave_type.replace(/_/g, ' ')} Active &middot; No manual presence required
+            <p className="text-xs font-black text-white">Approved Leave Active</p>
+            <p className="text-[10px] text-[var(--on-glass-muted)] uppercase tracking-widest mt-0.5">
+              {leaveToday.leave_type.replace(/_/g, ' ')} &middot; No check-in required
             </p>
           </div>
         </div>
@@ -732,86 +704,58 @@ export default function AttendancePage() {
 
       {/* ── Pending Requests (Managers) ──────────────────── */}
       {hasRole('manager', 'hr_admin', 'super_admin') && (remoteSessions.length > 0 || teamNotices.length > 0 || overtimeRequests.length > 0) && (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-4">
            {remoteSessions.length > 0 && (
-              <Card className="p-6 border-[var(--secondary)]/20 bg-[var(--secondary)]/5">
-                 <div className="flex items-center gap-3 mb-6">
-                    <Home size={18} className="text-[var(--secondary)]" />
-                    <h3 className="text-sm font-black text-white uppercase tracking-widest">Remote Work Requests</h3>
-                    <span className="ml-auto w-6 h-6 rounded-lg bg-[var(--secondary)]/20 flex items-center justify-center text-[10px] font-black text-[var(--secondary)]">{remoteSessions.length}</span>
-                 </div>
-                 <div className="space-y-3">
+              <SectionCard icon={<Home size={14} />} title="Remote Requests" count={remoteSessions.length} accentColor="var(--secondary)">
+                 <div className="space-y-2">
                     {remoteSessions.map(s => (
-                       <div key={s.id} className="flex items-center gap-4 p-4 rounded-2xl bg-[var(--dark-950)]/40 border border-[var(--glass-border)]">
-                          <Avatar name={s.user?.name || ''} imageUrl={s.user?.avatar_url} size="sm" />
-                          <div className="flex-1 min-w-0">
-                             <p className="text-sm font-black text-white truncate">{s.user?.name}</p>
-                             <p className="text-[10px] font-bold text-[var(--on-glass-muted)] uppercase tracking-widest">{s.duration_type.replace(/_/g, ' ')}</p>
-                          </div>
-                          <div className="flex gap-2">
-                             <button onClick={() => handleApproveRemote(s.id)} disabled={!!remoteActionId} className="w-8 h-8 rounded-lg bg-[var(--success-500)] text-white flex items-center justify-center hover:brightness-110 transition-all"><Check size={14} /></button>
-                             <button onClick={() => handleRejectRemote(s.id)} disabled={!!remoteActionId} className="w-8 h-8 rounded-lg bg-[var(--danger-500)] text-white flex items-center justify-center hover:brightness-110 transition-all"><X size={14} /></button>
-                          </div>
-                       </div>
+                       <RequestItem key={s.id}
+                         name={s.user?.name || ''} avatarUrl={s.user?.avatar_url}
+                         primary={s.duration_type.replace(/_/g, ' ')}
+                         onApprove={() => handleApproveRemote(s.id)}
+                         onReject={() => handleRejectRemote(s.id)}
+                         loading={!!remoteActionId}
+                       />
                     ))}
                  </div>
-              </Card>
+              </SectionCard>
            )}
            {overtimeRequests.length > 0 && (
-              <Card className="p-6 border-[var(--primary-600)]/20 bg-[var(--primary-600)]/5">
-                 <div className="flex items-center gap-3 mb-6">
-                    <Clock size={18} className="text-[var(--primary-600)]" />
-                    <h3 className="text-sm font-black text-white uppercase tracking-widest">Overtime Requests</h3>
-                    <span className="ml-auto w-6 h-6 rounded-lg bg-[var(--primary-600)]/20 flex items-center justify-center text-[10px] font-black text-[var(--primary-600)]">{overtimeRequests.length}</span>
-                 </div>
-                 <div className="space-y-3">
+              <SectionCard icon={<Clock size={14} />} title="Overtime Requests" count={overtimeRequests.length} accentColor="var(--primary-600)">
+                 <div className="space-y-2">
                     {overtimeRequests.map(r => (
-                       <div key={r.id} className="flex items-center gap-4 p-4 rounded-2xl bg-[var(--dark-950)]/40 border border-[var(--glass-border)]">
-                          <Avatar name={r.user?.name || ''} imageUrl={r.user?.avatar_url} size="sm" />
-                          <div className="flex-1 min-w-0">
-                             <p className="text-sm font-black text-white truncate">{r.user?.name}</p>
-                             <p className="text-[10px] font-bold text-[var(--primary-600)] uppercase tracking-widest">
-                               {r.requested_minutes}m · {r.attendance?.shift?.name || 'Shift'}
-                             </p>
-                             {r.reason && <p className="text-xs text-[var(--on-glass-muted)] truncate mt-1">{r.reason}</p>}
-                          </div>
-                          <div className="flex gap-2">
-                             <button onClick={() => handleApproveOvertime(r.id)} disabled={!!overtimeActionId} className="w-8 h-8 rounded-lg bg-[var(--success-500)] text-white flex items-center justify-center hover:brightness-110 transition-all"><Check size={14} /></button>
-                             <button onClick={() => handleRejectOvertime(r.id)} disabled={!!overtimeActionId} className="w-8 h-8 rounded-lg bg-[var(--danger-500)] text-white flex items-center justify-center hover:brightness-110 transition-all"><X size={14} /></button>
-                          </div>
-                       </div>
+                       <RequestItem key={r.id}
+                         name={r.user?.name || ''} avatarUrl={r.user?.avatar_url}
+                         primary={`${r.requested_minutes}m · ${r.attendance?.shift?.name || 'Shift'}`}
+                         primaryColor="var(--primary-600)"
+                         secondary={r.reason}
+                         onApprove={() => handleApproveOvertime(r.id)}
+                         onReject={() => handleRejectOvertime(r.id)}
+                         loading={!!overtimeActionId}
+                       />
                     ))}
                  </div>
-              </Card>
+              </SectionCard>
            )}
            {teamNotices.length > 0 && (
-              <Card className="p-6 border-[var(--warning-500)]/20 bg-[var(--warning-500)]/5">
-                 <div className="flex items-center gap-3 mb-6">
-                    <AlertTriangle size={18} className="text-[var(--warning-500)]" />
-                    <h3 className="text-sm font-black text-white uppercase tracking-widest">Attendance Exceptions</h3>
-                    <span className="ml-auto w-6 h-6 rounded-lg bg-[var(--warning-500)]/20 flex items-center justify-center text-[10px] font-black text-[var(--warning-500)]">{teamNotices.length}</span>
-                 </div>
-                 <div className="space-y-3">
+              <SectionCard icon={<AlertTriangle size={14} />} title="Exceptions" count={teamNotices.length} accentColor="var(--warning-500)">
+                 <div className="space-y-2">
                     {teamNotices.map(n => {
                        const isEarly = n.reason.startsWith('[Early Departure]');
                        const cleanReason = isEarly ? n.reason.replace('[Early Departure]', '').trim() : n.reason;
                        const nDate = (n as any).date ? format(new Date((n as any).date), 'MMM d') : 'Today';
                        return (
-                         <div key={n.id} className="flex items-center gap-4 p-4 rounded-2xl bg-[var(--dark-950)]/40 border border-[var(--glass-border)]">
-                            <Avatar name={n.user?.name || ''} size="sm" />
-                            <div className="flex-1 min-w-0">
-                               <p className="text-sm font-black text-white truncate">{n.user?.name}</p>
-                               <p className="text-[10px] font-bold text-[var(--warning-500)] uppercase tracking-widest">
-                                 {nDate} &middot; {isEarly ? 'Departure' : 'Arrival'} @ {n.expected_time}
-                               </p>
-                               <p className="text-xs text-[var(--on-glass-muted)] truncate mt-1">{cleanReason}</p>
-                            </div>
-                            <Button size="sm" variant="ghost" className="h-8 py-0" onClick={() => handleAcknowledgeNotice(n.id)}>ACKNOWLEDGE</Button>
-                         </div>
+                         <RequestItem key={n.id}
+                           name={n.user?.name || ''}
+                           primary={`${nDate} · ${isEarly ? 'Departure' : 'Arrival'} @ ${n.expected_time}`}
+                           primaryColor="var(--warning-500)"
+                           secondary={cleanReason || undefined}
+                           actions={<Button size="sm" variant="ghost" className="shrink-0 text-[10px] px-2 py-1 h-auto" onClick={() => handleAcknowledgeNotice(n.id)}>ACK</Button>}
+                         />
                        );
                     })}
                  </div>
-              </Card>
+              </SectionCard>
            )}
         </div>
       )}
@@ -819,42 +763,28 @@ export default function AttendancePage() {
       {/* ── Global Attendance Registry ──────────────────── */}
       {hasRole('manager', 'hr_admin', 'super_admin') && (
         <Card className="overflow-hidden">
-          <div className="flex flex-wrap items-center gap-4 p-6 bg-[var(--glass-05)] border-b border-[var(--glass-border)]">
-            <div className="relative group">
-              <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--on-glass-dim)] group-focus-within:text-[var(--primary-600)] transition-colors" />
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={e => setSelectedDate(e.target.value)}
-                className="pl-9 pr-4 py-2.5 text-[13px] font-bold bg-[var(--glass-10)] border border-[var(--glass-border)] rounded-xl text-white outline-none focus:border-[var(--primary-600)] transition-all cursor-pointer"
-              />
-            </div>
-
-            <div className="h-8 w-px bg-[var(--glass-border)] hidden sm:block" />
-
-            <select
+          <div className="flex flex-wrap items-end gap-3 px-4 py-3 bg-(--glass-05) border-b border-(--glass-border)">
+            <DatePicker
+              value={selectedDate}
+              onChange={v => v && setSelectedDate(v)}
+              className="w-44"
+            />
+            <Dropdown
               value={statusFilter}
-              onChange={e => setStatusFilter(e.target.value)}
-              className="px-4 py-2.5 text-[13px] font-bold bg-[var(--glass-10)] border border-[var(--glass-border)] rounded-xl text-white outline-none focus:border-[var(--primary-600)] appearance-none cursor-pointer pr-10"
-              style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'white\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'%3E%3C/path%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center', backgroundSize: '16px' }}
-            >
-              <option value="" className="bg-[var(--dark-950)]">ALL STATUSES</option>
-              {Object.entries(statusConfig).map(([key, cfg]) => (
-                <option key={key} value={key} className="bg-[var(--dark-950)]">{cfg.label.toUpperCase()}</option>
-              ))}
-            </select>
-
-            <span className="text-[10px] font-black text-[var(--on-glass-dim)] uppercase tracking-[0.2em] ml-auto">
-               {filtered.length} Records Found
-            </span>
+              onChange={setStatusFilter}
+              options={statusOptions}
+              placeholder="All Statuses"
+              className="w-36"
+            />
+            <span className="label-xs ml-auto pb-2.5">{filtered.length} records</span>
           </div>
 
           <Table
-            headers={['Employee', 'Status', 'Check In', 'Check Out', 'Hours', 'Method', 'Actions']}
+            headers={['Employee', 'Status', 'Check In', 'Check Out', 'Hours', 'Method', '']}
             loading={tableLoading}
             emptyState={
-              <div className="py-24 text-center">
-                 <Clock size={32} className="mx-auto text-[var(--on-glass-dim)] mb-4" />
+              <div className="py-12 text-center">
+                 <Clock size={24} className="mx-auto text-[var(--on-glass-dim)] mb-3" />
                  <p className="text-[11px] font-black text-[var(--on-glass-dim)] uppercase tracking-[0.3em]">No records found</p>
               </div>
             }
@@ -865,59 +795,57 @@ export default function AttendancePage() {
               const cit  = record.check_in_type || record.type;
               return (
                 <tr key={record.id} className="hover:bg-[var(--glass-05)] transition-all group">
-                  <td className="py-4 px-6">
+                  <td className="py-3 px-4">
                     {user ? (
-                      <div className="flex items-center gap-4">
-                        <Avatar name={user.name} imageUrl={user.avatar_url} size="md" />
+                      <div className="flex items-center gap-3">
+                        <Avatar name={user.name} imageUrl={user.avatar_url} size="sm" />
                         <div className="min-w-0">
-                          <p className="text-[15px] font-black text-white group-hover:text-[var(--primary-600)] transition-colors truncate">{user.name}</p>
-                          <p className="text-[10px] font-bold text-[var(--on-glass-muted)] uppercase tracking-widest truncate">{user.department || 'No Department'}</p>
+                          <p className="text-sm font-bold text-white group-hover:text-[var(--primary-600)] transition-colors truncate">{user.name}</p>
+                          <p className="text-[10px] text-[var(--on-glass-muted)] truncate">{user.department || '—'}</p>
                         </div>
                       </div>
                     ) : <span className="text-xs text-[var(--on-glass-dim)]">—</span>}
                   </td>
-                  <td className="py-4 px-6">
-                    <div className="flex items-center gap-2">
+                  <td className="py-3 px-4">
+                    <div className="flex items-center gap-1.5">
                       <Badge label={cfg.label} color={cfg.color} bg={cfg.bg} size="sm" />
                       {record.is_overridden && (
-                        <div className="w-2 h-2 rounded-full bg-[var(--primary-600)]" title="Manually Adjusted" />
+                        <div className="w-1.5 h-1.5 rounded-full bg-[var(--primary-600)]" title="Adjusted" />
                       )}
                     </div>
                   </td>
-                  <td className="py-4 px-6">
-                    <span className="text-sm font-black text-white font-mono">
+                  <td className="py-3 px-4">
+                    <span className="text-xs font-bold text-white font-mono">
                       {record.check_in_at ? formatTime(record.check_in_at) : '—'}
                     </span>
                     {(record.late_minutes ?? 0) > 0 && (
-                      <span className="block text-[10px] font-black text-[var(--danger-500)] uppercase tracking-widest mt-0.5">+{record.late_minutes}M</span>
+                      <span className="block text-[10px] font-bold text-[var(--danger-500)] mt-0.5">+{record.late_minutes}m</span>
                     )}
                   </td>
-                  <td className="py-4 px-6">
-                    <span className="text-sm font-black text-white/50 font-mono">
+                  <td className="py-3 px-4">
+                    <span className="text-xs font-bold text-white/50 font-mono">
                       {record.check_out_at ? formatTime(record.check_out_at) : '—'}
                     </span>
                   </td>
-                  <td className="py-4 px-6">
+                  <td className="py-3 px-4">
                     {record.hours_worked != null ? (
-                      <div>
-                        <span className="text-[13px] font-black text-[var(--primary-600)]">{formatHours(n(record.hours_worked))}</span>
-                      </div>
+                      <span className="text-xs font-bold text-[var(--primary-600)]">{formatHours(n(record.hours_worked))}</span>
                     ) : record.check_in_at && !record.check_out_at ? (
                       <LiveDuration checkInAt={record.check_in_at} />
                     ) : (
-                      <span className="text-sm text-[var(--on-glass-dim)]">—</span>
+                      <span className="text-xs text-[var(--on-glass-dim)]">—</span>
                     )}
                   </td>
-                  <td className="py-4 px-6">
-                    <span className="text-[10px] font-black text-[var(--on-glass-muted)] uppercase tracking-widest">{cit ? (typeLabel[cit] || cit) : '—'}</span>
+                  <td className="py-3 px-4">
+                    <span className="text-[10px] text-[var(--on-glass-muted)]">{cit ? (typeLabel[cit] || cit) : '—'}</span>
                   </td>
-                  <td className="py-4 px-6">
+                  <td className="py-3 px-4">
                     {hasRole('manager', 'hr_admin', 'super_admin') && (
                       <button
                         onClick={() => openOverride(record)}
-                        className="w-10 h-10 flex items-center justify-center rounded-xl bg-[var(--glass-10)] text-[var(--on-glass-dim)] hover:text-[var(--primary-600)] hover:bg-[var(--glass-15)] transition-all"
+                        className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--glass-10)] text-[var(--on-glass-dim)] hover:text-[var(--primary-600)] hover:bg-[var(--glass-15)] transition-all"
                       >
-                        <Edit2 size={16} />
+                        <Edit2 size={13} />
                       </button>
                     )}
                   </td>
@@ -933,33 +861,53 @@ export default function AttendancePage() {
         isOpen={!!overrideRecord}
         onClose={() => setOverrideRecord(null)}
         title="Override Attendance"
-        size="md"
+        size="sm"
         footer={
           <>
-            <Button variant="ghost" onClick={() => setOverrideRecord(null)}>Cancel</Button>
-            <Button onClick={form.handleSubmit(onOverride)} loading={form.formState.isSubmitting}>
-              Save Override
-            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setOverrideRecord(null)}>Cancel</Button>
+            <Button size="sm" onClick={form.handleSubmit(onOverride)} loading={form.formState.isSubmitting}>Save</Button>
           </>
         }
       >
         {overrideRecord && (
-          <div className="space-y-6">
+          <div className="space-y-4">
             {overrideRecord.user && (
-              <div className="flex items-center gap-4 p-5 rounded-3xl bg-[var(--glass-05)] border border-[var(--glass-border)]">
-                <Avatar name={overrideRecord.user.name} size="md" />
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-[var(--glass-05)] border border-[var(--glass-border)]">
+                <Avatar name={overrideRecord.user.name} size="sm" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-lg font-black text-white tracking-tight">{overrideRecord.user.name}</p>
-                  <p className="text-xs font-bold text-[var(--on-glass-muted)] uppercase tracking-widest">{formatDate(overrideRecord.date)}</p>
+                  <p className="text-sm font-bold text-white truncate">{overrideRecord.user.name}</p>
+                  <p className="text-[11px] text-[var(--on-glass-muted)]">{formatDate(overrideRecord.date)}</p>
                 </div>
               </div>
             )}
-            <div className="grid grid-cols-2 gap-4">
-              <Input label="Check In Time" type="datetime-local" error={form.formState.errors.check_in_at?.message} {...form.register('check_in_at')} />
-              <Input label="Check Out Time" type="datetime-local" error={form.formState.errors.check_out_at?.message} {...form.register('check_out_at')} />
+            <div className="grid grid-cols-2 gap-3">
+              <Controller
+                control={form.control}
+                name="check_in_at"
+                render={({ field }) => (
+                  <DateTimePicker
+                    label="Check In"
+                    value={field.value ? field.value.replace('T', ' ') : ''}
+                    onChange={v => field.onChange(v ? v.replace(' ', 'T') : '')}
+                    error={form.formState.errors.check_in_at?.message}
+                  />
+                )}
+              />
+              <Controller
+                control={form.control}
+                name="check_out_at"
+                render={({ field }) => (
+                  <DateTimePicker
+                    label="Check Out"
+                    value={field.value ? field.value.replace('T', ' ') : ''}
+                    onChange={v => field.onChange(v ? v.replace(' ', 'T') : '')}
+                    error={form.formState.errors.check_out_at?.message}
+                  />
+                )}
+              />
             </div>
             <Textarea
-              label="Reason for Override"
+              label="Reason"
               required
               placeholder="Explain why you are overriding this record..."
               error={form.formState.errors.reason?.message}
@@ -973,25 +921,17 @@ export default function AttendancePage() {
       <Modal
         isOpen={!!rejectOvertimeId}
         onClose={() => { setRejectOvertimeId(null); setRejectOvertimeReason(''); }}
-        title="Reject Overtime Request"
+        title="Reject Overtime"
         size="sm"
         footer={
-          <div className="flex gap-4 justify-end">
-            <Button variant="ghost" onClick={() => { setRejectOvertimeId(null); setRejectOvertimeReason(''); }}>Cancel</Button>
-            <Button
-              onClick={handleConfirmRejectOvertime}
-              loading={!!overtimeActionId}
-              className="bg-[var(--danger-500)] hover:bg-[var(--danger-600)] text-white"
-            >
-              Reject
-            </Button>
-          </div>
+          <>
+            <Button variant="ghost" size="sm" onClick={() => { setRejectOvertimeId(null); setRejectOvertimeReason(''); }}>Cancel</Button>
+            <Button variant="danger" size="sm" onClick={handleConfirmRejectOvertime} loading={!!overtimeActionId}>Reject</Button>
+          </>
         }
       >
-        <div className="flex flex-col gap-5">
-          <p className="text-sm font-medium text-[var(--on-glass-muted)] leading-relaxed">
-            Provide a reason for rejecting this overtime request. The employee will be notified.
-          </p>
+        <div className="space-y-4">
+          <p className="text-xs text-[var(--on-glass-muted)]">Provide a reason — the employee will be notified.</p>
           <Textarea
             label="Rejection Reason"
             placeholder="e.g. Overtime not approved for this period…"
@@ -1007,16 +947,17 @@ export default function AttendancePage() {
         isOpen={lateNoticeModalOpen}
         onClose={() => { setLateNoticeModalOpen(false); lateNoticeForm.reset(); }}
         title="Report Late Arrival"
+        size="sm"
         footer={
-          <div className="flex gap-4 justify-end">
-            <Button variant="ghost" onClick={() => setLateNoticeModalOpen(false)}>Cancel</Button>
-            <Button onClick={lateNoticeForm.handleSubmit(handleSubmitLateNotice)}>Submit Notice</Button>
-          </div>
+          <>
+            <Button variant="ghost" size="sm" onClick={() => setLateNoticeModalOpen(false)}>Cancel</Button>
+            <Button size="sm" onClick={lateNoticeForm.handleSubmit(handleSubmitLateNotice)}>Submit</Button>
+          </>
         }
       >
-        <div className="flex flex-col gap-6">
-          <p className="text-sm font-medium text-[var(--on-glass-muted)] leading-relaxed">
-            Let your manager know you'll be arriving late. They'll be notified immediately and will not receive a late alert until your expected arrival time passes.
+        <div className="space-y-4">
+          <p className="text-xs text-[var(--on-glass-muted)]">
+            Your manager will be notified and won't receive a late alert until your expected arrival time passes.
           </p>
           <Input
             label="Expected Arrival Time"

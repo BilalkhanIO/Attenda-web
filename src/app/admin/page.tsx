@@ -6,8 +6,9 @@ import { adminApi } from '@/lib/api';
 import { getApiError, timeAgo } from '@/lib/utils';
 import {
   Card, KPICard, PageHeader, Button, Badge, Skeleton, Table, EmptyState,
-  Select, Modal, Input, ConfirmDialog,
+  Select, Modal, Input, ConfirmDialog, StatBox, Dropdown,
 } from '@/components/ui';
+import type { DropdownOption } from '@/components/ui';
 import type { PlanDefinition } from '@/types';
 import {
   AdminOrg, PlatformStats, PLAN_STYLES, ORG_STATUS_STYLES, SUB_STATUS_STYLES,

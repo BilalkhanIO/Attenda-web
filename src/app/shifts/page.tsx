@@ -4,8 +4,10 @@ import { useAuth } from '@/lib/auth';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import {
   PageHeader, Card, Button, Modal, ConfirmDialog, Input,
-  Badge, Avatar, EmptyState, Table, Textarea
+  Badge, Avatar, EmptyState, Table, Textarea,
+  StatBox, SectionCard, RequestItem, Dropdown, TimePicker,
 } from '@/components/ui';
+import type { DropdownOption } from '@/components/ui';
 import { shiftsApi, usersApi } from '@/lib/api';
 import { getApiError } from '@/lib/utils';
 import type { Shift, ShiftAssignment } from '@/types';
@@ -15,7 +17,7 @@ import {
   Plus, ChevronLeft, ChevronRight, Send,
   Check, X, Clock, Edit2, Trash2, Sparkles, ChevronDown, ChevronUp, Coffee, AlertTriangle
 } from 'lucide-react';
-import { useForm, UseFormReturn } from 'react-hook-form';
+import { useForm, UseFormReturn, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
@@ -106,14 +108,24 @@ function ShiftFormFields({ form }: { form: UseFormReturn<ShiftForm> }) {
   const autoCheckout = form.watch('auto_checkout');
   const overtimeEnabled = form.watch('overtime_enabled');
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <Input label="Shift Name" required placeholder="e.g. Morning Shift"
         error={form.formState.errors.name?.message} {...form.register('name')} />
       <div className="grid grid-cols-2 gap-4">
-        <Input label="Start Time" type="time" required
-          error={form.formState.errors.start_time?.message} {...form.register('start_time')} />
-        <Input label="End Time" type="time" required
-          error={form.formState.errors.end_time?.message} {...form.register('end_time')} />
+        <Controller
+          control={form.control}
+          name="start_time"
+          render={({ field }) => (
+            <TimePicker label="Start Time" required value={field.value} onChange={field.onChange} />
+          )}
+        />
+        <Controller
+          control={form.control}
+          name="end_time"
+          render={({ field }) => (
+            <TimePicker label="End Time" required value={field.value} onChange={field.onChange} />
+          )}
+        />
       </div>
       <div>
         <label className="text-[11px] font-black text-[var(--on-glass-sub)] uppercase tracking-wider block mb-3">Active Days</label>

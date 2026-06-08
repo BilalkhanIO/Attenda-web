@@ -5,13 +5,14 @@ import { useAuth } from '@/lib/auth';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import {
   PageHeader, Card, Table, Avatar, Badge, Button, Modal, ConfirmDialog,
-  Input, Select, KPICard, Textarea, EmptyState, Skeleton
+  Input, KPICard, Textarea, EmptyState, Skeleton, Dropdown,
+  type DropdownOption,
 } from '@/components/ui';
 import { payrollApi } from '@/lib/api';
 import { formatCurrency, formatHours, getApiError } from '@/lib/utils';
 import type { Payroll, PayrollRecord } from '@/types';
 import { Wallet, Download, Play, AlertTriangle, Lock, ChevronDown } from 'lucide-react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
@@ -180,10 +181,12 @@ export default function PayrollPage() {
         subtitle="Review, adjust and process monthly payroll"
         actions={
           <div className="flex items-center gap-3 bg-[var(--glass-10)] p-1.5 pl-4 rounded-2xl border border-[var(--glass-border)] shadow-xl backdrop-blur-md">
-            <select value={selectedMonth} onChange={e => setMonth(e.target.value)}
-              className="bg-transparent text-[11px] font-black text-white uppercase tracking-widest outline-none cursor-pointer pr-2">
-              {MONTHS.map(m => <option key={m.value} value={m.value} className="bg-[var(--dark-950)]">{m.label.toUpperCase()}</option>)}
-            </select>
+            <Dropdown
+              value={selectedMonth}
+              onChange={setMonth}
+              options={MONTHS.map(m => ({ value: m.value, label: m.label.toUpperCase() } as DropdownOption))}
+              className="min-w-[9rem]"
+            />
             <div className="h-6 w-px bg-[var(--glass-border)]" />
             {hasPermission('payroll.manage') && (
               <Button variant="ghost" size="sm" className="h-9 py-0 border-none bg-transparent hover:bg-[var(--glass-15)]" icon={<Download size={14} />} onClick={onExportCSV}>Export CSV</Button>
@@ -205,93 +208,91 @@ export default function PayrollPage() {
       />
 
       {loading ? (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-2xl" />)}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-2xl" />)}
         </div>
       ) : payroll ? (
         <>
           {/* KPIs */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <KPICard title="Total Gross Pay"   value={formatCurrency(totalGross)}    icon={<Wallet size={20} />}       color="var(--success-500)" bg="#10b981" />
-            <KPICard title="Employees"         value={payroll.records.length}        icon={<Wallet size={20} />}       color="var(--primary-600)" bg="#00C896" />
-            <KPICard title="Overtime Hours"    value={`${totalOT.toFixed(1)}h`}      icon={<AlertTriangle size={20} />} color="var(--warning-500)" bg="#f59e0b" />
-            <KPICard title="Total Deductions"  value={formatCurrency(totalDeductions)} icon={<Download size={20} />}  color="var(--danger-500)"  bg="#ef4444"  />
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+            <KPICard title="Total Gross Pay"   value={formatCurrency(totalGross)}    icon={<Wallet size={16} />}       color="var(--success-500)" bg="#10b981" />
+            <KPICard title="Employees"         value={payroll.records.length}        icon={<Wallet size={16} />}       color="var(--primary-600)" bg="#00C896" />
+            <KPICard title="Overtime Hours"    value={`${totalOT.toFixed(1)}h`}      icon={<AlertTriangle size={16} />} color="var(--warning-500)" bg="#f59e0b" />
+            <KPICard title="Total Deductions"  value={formatCurrency(totalDeductions)} icon={<Download size={16} />}  color="var(--danger-500)"  bg="#ef4444"  />
           </div>
 
           {/* Status banner */}
           {hasErrors && (
-            <div className="flex items-center gap-4 mb-6 p-5 rounded-[2rem] bg-[var(--danger-500)]/10 border border-[var(--danger-500)]/20 text-[var(--danger-500)] slide-in-bottom shadow-2xl shadow-[var(--danger-500)]/10">
-              <div className="w-10 h-10 rounded-xl bg-[var(--danger-500)]/20 flex items-center justify-center flex-shrink-0">
-                 <AlertTriangle size={20} />
-              </div>
-              <p className="text-sm font-bold uppercase tracking-tight">
+            <div className="flex items-center gap-3 mb-4 px-4 py-3 rounded-xl bg-(--danger-500)/10 border border-(--danger-500)/20 text-(--danger-500) slide-in-bottom">
+              <AlertTriangle size={16} className="shrink-0" />
+              <p className="text-xs font-bold uppercase tracking-tight">
                 Some employees have missing hourly rates. Fix them before processing payroll.
               </p>
             </div>
           )}
 
           <Card className="overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-5 bg-[var(--glass-05)] border-b border-[var(--glass-border)]">
-              <h3 className="text-[13px] font-black text-white uppercase tracking-widest">
+            <div className="flex items-center justify-between px-4 py-3 bg-(--glass-05) border-b border-(--glass-border)">
+              <h3 className="text-[10px] font-black text-white uppercase tracking-widest">
                 {format(new Date(selectedMonth + '-01'), 'MMMM yyyy').toUpperCase()} Payroll
               </h3>
               {statusBadge(payroll.status)}
             </div>
             <Table
-              headers={['Employee', 'Regular Hrs', 'Overtime Hrs', 'Base Pay', 'Overtime Pay', 'Adjustments', 'Gross Pay', 'Actions']}
+              headers={['Employee', 'Regular Hrs', 'Overtime Hrs', 'Base Pay', 'OT Pay', 'Adj', 'Gross', '']}
             >
               {payroll.records.map(rec => (
                 <tr key={rec.id} className={cn(
-                  "hover:bg-[var(--glass-05)] transition-all group",
-                  rec.is_incomplete ? "bg-[var(--danger-500)]/5" : ""
+                  "hover:bg-(--glass-05) transition-all group",
+                  rec.is_incomplete ? "bg-(--danger-500)/5" : ""
                 )}>
-                  <td className="py-4 px-6">
+                  <td className="py-3 px-4">
                     {rec.user ? (
-                      <div className="flex items-center gap-4">
-                        <Avatar name={rec.user.name} size="md" />
+                      <div className="flex items-center gap-3">
+                        <Avatar name={rec.user.name} size="sm" />
                         <div className="min-w-0">
-                          <p className="text-[15px] font-black text-white group-hover:text-[var(--primary-600)] transition-colors truncate">{rec.user.name}</p>
-                          <p className="text-[10px] font-bold text-[var(--on-glass-muted)] uppercase tracking-widest truncate">{rec.user.department || 'Operations'}</p>
+                          <p className="text-sm font-black text-white group-hover:text-(--primary-600) transition-colors truncate">{rec.user.name}</p>
+                          <p className="text-[10px] font-bold text-(--on-glass-muted) uppercase tracking-widest truncate">{rec.user.department || 'Operations'}</p>
                           {rec.is_incomplete && (
-                            <p className="text-[9px] text-[var(--danger-500)] font-black uppercase tracking-widest mt-1">MISSING RATE</p>
+                            <p className="text-[9px] text-(--danger-500) font-black uppercase tracking-widest mt-0.5">MISSING RATE</p>
                           )}
                         </div>
                       </div>
                     ) : '—'}
                   </td>
-                  <td className="py-4 px-6 text-sm font-black text-white font-mono">{formatHours(n(rec.regular_hours))}</td>
-                  <td className="py-4 px-6">
+                  <td className="py-3 px-4 text-xs font-black text-white font-mono">{formatHours(n(rec.regular_hours))}</td>
+                  <td className="py-3 px-4">
                     <span className={cn(
-                      "text-sm font-black font-mono",
-                      n(rec.overtime_hours) > 0 ? "text-[var(--warning-500)]" : "text-[var(--on-glass-dim)]"
+                      "text-xs font-black font-mono",
+                      n(rec.overtime_hours) > 0 ? "text-(--warning-500)" : "text-(--on-glass-dim)"
                     )}>
                       {n(rec.overtime_hours) > 0 ? formatHours(n(rec.overtime_hours)) : '—'}
                     </span>
                   </td>
-                  <td className="py-4 px-6 text-sm font-black text-white/50 font-mono">{formatCurrency(n(rec.regular_hours) * n(rec.hourly_rate))}</td>
-                  <td className="py-4 px-6 text-sm font-black text-white/50 font-mono">
+                  <td className="py-3 px-4 text-xs font-black text-white/50 font-mono">{formatCurrency(n(rec.regular_hours) * n(rec.hourly_rate))}</td>
+                  <td className="py-3 px-4 text-xs font-black text-white/50 font-mono">
                     {n(rec.overtime_hours) > 0 ? formatCurrency(n(rec.overtime_hours) * n(rec.hourly_rate) * 1.5) : '—'}
                   </td>
-                  <td className="py-4 px-6">
+                  <td className="py-3 px-4">
                     {(() => { const adj = adjustment(rec); return (
                       <span className={cn(
-                        "text-sm font-black font-mono",
-                        adj < 0 ? "text-[var(--danger-500)]" : adj > 0 ? "text-[var(--success-500)]" : "text-[var(--on-glass-dim)]"
+                        "text-xs font-black font-mono",
+                        adj < 0 ? "text-(--danger-500)" : adj > 0 ? "text-(--success-500)" : "text-(--on-glass-dim)"
                       )}>
                         {adj !== 0 ? formatCurrency(adj) : '—'}
                       </span>
                     ); })()}
                   </td>
-                  <td className="py-4 px-6">
-                    <span className="text-[15px] font-black text-[var(--primary-600)]">{formatCurrency(n(rec.gross_pay))}</span>
+                  <td className="py-3 px-4">
+                    <span className="text-sm font-black text-(--primary-600)">{formatCurrency(n(rec.gross_pay))}</span>
                   </td>
-                  <td className="py-4 px-6">
+                  <td className="py-3 px-4">
                     {!isProcessed && hasPermission('payroll.manage') ? (
                       <button
                         onClick={() => { form.reset(); setAdjustRow(rec); }}
-                        className="w-10 h-10 flex items-center justify-center rounded-xl bg-[var(--glass-10)] text-[var(--on-glass-dim)] hover:text-white hover:bg-[var(--glass-15)] transition-all"
+                        className="w-7 h-7 flex items-center justify-center rounded-lg bg-(--glass-10) text-(--on-glass-dim) hover:text-white hover:bg-(--glass-15) transition-all"
                       >
-                         <ChevronDown size={18} />
+                         <ChevronDown size={14} />
                       </button>
                     ) : isProcessed ? (
                       <Button variant="outline" size="sm" icon={<Download size={12} />}
@@ -316,34 +317,39 @@ export default function PayrollPage() {
 
       {/* Adjust modal */}
       <Modal isOpen={!!adjustRow} onClose={() => setAdjustRow(null)}
-        title="Adjust Payroll Record" size="md"
+        title="Adjust Payroll Record" size="sm"
         footer={
           <>
-            <Button variant="ghost" onClick={() => setAdjustRow(null)}>Cancel</Button>
-            <Button onClick={form.handleSubmit(onAdjust)} loading={form.formState.isSubmitting}>Save Adjustment</Button>
+            <Button variant="ghost" size="sm" onClick={() => setAdjustRow(null)}>Cancel</Button>
+            <Button size="sm" onClick={form.handleSubmit(onAdjust)} loading={form.formState.isSubmitting}>Save Adjustment</Button>
           </>
         }
       >
         {adjustRow && (
-          <div className="space-y-6">
+          <div className="space-y-4">
             {adjustRow.user && (
-              <div className="flex items-center gap-4 p-5 rounded-[2rem] bg-[var(--glass-05)] border border-[var(--glass-border)]">
-                <Avatar name={adjustRow.user.name} size="md" />
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-(--glass-05) border border-(--glass-border)">
+                <Avatar name={adjustRow.user.name} size="sm" />
                 <div>
-                  <p className="text-lg font-black text-white tracking-tight">{adjustRow.user.name}</p>
-                  <p className="text-[10px] font-bold text-[var(--on-glass-muted)] uppercase tracking-widest">Current Gross: {formatCurrency(adjustRow.gross_pay)}</p>
+                  <p className="text-sm font-black text-white tracking-tight">{adjustRow.user.name}</p>
+                  <p className="label-xs mt-0.5">Current Gross: {formatCurrency(adjustRow.gross_pay)}</p>
                 </div>
               </div>
             )}
-            <Select label="Field to Adjust" required
-              placeholder="Select field..."
-              options={[
-                { value: 'regular_hours',  label: 'Regular Hours' },
-                { value: 'overtime_hours', label: 'Overtime Hours' },
-                { value: 'adjustments',    label: 'Adjustment Amount' },
-              ]}
-              error={form.formState.errors.field?.message}
-              {...form.register('field')}
+            <Controller control={form.control} name="field"
+              render={({ field }) => (
+                <Dropdown label="Field to Adjust" required
+                  value={field.value ?? ''}
+                  onChange={field.onChange}
+                  placeholder="Select field..."
+                  options={[
+                    { value: 'regular_hours',  label: 'Regular Hours' },
+                    { value: 'overtime_hours', label: 'Overtime Hours' },
+                    { value: 'adjustments',    label: 'Adjustment Amount' },
+                  ]}
+                  error={form.formState.errors.field?.message}
+                />
+              )}
             />
             <Input label="New Value" type="number" required placeholder="Enter corrected value"
               error={form.formState.errors.value?.message}
@@ -354,7 +360,7 @@ export default function PayrollPage() {
               error={form.formState.errors.reason?.message}
               {...form.register('reason')}
             />
-            <p className="text-[10px] font-bold text-[var(--on-glass-dim)] uppercase tracking-widest leading-relaxed">
+            <p className="label-xs leading-relaxed">
               This adjustment will be logged with your name and timestamp for audit purposes.
             </p>
           </div>

@@ -1,7 +1,46 @@
 import axios, { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
-import Cookies from 'js-cookie';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
+
+// ─── Token storage helpers (no cookies) ───────────────
+// Access token: sessionStorage by default, localStorage if "remember me" was set
+// Refresh token: always localStorage (long-lived)
+
+const ACCESS_TOKEN_KEY  = 'access_token';
+const REFRESH_TOKEN_KEY = 'refresh_token';
+
+export function getAccessToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  return (
+    window.sessionStorage.getItem(ACCESS_TOKEN_KEY) ||
+    window.localStorage.getItem(ACCESS_TOKEN_KEY) ||
+    null
+  );
+}
+
+export function getRefreshToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  return window.localStorage.getItem(REFRESH_TOKEN_KEY);
+}
+
+export function storeTokens(accessToken: string, refreshToken: string, rememberMe = false): void {
+  if (typeof window === 'undefined') return;
+  // Refresh token always in localStorage
+  window.localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+  // Access token: localStorage if remember me, otherwise sessionStorage
+  if (rememberMe) {
+    window.localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
+  } else {
+    window.sessionStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
+  }
+}
+
+export function clearTokens(): void {
+  if (typeof window === 'undefined') return;
+  window.sessionStorage.removeItem(ACCESS_TOKEN_KEY);
+  window.localStorage.removeItem(ACCESS_TOKEN_KEY);
+  window.localStorage.removeItem(REFRESH_TOKEN_KEY);
+}
 
 export const apiClient = axios.create({
   baseURL: BASE_URL,
@@ -11,7 +50,7 @@ export const apiClient = axios.create({
 
 // --- Request interceptor: attach JWT ---
 apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-  const token = Cookies.get('access_token');
+  const token = getAccessToken();
   if (token && config.headers) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -38,17 +77,19 @@ apiClient.interceptors.response.use(
     const original = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
     if (error.response?.status === 401 && !original._retry) {
       original._retry = true;
-      const refresh = Cookies.get('refresh_token');
+      const refresh = getRefreshToken();
       if (refresh) {
         try {
           const { data } = await axios.post(`${BASE_URL}/auth/refresh`, { refresh_token: refresh });
-          Cookies.set('access_token', data.data.access_token, { expires: 1 / 3 }); // 8 hours
+          const newToken = data.data.access_token;
+          // Preserve remember-me state: if it was in localStorage, keep it there
+          const wasInLocal = !!window.localStorage.getItem(ACCESS_TOKEN_KEY);
+          storeTokens(newToken, refresh, wasInLocal);
           notifyTokenRefreshed();
-          if (original.headers) original.headers.Authorization = `Bearer ${data.data.access_token}`;
+          if (original.headers) original.headers.Authorization = `Bearer ${newToken}`;
           return apiClient(original);
         } catch {
-          Cookies.remove('access_token');
-          Cookies.remove('refresh_token');
+          clearTokens();
           window.location.href = '/login';
         }
       } else {
@@ -81,7 +122,10 @@ export const authApi = {
   authenticate2FA: (partial_token: string, code: string) =>
     apiClient.post('/auth/2fa/authenticate', { partial_token, code }),
   disable2FA: (code: string) =>
-    apiClient.delete('/auth/2fa/disable', { data: { code } }),
+    apiClient.delete('/auth/2fa', { data: { code } }),
+  // ─── SSO ──────────────────────────────────────────────
+  exchangeSSOCode: (code: string) =>
+    apiClient.post('/auth/sso/exchange', { code }),
 };
 
 // ─── USERS ────────────────────────────────────────────
@@ -134,8 +178,8 @@ export const attendanceApi = {
     apiClient.post('/attendance/break/start', { break_type, shift_break_id }),
   endBreak: () =>
     apiClient.post('/attendance/break/end'),
-  getBreakStatus: () =>
-    apiClient.get('/attendance/break/status'),
+  getTodayStatus: () =>
+    apiClient.get('/attendance/today-status'),
   getLeaveCheck: () =>
     apiClient.get('/attendance/leave-check'),
   submitLateNotice: (data: { date: string; expected_time: string; reason: string }) =>
@@ -152,212 +196,224 @@ export const attendanceApi = {
 
 // ─── LEAVE ────────────────────────────────────────────
 export const leaveApi = {
-  getMyRequests: () =>
-    apiClient.get('/leave/requests/me'),
+  getAllRequests: () =>
+    apiClient.get('/leave/requests/all'),
   getTeamRequests: () =>
     apiClient.get('/leave/requests/team'),
-  getAllRequests: (params?: { status?: string; department?: string }) =>
-    apiClient.get('/leave/requests', { params }),
-  submit: (data: { leave_type: string; start_date: string; end_date: string; reason: string; leave_start_time?: string; leave_end_time?: string }) =>
-    apiClient.post('/leave/requests', data),
-  cancel: (id: string) =>
-    apiClient.delete(`/leave/requests/${id}`),
-  approve: (id: string) =>
-    apiClient.put(`/leave/requests/${id}/approve`),
-  reject: (id: string, reason: string) =>
-    apiClient.put(`/leave/requests/${id}/reject`, { reason }),
   getMyBalance: () =>
     apiClient.get('/leave/balance/me'),
-  getEmployeeBalance: (userId: string) =>
-    apiClient.get(`/leave/balance/${userId}`),
-  adjustBalance: (userId: string, data: { leave_type_id: string; adjustment: number; reason: string }) =>
-    apiClient.put(`/leave/balance/${userId}`, data),
-  getCalendar: () =>
-    apiClient.get('/leave/calendar'),
+  submit: (data: Record<string, unknown>) =>
+    apiClient.post('/leave/request', data),
+  approve: (id: string) =>
+    apiClient.post(`/leave/requests/${id}/approve`),
+  reject: (id: string, reason: string) =>
+    apiClient.post(`/leave/requests/${id}/reject`, { reason }),
 };
 
 // ─── SHIFTS ───────────────────────────────────────────
 export const shiftsApi = {
   getTemplates: () =>
-    apiClient.get('/shifts'),
+    apiClient.get('/shifts/templates'),
   createTemplate: (data: Record<string, unknown>) =>
-    apiClient.post('/shifts', data),
+    apiClient.post('/shifts/templates', data),
   updateTemplate: (id: string, data: Record<string, unknown>) =>
-    apiClient.put(`/shifts/${id}`, data),
+    apiClient.put(`/shifts/templates/${id}`, data),
   deleteTemplate: (id: string) =>
-    apiClient.delete(`/shifts/${id}`),
-  publishSchedule: (weekStart: string) =>
-    apiClient.post('/shifts/schedule/publish', { week_start: weekStart }),
-  getAssignments: (params?: { week_start?: string; department?: string }) =>
+    apiClient.delete(`/shifts/templates/${id}`),
+  getAssignments: (params?: { week_start?: string }) =>
     apiClient.get('/shifts/assignments', { params }),
-  getAssignmentDetail: (id: string) =>
-    apiClient.get(`/shifts/assignments/${id}/detail`),
+  assignShift: (data: { user_id: string; shift_id: string; date: string }) =>
+    apiClient.post('/shifts/assign', data),
   deleteAssignment: (id: string) =>
     apiClient.delete(`/shifts/assignments/${id}`),
-  assignShift: (data: { user_id: string; shift_id: string; date: string }) =>
-    apiClient.post('/shifts/assignments', data),
-  getSwapRequests: () =>
-    apiClient.get('/shifts/swaps'),
-  approveSwap: (id: string) =>
-    apiClient.put(`/shifts/swaps/${id}/approve`),
-  rejectSwap: (id: string, reason: string) =>
-    apiClient.put(`/shifts/swaps/${id}/reject`, { reason }),
-  aiSchedule: (description: string, weekStart?: string, department?: string) =>
-    apiClient.post('/shifts/ai-schedule', { description, week_start: weekStart, department }),
+  publishSchedule: (week_start: string) =>
+    apiClient.post('/shifts/publish', { week_start }),
+  aiSchedule: (prompt: string, week_start: string) =>
+    apiClient.post('/shifts/ai-schedule', { prompt, week_start }),
   getBreaks: (shiftId: string) =>
     apiClient.get(`/shifts/${shiftId}/breaks`),
   addBreak: (shiftId: string, data: Record<string, unknown>) =>
     apiClient.post(`/shifts/${shiftId}/breaks`, data),
-  updateBreak: (shiftId: string, breakId: string, data: Record<string, unknown>) =>
-    apiClient.put(`/shifts/${shiftId}/breaks/${breakId}`, data),
   deleteBreak: (shiftId: string, breakId: string) =>
     apiClient.delete(`/shifts/${shiftId}/breaks/${breakId}`),
+  getSwapRequests: () =>
+    apiClient.get('/shifts/swaps'),
+  approveSwap: (id: string) =>
+    apiClient.post(`/shifts/swaps/${id}/approve`),
+  rejectSwap: (id: string, reason: string) =>
+    apiClient.post(`/shifts/swaps/${id}/reject`, { reason }),
 };
 
 // ─── PAYROLL ──────────────────────────────────────────
 export const payrollApi = {
-  getPayrolls: (params?: { month?: number; year?: number }) =>
-    apiClient.get('/payroll', { params }),
-  getPayroll: (id: string) =>
-    apiClient.get(`/payroll/${id}`),
+  getPayrolls: () =>
+    apiClient.get('/payroll'),
   generate: (month: number, year: number) =>
     apiClient.post('/payroll/generate', { month, year }),
-  process: (month: number, year: number) =>
-    apiClient.post('/payroll/process', { month, year }),
   processFull: (month: number, year: number) =>
-    apiClient.post('/payroll/process-full', { month, year }),
-  adjust: (id: string, data: { field: string; value: number; reason: string }) =>
+    apiClient.post('/payroll/process', { month, year }),
+  adjust: (id: string, data: Record<string, unknown>) =>
     apiClient.put(`/payroll/${id}/adjust`, data),
-  getMyPayslips: () =>
-    apiClient.get('/payroll/me'),
-  getPayslip: (id: string) =>
-    apiClient.get(`/payroll/payslips/${id}`),
-  downloadPayslip: (id: string) =>
-    apiClient.get(`/payroll/payslips/${id}/download`),
+  downloadPayslip: (recordId: string) =>
+    apiClient.get(`/payroll/payslip/${recordId}/download`, { responseType: 'blob' }),
 };
 
 // ─── PERFORMANCE ──────────────────────────────────────
 export const performanceApi = {
-  getGoals: (userId?: string) =>
-    apiClient.get('/performance/goals', { params: userId ? { user_id: userId } : {} }),
-  createGoal: (data: Record<string, unknown>) =>
-    apiClient.post('/performance/goals', data),
+  getGoals: () =>
+    apiClient.get('/performance/goals'),
   updateGoal: (id: string, data: Record<string, unknown>) =>
     apiClient.put(`/performance/goals/${id}`, data),
-  getReviews: (params?: { month?: string; department?: string }) =>
+  getReviews: (params?: { month?: string }) =>
     apiClient.get('/performance/reviews', { params }),
-  submitReview: (userId: string, data: { score: number; comments: string; month: string }) =>
+  submitReview: (userId: string, data: Record<string, unknown>) =>
     apiClient.post(`/performance/reviews/${userId}`, data),
   getInsights: (userId: string) =>
-    apiClient.get(`/performance/reviews/${userId}/insights`),
+    apiClient.get(`/performance/insights/${userId}`),
 };
 
-// ─── REMOTE SESSIONS ──────────────────────────────────
+// ─── OVERTIME ─────────────────────────────────────────
+export const overtimeApi = {
+  getMyRequests: () =>
+    apiClient.get('/overtime/me'),
+  getRequests: (params?: { status?: string }) =>
+    apiClient.get('/overtime/requests', { params }),
+  getSummary: () =>
+    apiClient.get('/overtime/summary'),
+  request: (data: Record<string, unknown>) =>
+    apiClient.post('/overtime/request', data),
+  approveRequest: (id: string) =>
+    apiClient.post(`/overtime/requests/${id}/approve`),
+  rejectRequest: (id: string, reason: string) =>
+    apiClient.post(`/overtime/requests/${id}/reject`, { reason }),
+  getRules: () =>
+    apiClient.get('/overtime/rules'),
+  createRule: (data: Record<string, unknown>) =>
+    apiClient.post('/overtime/rules', data),
+  updateRule: (id: string, data: Record<string, unknown>) =>
+    apiClient.put(`/overtime/rules/${id}`, data),
+  deleteRule: (id: string) =>
+    apiClient.delete(`/overtime/rules/${id}`),
+};
+
+// ─── REMOTE ───────────────────────────────────────────
 export const remoteApi = {
   getSessions: (params?: { status?: string }) =>
-    apiClient.get('/attendance/remote/sessions', { params }),
-  getMySessions: () =>
-    apiClient.get('/attendance/remote/sessions/me'),
+    apiClient.get('/remote/sessions', { params }),
   approveSession: (id: string) =>
-    apiClient.put(`/attendance/remote/sessions/${id}/approve`),
+    apiClient.post(`/remote/sessions/${id}/approve`),
   rejectSession: (id: string) =>
-    apiClient.put(`/attendance/remote/sessions/${id}/reject`),
+    apiClient.post(`/remote/sessions/${id}/reject`),
   getMonitor: () =>
-    apiClient.get('/attendance/remote/monitor'),
-  getSessionLogs: (id: string) =>
-    apiClient.get(`/attendance/remote/sessions/${id}/logs`),
+    apiClient.get('/remote/monitor'),
 };
 
 // ─── ANALYTICS ────────────────────────────────────────
 export const analyticsApi = {
   getOverview: () =>
     apiClient.get('/analytics/overview'),
-  getAttendanceTrend: (days?: number) =>
-    apiClient.get('/analytics/attendance-trend', { params: { days: days || 30 } }),
+  getAttendanceTrend: (days: number) =>
+    apiClient.get('/analytics/attendance-trend', { params: { days } }),
   getLateArrivals: () =>
     apiClient.get('/analytics/late-arrivals'),
   getPayrollCost: () =>
     apiClient.get('/analytics/payroll-cost'),
-  generateReport: (type: string, data: Record<string, unknown>) =>
-    apiClient.post(`/reports/${type}`, data),
-  downloadReport: (id: string) =>
-    apiClient.get(`/reports/${id}/download`),
-  // ─── Phase 2 AI ─────────────────────────────────────
-  chat: (message: string) =>
-    apiClient.post('/analytics/chat', { message }),
-  getAnomalies: (days?: number) =>
-    apiClient.get('/analytics/anomalies', { params: { days } }),
+  getAnomalies: () =>
+    apiClient.get('/analytics/anomalies'),
   getPayrollAnomalies: () =>
     apiClient.get('/analytics/payroll-anomalies'),
+  generateReport: (type: string, params: Record<string, unknown>) =>
+    apiClient.post('/analytics/reports/generate', { type, ...params }),
+  downloadReport: (id: string) =>
+    apiClient.get(`/analytics/reports/${id}/download`, { responseType: 'blob' }),
+  chat: (message: string) =>
+    apiClient.post('/analytics/chat', { message }),
 };
 
-// ─── OVERTIME ─────────────────────────────────────────
-export const overtimeApi = {
-  request: (data: { attendance_id: string; reason?: string }) =>
-    apiClient.post('/overtime/requests', data),
-  getRequests: (params?: { status?: string }) =>
-    apiClient.get('/overtime/requests', { params }),
-  getMyRequests: () =>
-    apiClient.get('/overtime/requests/me'),
-  approveRequest: (id: string) =>
-    apiClient.put(`/overtime/requests/${id}/approve`),
-  rejectRequest: (id: string, reason: string) =>
-    apiClient.put(`/overtime/requests/${id}/reject`, { reason }),
-  getRules: () =>
-    apiClient.get('/overtime/rules'),
-  createRule: (data: { name: string; rule_type: string; threshold_hours: number; multiplier: number; priority?: number }) =>
-    apiClient.post('/overtime/rules', data),
-  updateRule: (id: string, data: Record<string, unknown>) =>
-    apiClient.put(`/overtime/rules/${id}`, data),
-  deleteRule: (id: string) =>
-    apiClient.delete(`/overtime/rules/${id}`),
-  getSummary: (week_start?: string) =>
-    apiClient.get('/overtime/summary', { params: week_start ? { week_start } : {} }),
+// ─── ORG ──────────────────────────────────────────────
+export const orgApi = {
+  getSettings: () =>
+    apiClient.get('/org/settings'),
+  updateSettings: (data: Record<string, unknown>) =>
+    apiClient.put('/org/settings', data),
+  getDepartments: () =>
+    apiClient.get('/org/departments'),
+  getOfficeNetworks: () =>
+    apiClient.get('/org/office-networks'),
+  updateOfficeIPs: (ips: string[]) =>
+    apiClient.put('/org/office-ips', { ips }),
+  updateOfficeSSIDs: (ssids: string[]) =>
+    apiClient.put('/org/office-ssids', { ssids }),
+  detectMyIp: () =>
+    apiClient.get('/org/detect-ip'),
+  getWhatsAppSettings: () =>
+    apiClient.get('/org/whatsapp'),
+  updateWhatsAppSettings: (data: Record<string, unknown>) =>
+    apiClient.put('/org/whatsapp', data),
+  testWhatsApp: () =>
+    apiClient.post('/org/whatsapp/test'),
 };
 
-// ─── PUBLIC (no auth) ─────────────────────────────────
-export const publicApi = {
-  onboard: (data: {
-    company_name: string; contact_name: string; contact_email: string;
-    phone?: string; timezone?: string; company_size?: string;
-  }) => apiClient.post('/public/onboard', data),
-  getPlans: () => apiClient.get('/public/plans'),
-  getBlogPosts: (params?: { page?: number; limit?: number; tag?: string }) =>
-    apiClient.get('/public/blog', { params }),
-  getBlogPost: (slug: string) => apiClient.get(`/public/blog/${slug}`),
+// ─── ORG RBAC ─────────────────────────────────────────
+export const orgRbacApi = {
+  getRoles: () =>
+    apiClient.get('/org/roles'),
+  createRole: (data: Record<string, unknown>) =>
+    apiClient.post('/org/roles', data),
+  updateRole: (id: string, data: Record<string, unknown>) =>
+    apiClient.put(`/org/roles/${id}`, data),
+  updateRolePermissions: (id: string, permissionKeys: string[]) =>
+    apiClient.put(`/org/roles/${id}/permissions`, { permission_keys: permissionKeys }),
+  deleteRole: (id: string) =>
+    apiClient.delete(`/org/roles/${id}`),
+  ensureSystemRoles: () =>
+    apiClient.post('/org/roles/seed'),
+  getPermissionCatalog: () =>
+    apiClient.get('/org/permissions/catalog'),
+  assignUserRole: (userId: string, roleId: string, syncLegacy?: boolean) =>
+    apiClient.put(`/org/users/${userId}/role`, { org_role_id: roleId, sync_legacy_role: syncLegacy }),
 };
 
-// ─── PLATFORM ADMIN ───────────────────────────────────
+// ─── NOTIFICATIONS ────────────────────────────────────
+export const notificationApi = {
+  getAll: (page = 1, limit = 20) =>
+    apiClient.get('/notifications', { params: { page, limit } }),
+  markRead: (id: string) =>
+    apiClient.put(`/notifications/${id}/read`),
+  markAllRead: () =>
+    apiClient.put('/notifications/read-all'),
+  delete: (id: string) =>
+    apiClient.delete(`/notifications/${id}`),
+};
+
+// ─── ADMIN ────────────────────────────────────────────
 export const adminApi = {
   getStats: () =>
     apiClient.get('/admin/stats'),
   getOrgs: () =>
     apiClient.get('/admin/orgs'),
   getPendingOrgs: () =>
-    apiClient.get('/admin/orgs/pending'),
+    apiClient.get('/admin/orgs', { params: { status: 'pending' } }),
   getOrg: (id: string) =>
     apiClient.get(`/admin/orgs/${id}`),
-  updateOrg: (id: string, data: Record<string, unknown>) =>
-    apiClient.patch(`/admin/orgs/${id}`, data),
-  updatePlan: (id: string, plan: string) =>
-    apiClient.patch(`/admin/orgs/${id}/plan`, { plan }),
-  suspendOrg: (id: string) =>
-    apiClient.patch(`/admin/orgs/${id}/suspend`),
-  updateSubscription: (id: string, data: Record<string, unknown>) =>
-    apiClient.patch(`/admin/orgs/${id}/subscription`, data),
-  extendTrial: (id: string, days: number) =>
-    apiClient.post(`/admin/orgs/${id}/extend-trial`, { days }),
-  activateOrg: (id: string) =>
-    apiClient.post(`/admin/orgs/${id}/activate`),
-  createOrg: (data: { name: string; timezone?: string; currency?: string; plan?: string }) =>
+  getOrgUsers: (id: string) =>
+    apiClient.get(`/admin/orgs/${id}/users`),
+  createOrg: (data: Record<string, unknown>) =>
     apiClient.post('/admin/orgs', data),
+  updateOrg: (id: string, data: Record<string, unknown>) =>
+    apiClient.put(`/admin/orgs/${id}`, data),
+  updateSubscription: (id: string, data: Record<string, unknown>) =>
+    apiClient.put(`/admin/orgs/${id}/subscription`, data),
   approveOrg: (id: string) =>
     apiClient.post(`/admin/orgs/${id}/approve`),
   rejectOrg: (id: string) =>
     apiClient.post(`/admin/orgs/${id}/reject`),
-  getOrgUsers: (id: string) =>
-    apiClient.get(`/admin/orgs/${id}/users`),
-  // Plans
+  suspendOrg: (id: string) =>
+    apiClient.post(`/admin/orgs/${id}/suspend`),
+  activateOrg: (id: string) =>
+    apiClient.post(`/admin/orgs/${id}/activate`),
+  extendTrial: (id: string, days: number) =>
+    apiClient.post(`/admin/orgs/${id}/extend-trial`, { days }),
   getPlans: () =>
     apiClient.get('/admin/plans'),
   createPlan: (data: Record<string, unknown>) =>
@@ -366,11 +422,16 @@ export const adminApi = {
     apiClient.put(`/admin/plans/${id}`, data),
   deletePlan: (id: string) =>
     apiClient.delete(`/admin/plans/${id}`),
-  // Blog
+  getPlatformUsers: () =>
+    apiClient.get('/admin/platform-users'),
+  createPlatformUser: (data: Record<string, unknown>) =>
+    apiClient.post('/admin/platform-users', data),
+  updatePlatformUser: (id: string, data: Record<string, unknown>) =>
+    apiClient.put(`/admin/platform-users/${id}`, data),
+  deletePlatformUser: (id: string) =>
+    apiClient.delete(`/admin/platform-users/${id}`),
   getBlogPosts: (params?: { page?: number; limit?: number }) =>
     apiClient.get('/admin/blog', { params }),
-  getBlogPost: (id: string) =>
-    apiClient.get(`/admin/blog/${id}`),
   createBlogPost: (data: Record<string, unknown>) =>
     apiClient.post('/admin/blog', data),
   updateBlogPost: (id: string, data: Record<string, unknown>) =>
@@ -379,72 +440,4 @@ export const adminApi = {
     apiClient.delete(`/admin/blog/${id}`),
   togglePublish: (id: string) =>
     apiClient.patch(`/admin/blog/${id}/publish`),
-  // Platform Users
-  getPlatformUsers: (params?: { role?: string }) =>
-    apiClient.get('/admin/users', { params }),
-  getPlatformUser: (id: string) =>
-    apiClient.get(`/admin/users/${id}`),
-  createPlatformUser: (data: Record<string, unknown>) =>
-    apiClient.post('/admin/users', data),
-  updatePlatformUser: (id: string, data: Record<string, unknown>) =>
-    apiClient.put(`/admin/users/${id}`, data),
-  deletePlatformUser: (id: string) =>
-    apiClient.delete(`/admin/users/${id}`),
-};
-
-// ─── ORG SETTINGS ─────────────────────────────────────
-export const orgApi = {
-  getSettings: () =>
-    apiClient.get('/org/settings'),
-  updateSettings: (data: Record<string, unknown>) =>
-    apiClient.put('/org/settings', data),
-  getOfficeNetworks: () =>
-    apiClient.get('/org/office-ips'),
-  updateOfficeIPs: (ips: string[]) =>
-    apiClient.put('/org/office-ips', { ips }),
-  updateOfficeSSIDs: (ssids: string[]) =>
-    apiClient.put('/org/office-ssids', { ssids }),
-  detectMyIp: () =>
-    apiClient.get('/org/my-ip'),
-  getWhatsAppSettings: () =>
-    apiClient.get('/org/whatsapp'),
-  updateWhatsAppSettings: (data: Record<string, unknown>) =>
-    apiClient.put('/org/whatsapp', data),
-  testWhatsApp: () =>
-    apiClient.post('/org/whatsapp/test'),
-  getDepartments: () =>
-    apiClient.get('/org/departments'),
-};
-
-// ─── ORG RBAC ─────────────────────────────────────────
-export const orgRbacApi = {
-  getPermissionCatalog: () =>
-    apiClient.get('/org/permissions'),
-  getRoles: () =>
-    apiClient.get('/org/roles'),
-  createRole: (data: { name: string; slug: string; permission_keys?: string[] }) =>
-    apiClient.post('/org/roles', data),
-  updateRole: (id: string, data: { name: string }) =>
-    apiClient.put(`/org/roles/${id}`, data),
-  updateRolePermissions: (id: string, permission_keys: string[]) =>
-    apiClient.put(`/org/roles/${id}/permissions`, { permission_keys }),
-  deleteRole: (id: string) =>
-    apiClient.delete(`/org/roles/${id}`),
-  assignUserRole: (userId: string, org_role_id: string, sync_legacy_role = true) =>
-    apiClient.put(`/org/users/${userId}/role`, { org_role_id, sync_legacy_role }),
-  ensureSystemRoles: () =>
-    apiClient.post('/org/roles/ensure-system'),
-};
-
-export const notificationApi = {
-  getAll: (page = 1, limit = 20, unread?: boolean) =>
-    apiClient.get('/notifications', { params: { page, limit, ...(unread ? { unread: 'true' } : {}) } }),
-  getCount: () =>
-    apiClient.get('/notifications/count'),
-  markRead: (id: string) =>
-    apiClient.put(`/notifications/${id}/read`),
-  markAllRead: () =>
-    apiClient.put('/notifications/read-all'),
-  delete: (id: string) =>
-    apiClient.delete(`/notifications/${id}`),
 };

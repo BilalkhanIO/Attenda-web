@@ -2,6 +2,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
+import { authApi } from '@/lib/api';
 import AttendaLogo from '@/components/ui/AttendaLogo';
 import { AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui';
@@ -13,6 +14,7 @@ function SSOCallbackContent() {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    const code         = searchParams.get('code');
     const accessToken  = searchParams.get('access_token');
     const refreshToken = searchParams.get('refresh_token');
     const err          = searchParams.get('error');
@@ -24,18 +26,25 @@ function SSOCallbackContent() {
       return;
     }
 
-    if (accessToken && refreshToken) {
-      void (async () => {
-        try {
+    void (async () => {
+      try {
+        if (code) {
+          // Primary flow: one-time code exchange (Redis-backed)
+          const res = await authApi.exchangeSSOCode(code);
+          const { access_token, refresh_token } = res.data.data;
+          await loginWithTokens(access_token, refresh_token);
+        } else if (accessToken && refreshToken) {
+          // Fallback: tokens in query string (Redis unavailable during callback)
           await loginWithTokens(accessToken, refreshToken);
-          router.replace('/dashboard');
-        } catch {
-          setError('Failed to complete sign-in. Please try again.');
+        } else {
+          setError('Sign-in response was incomplete. Please try again.');
+          return;
         }
-      })();
-    } else {
-      setError('Sign-in response was incomplete. Please try again.');
-    }
+        router.replace('/dashboard');
+      } catch {
+        setError('Failed to complete sign-in. Please try again.');
+      }
+    })();
   }, [searchParams, loginWithTokens, router]);
 
   if (error) {

@@ -10,7 +10,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell
 } from 'recharts';
-import { Users, Clock, BarChart2, RefreshCw, CheckCircle } from 'lucide-react';
+import { Users, Clock, BarChart2, RefreshCw, CheckCircle, TrendingUp } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -18,9 +18,9 @@ const PIE_COLORS = ['#00C896', '#00E5FF', '#8B5CF6', '#F59E0B', '#EF4444'];
 
 function ChartCard({ title, children, className }: { title: string; children: React.ReactNode; className?: string }) {
   return (
-    <Card className={cn("p-6 relative overflow-hidden", className)}>
+    <Card className={cn("p-4 relative overflow-hidden", className)}>
       <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 blur-[40px] rounded-full translate-x-1/2 -translate-y-1/2 pointer-events-none" />
-      <h3 className="text-[11px] font-black text-white uppercase tracking-[0.2em] mb-6 relative z-10">{title}</h3>
+      <h3 className="text-[10px] font-black text-white uppercase tracking-[0.2em] mb-4 relative z-10">{title}</h3>
       <div className="relative z-10">
          {children}
       </div>
@@ -78,24 +78,24 @@ export default function AnalyticsPage() {
         }
       />
 
-      <div className="space-y-6">
+      <div className="space-y-4">
           {/* KPI row */}
           {loading ? (
-            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-              {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-2xl" />)}
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+              {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-2xl" />)}
             </div>
           ) : overview && (
-            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-              <KPICard title="In Office"   value={overview.checked_in}  icon={<Users size={20} />}   color="var(--success-500)" bg="#10b981" />
-              <KPICard title="Checked Out" value={overview.checked_out} icon={<Clock size={20} />}   color="var(--on-glass-muted)" bg="#64748b" />
-              <KPICard title="Remote"      value={overview.remote}      icon={<Users size={20} />}   color="var(--secondary)" bg="#00E5FF" />
-              <KPICard title="On Leave"    value={overview.on_leave}    icon={<Users size={20} />}   color="var(--primary-600)" bg="#00C896" />
-              <KPICard title="Absent"      value={overview.absent}      icon={<BarChart2 size={20} />} color="var(--danger-500)" bg="#ef4444" />
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+              <KPICard title="In Office"   value={overview.checked_in}  icon={<Users size={16} />}   color="var(--success-500)" bg="#10b981" />
+              <KPICard title="Checked Out" value={overview.checked_out} icon={<Clock size={16} />}   color="var(--on-glass-muted)" bg="#64748b" />
+              <KPICard title="Remote"      value={overview.remote}      icon={<Users size={16} />}   color="var(--secondary)" bg="#00E5FF" />
+              <KPICard title="On Leave"    value={overview.on_leave}    icon={<Users size={16} />}   color="var(--primary-600)" bg="#00C896" />
+              <KPICard title="Absent"      value={overview.absent}      icon={<BarChart2 size={16} />} color="var(--danger-500)" bg="#ef4444" />
             </div>
           )}
 
           {/* Charts row 1 */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <div className="lg:col-span-2">
               <ChartCard title="Attendance Rate — Last 30 Days">
                 {loading ? <Skeleton className="h-64 rounded-2xl" /> : (
@@ -155,7 +155,7 @@ export default function AnalyticsPage() {
           </div>
 
           {/* Charts row 2 */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <ChartCard title="Late Arrivals This Month">
               {loading ? <Skeleton className="h-56 rounded-2xl" /> : lateData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={220}>

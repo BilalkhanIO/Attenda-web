@@ -14,7 +14,7 @@ import { cn, getInitials } from '@/lib/utils';
 import { shouldShowTableEmptyState } from './table.utils';
 
 export { shouldShowTableEmptyState } from './table.utils';
-import { X, Loader2, AlertTriangle, ChevronRight, MoreHorizontal } from 'lucide-react';
+import { X, Loader2, AlertTriangle, ChevronRight, MoreHorizontal, ChevronDown, Check as CheckIcon } from 'lucide-react';
 
 // ─── Button ───────────────────────────────────────────
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -812,6 +812,186 @@ export function ActionMenu({ items }: { items: ActionMenuItem[] }) {
         >
           {item.icon}{item.label}
         </button>
+      ))}
+    </div>
+  );
+}
+
+// ─── Dropdown ─────────────────────────────────────────────
+export interface DropdownOption {
+  value: string;
+  label: string;
+}
+
+interface DropdownProps {
+  label?: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: DropdownOption[];
+  placeholder?: string;
+  error?: string;
+  required?: boolean;
+  disabled?: boolean;
+  className?: string;
+}
+
+export function Dropdown({ label, value, onChange, options, placeholder, error, required, disabled, className }: DropdownProps) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    if (open) document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [open]);
+
+  const selected = options.find(o => o.value === value);
+
+  return (
+    <div className={cn('flex flex-col gap-1.5', className)} ref={ref}>
+      {label && (
+        <label className="text-[13px] font-bold text-(--on-glass-sub) uppercase tracking-wide">
+          {label}{required && <span className="text-(--danger-500) ml-1">*</span>}
+        </label>
+      )}
+      <div className="relative">
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() => setOpen(o => !o)}
+          className={cn(
+            'w-full flex items-center gap-2.5 rounded-xl border bg-(--glass-05) px-3.5 py-2.5 text-sm transition-all duration-200 outline-none',
+            'border-(--glass-border) focus:border-(--primary-600) focus:ring-4 focus:ring-(--primary-600)/10',
+            open && 'border-(--primary-600) ring-4 ring-(--primary-600)/10',
+            !open && 'hover:border-(--glass-high) hover:bg-(--glass-10)',
+            error && 'border-(--danger-500)',
+            disabled && 'opacity-50 cursor-not-allowed pointer-events-none',
+          )}
+        >
+          <span className={cn('flex-1 min-w-0 truncate font-medium text-left', selected ? 'text-white' : 'text-(--on-glass-dim)')}>
+            {selected ? selected.label : (placeholder || 'Select…')}
+          </span>
+          <ChevronDown size={14} className={cn('text-(--on-glass-dim) transition-transform shrink-0', open && 'rotate-180')} />
+        </button>
+        {open && (
+          <div className="absolute top-full mt-1.5 left-0 right-0 z-50 bg-(--dark-950)/95 backdrop-blur-xl border border-(--glass-border) rounded-xl shadow-2xl overflow-hidden fade-in-up">
+            {placeholder && (
+              <button
+                type="button"
+                onClick={() => { onChange(''); setOpen(false); }}
+                className={cn('w-full text-left px-4 py-2.5 text-sm transition-all flex items-center gap-2',
+                  !value ? 'bg-(--primary-600) text-white font-bold' : 'text-(--on-glass-dim) hover:bg-(--glass-10) hover:text-white')}
+              >
+                {!value && <CheckIcon size={12} className="shrink-0" />}
+                {placeholder}
+              </button>
+            )}
+            {options.map(o => (
+              <button
+                key={o.value}
+                type="button"
+                onClick={() => { onChange(o.value); setOpen(false); }}
+                className={cn('w-full text-left px-4 py-2.5 text-sm font-medium transition-all flex items-center gap-2',
+                  o.value === value ? 'bg-(--primary-600) text-white font-bold' : 'text-white hover:bg-(--glass-10)')}
+              >
+                {o.value === value && <CheckIcon size={12} className="shrink-0" />}
+                <span className={o.value !== value ? 'pl-4' : ''}>{o.label}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+      {error && <p className="text-xs text-(--danger-500) font-medium flex items-center gap-1.5 mt-0.5"><AlertTriangle size={12} />{error}</p>}
+    </div>
+  );
+}
+
+// ─── StatBox ───────────────────────────────────────────────
+interface StatBoxProps {
+  label: string;
+  labelIcon?: ReactNode;
+  value: ReactNode;
+  note?: ReactNode;
+  noteColor?: string;
+  className?: string;
+}
+export function StatBox({ label, labelIcon, value, note, noteColor, className }: StatBoxProps) {
+  return (
+    <div className={cn('panel', className)}>
+      <p className="label-xs flex items-center gap-1 mb-1.5">{labelIcon}{label}</p>
+      <div className="text-base font-black text-white">{value}</div>
+      {note && <p className="text-[10px] font-bold mt-0.5" style={{ color: noteColor ?? 'var(--on-glass-dim)' }}>{note}</p>}
+    </div>
+  );
+}
+
+// ─── SectionCard ───────────────────────────────────────────
+interface SectionCardProps {
+  icon?: ReactNode;
+  iconColor?: string;
+  title: string;
+  count?: number;
+  countColor?: string;
+  children: ReactNode;
+  className?: string;
+  accentColor?: string;
+}
+export function SectionCard({ icon, iconColor, title, count, countColor, children, className, accentColor }: SectionCardProps) {
+  const cc = countColor ?? accentColor ?? 'var(--primary-600)';
+  return (
+    <Card
+      className={cn('p-4', className)}
+      style={accentColor ? { borderColor: accentColor + '33', backgroundColor: accentColor + '0D' } : undefined}
+    >
+      <div className="flex items-center gap-2.5 mb-3">
+        {icon && <span style={{ color: iconColor ?? accentColor }}>{icon}</span>}
+        <h3 className="text-xs font-black text-white uppercase tracking-widest flex-1">{title}</h3>
+        {count != null && (
+          <span className="text-[10px] font-black px-2 py-0.5 rounded-full" style={{ color: cc, backgroundColor: cc + '28' }}>
+            {count}
+          </span>
+        )}
+      </div>
+      {children}
+    </Card>
+  );
+}
+
+// ─── RequestItem ───────────────────────────────────────────
+interface RequestItemProps {
+  name: string;
+  avatarUrl?: string;
+  primary: string;
+  primaryColor?: string;
+  secondary?: string;
+  onApprove?: () => void;
+  onReject?: () => void;
+  loading?: boolean;
+  actions?: ReactNode;
+}
+export function RequestItem({ name, avatarUrl, primary, primaryColor, secondary, onApprove, onReject, loading, actions }: RequestItemProps) {
+  return (
+    <div className="item-row">
+      <Avatar name={name} imageUrl={avatarUrl} size="sm" />
+      <div className="flex-1 min-w-0">
+        <p className="text-xs font-bold text-white truncate">{name}</p>
+        <p className="text-[10px] truncate" style={{ color: primaryColor ?? 'var(--on-glass-muted)' }}>{primary}</p>
+        {secondary && <p className="text-[10px] text-[var(--on-glass-dim)] truncate">{secondary}</p>}
+      </div>
+      {actions ?? ((onApprove || onReject) && (
+        <div className="flex gap-1.5 shrink-0">
+          {onApprove && <button onClick={onApprove} disabled={loading} className="action-btn action-btn-approve"><Check size={12} /></button>}
+          {onReject  && <button onClick={onReject}  disabled={loading} className="action-btn action-btn-reject"><X size={12} /></button>}
+        </div>
       ))}
     </div>
   );

@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { PageHeader, Card, Button, Badge, EmptyState, Modal, Input } from '@/components/ui';
+import { PageHeader, Card, Button, Badge, EmptyState, Modal, Input, SectionCard, RequestItem } from '@/components/ui';
 import { overtimeApi } from '@/lib/api';
 import { getApiError } from '@/lib/utils';
 import { useAuth } from '@/lib/auth';
@@ -111,56 +111,29 @@ export default function OvertimePage() {
     }
   };
 
-  const RequestCard = ({ req, showUser }: { req: OvertimeRequest; showUser: boolean }) => {
+  const buildRequestItem = (req: OvertimeRequest, showUser: boolean) => {
     const badge = STATUS_BADGE[req.status] || STATUS_BADGE.pending;
+    const dateStr = req.attendance?.date ? fmtDate(req.attendance.date) : '—';
+    const shiftStr = req.attendance?.shift?.name ? ` · ${req.attendance.shift.name}` : '';
+    const primary = `${dateStr}${shiftStr} · ${fmtMins(req.requested_minutes)}`;
+    const secondary = req.rejection_reason
+      ? `Rejected: ${req.rejection_reason}`
+      : req.reason || undefined;
+    const statusActions = (
+      <Badge label={badge.label} color={badge.color} bg={badge.bg} size="sm" />
+    );
     return (
-      <div className="flex items-start gap-4 p-4 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-colors">
-        <div className="w-9 h-9 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0 mt-0.5">
-          <Clock size={16} className="text-amber-400" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap mb-1">
-            {showUser && req.user && (
-              <span className="text-sm font-semibold text-slate-100">{req.user.name}</span>
-            )}
-            {req.user?.department && (
-              <span className="text-xs text-slate-500">{req.user.department}</span>
-            )}
-            <Badge label={badge.label} color={badge.color} bg={badge.bg} />
-          </div>
-          <div className="flex items-center gap-3 flex-wrap">
-            <span className="text-xs text-slate-400">
-              {req.attendance?.date ? fmtDate(req.attendance.date) : '—'}
-              {req.attendance?.shift?.name ? ` · ${req.attendance.shift.name}` : ''}
-            </span>
-            <span className="text-xs font-semibold text-amber-400">{fmtMins(req.requested_minutes)}</span>
-          </div>
-          {req.reason && <p className="text-xs text-slate-500 mt-1">{req.reason}</p>}
-          {req.rejection_reason && (
-            <p className="text-xs text-rose-400 mt-1">Rejected: {req.rejection_reason}</p>
-          )}
-        </div>
-        {showUser && req.status === 'pending' && (
-          <div className="flex gap-1.5 shrink-0">
-            <button
-              onClick={() => handleApprove(req.id)}
-              disabled={actionLoading === req.id}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 disabled:opacity-50 transition-colors"
-            >
-              <CheckCircle size={13} />
-              Approve
-            </button>
-            <button
-              onClick={() => { setRejectModal({ open: true, id: req.id }); setRejectReason(''); }}
-              disabled={actionLoading === req.id}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 disabled:opacity-50 transition-colors"
-            >
-              <XCircle size={13} />
-              Reject
-            </button>
-          </div>
-        )}
-      </div>
+      <RequestItem
+        key={req.id}
+        name={showUser && req.user ? `${req.user.name}${req.user.department ? ` · ${req.user.department}` : ''}` : 'My Request'}
+        primary={primary}
+        primaryColor="#f59e0b"
+        secondary={secondary}
+        loading={actionLoading === req.id}
+        onApprove={showUser && req.status === 'pending' ? () => handleApprove(req.id) : undefined}
+        onReject={showUser && req.status === 'pending' ? () => { setRejectModal({ open: true, id: req.id }); setRejectReason(''); } : undefined}
+        actions={!(showUser && req.status === 'pending') ? statusActions : undefined}
+      />
     );
   };
 
@@ -181,54 +154,55 @@ export default function OvertimePage() {
         <div className="space-y-4">
           {/* Team approvals */}
           {canManage && (
-            <Card className="glass-card">
-              <div className="p-5 border-b border-white/5">
-                <h2 className="text-sm font-bold text-slate-200">Pending Approvals</h2>
-              </div>
-              <div className="p-4 space-y-2">
-                {teamRequests.length === 0 ? (
-                  <EmptyState
-                    icon={<CheckCircle size={22} />}
-                    title="No pending requests"
-                    description="All overtime requests have been reviewed."
-                  />
-                ) : (
-                  teamRequests.map(req => (
-                    <RequestCard key={req.id} req={req} showUser />
-                  ))
-                )}
-              </div>
-            </Card>
+            <SectionCard
+              icon={<CheckCircle size={15} />}
+              iconColor="#10b981"
+              title="Pending Approvals"
+              count={teamRequests.length || undefined}
+              countColor="#f59e0b"
+            >
+              {teamRequests.length === 0 ? (
+                <EmptyState
+                  icon={<CheckCircle size={22} />}
+                  title="No pending requests"
+                  description="All overtime requests have been reviewed."
+                />
+              ) : (
+                <div className="space-y-2">
+                  {teamRequests.map(req => buildRequestItem(req, true))}
+                </div>
+              )}
+            </SectionCard>
           )}
 
           {/* My requests */}
-          <Card className="glass-card">
-            <div className="p-5 border-b border-white/5">
-              <h2 className="text-sm font-bold text-slate-200">My Overtime Requests</h2>
-            </div>
-            <div className="p-4 space-y-2">
-              {myRequests.length === 0 ? (
-                <EmptyState
-                  icon={<Clock size={22} />}
-                  title="No overtime requests"
-                  description="Your overtime requests will appear here once submitted from your attendance records."
-                />
-              ) : (
-                myRequests.map(req => (
-                  <RequestCard key={req.id} req={req} showUser={false} />
-                ))
-              )}
-            </div>
-          </Card>
+          <SectionCard
+            icon={<Clock size={15} />}
+            iconColor="#f59e0b"
+            title="My Overtime Requests"
+            count={myRequests.length || undefined}
+          >
+            {myRequests.length === 0 ? (
+              <EmptyState
+                icon={<Clock size={22} />}
+                title="No overtime requests"
+                description="Your overtime requests will appear here once submitted from your attendance records."
+              />
+            ) : (
+              <div className="space-y-2">
+                {myRequests.map(req => buildRequestItem(req, false))}
+              </div>
+            )}
+          </SectionCard>
 
           {/* Weekly summary */}
           {canManage && (
-            <Card className="glass-card overflow-hidden">
-              <div className="p-5 border-b border-white/5">
-                <h2 className="text-sm font-bold text-slate-200">Weekly Overtime Summary</h2>
+            <Card className="overflow-hidden">
+              <div className="px-4 py-3 border-b border-(--glass-border)">
+                <h2 className="text-[10px] font-black text-white uppercase tracking-widest">Weekly Overtime Summary</h2>
               </div>
               {summary.length === 0 ? (
-                <div className="p-6">
+                <div className="p-4">
                   <EmptyState
                     icon={<TrendingUp size={22} />}
                     title="No overtime this week"
@@ -237,31 +211,31 @@ export default function OvertimePage() {
                 </div>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
+                  <table className="w-full">
                     <thead>
-                      <tr className="border-b border-white/5">
-                        <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Employee</th>
-                        <th className="text-right px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Total Hrs</th>
-                        <th className="text-right px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Regular</th>
-                        <th className="text-right px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Overtime</th>
-                        <th className="text-right px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">OT Pay</th>
+                      <tr className="border-b border-(--glass-border)">
+                        <th className="text-left px-4 py-2.5 label-xs">Employee</th>
+                        <th className="text-right px-4 py-2.5 label-xs">Total</th>
+                        <th className="text-right px-4 py-2.5 label-xs">Regular</th>
+                        <th className="text-right px-4 py-2.5 label-xs">Overtime</th>
+                        <th className="text-right px-4 py-2.5 label-xs">OT Pay</th>
                       </tr>
                     </thead>
                     <tbody>
                       {summary.map(row => (
-                        <tr key={row.user_id} className="border-b border-white/[0.03] hover:bg-white/[0.02]">
-                          <td className="px-5 py-3">
-                            <span className="font-semibold text-slate-200">{row.name}</span>
-                            {row.department && <span className="ml-2 text-xs text-slate-500">{row.department}</span>}
+                        <tr key={row.user_id} className="border-b border-(--glass-border) hover:bg-(--glass-05) transition-colors">
+                          <td className="px-4 py-2.5">
+                            <span className="text-xs font-bold text-white">{row.name}</span>
+                            {row.department && <span className="ml-2 text-[10px] text-(--on-glass-dim)">{row.department}</span>}
                           </td>
-                          <td className="px-5 py-3 text-right text-slate-300">{row.total_hours}h</td>
-                          <td className="px-5 py-3 text-right text-slate-300">{row.regular_hours}h</td>
-                          <td className="px-5 py-3 text-right">
-                            <span className={row.overtime_hours > 0 ? 'font-semibold text-amber-400' : 'text-slate-500'}>
+                          <td className="px-4 py-2.5 text-right text-xs text-(--on-glass-muted)">{row.total_hours}h</td>
+                          <td className="px-4 py-2.5 text-right text-xs text-(--on-glass-muted)">{row.regular_hours}h</td>
+                          <td className="px-4 py-2.5 text-right text-xs">
+                            <span style={{ color: row.overtime_hours > 0 ? 'var(--warning-500)' : 'var(--on-glass-dim)' }} className="font-bold">
                               {row.overtime_hours}h
                             </span>
                           </td>
-                          <td className="px-5 py-3 text-right font-semibold text-emerald-400">
+                          <td className="px-4 py-2.5 text-right text-xs font-bold" style={{ color: 'var(--success-500)' }}>
                             {row.overtime_pay > 0 ? `+${row.overtime_pay.toFixed(2)}` : '—'}
                           </td>
                         </tr>
@@ -283,9 +257,9 @@ export default function OvertimePage() {
         size="sm"
         footer={
           <>
-            <Button variant="ghost" onClick={() => setRejectModal({ open: false, id: '' })}>Cancel</Button>
+            <Button variant="ghost" size="sm" onClick={() => setRejectModal({ open: false, id: '' })}>Cancel</Button>
             <Button
-              variant="danger"
+              variant="danger" size="sm"
               loading={actionLoading === rejectModal.id}
               onClick={handleReject}
               icon={<XCircle size={14} />}

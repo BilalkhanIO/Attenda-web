@@ -4,7 +4,8 @@ import { useAuth } from '@/lib/auth';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import {
   PageHeader, Card, Table, Avatar, Badge, Button, Modal, ConfirmDialog,
-  Input, Textarea, Skeleton
+  Textarea, Skeleton, KPICard, Dropdown,
+  type DropdownOption,
 } from '@/components/ui';
 import { performanceApi } from '@/lib/api';
 import { getApiError } from '@/lib/utils';
@@ -173,57 +174,27 @@ export default function PerformancePage() {
         title="Performance Tracking"
         subtitle="Monthly reviews and goal tracking"
         actions={
-          <div className="flex items-center gap-3 bg-[var(--glass-10)] p-1.5 pl-4 rounded-2xl border border-[var(--glass-border)] shadow-xl backdrop-blur-md">
-            <select value={selectedMonth} onChange={e => setMth(e.target.value)}
-              className="bg-transparent text-[11px] font-black text-white uppercase tracking-widest outline-none cursor-pointer pr-2">
-              {MONTHS.map(m => <option key={m.value} value={m.value} className="bg-[var(--dark-950)]">{m.label.toUpperCase()}</option>)}
-            </select>
-          </div>
+          <Dropdown
+            value={selectedMonth}
+            onChange={setMth}
+            options={MONTHS.map(m => ({ value: m.value, label: m.label.toUpperCase() } as DropdownOption))}
+            className="min-w-40"
+          />
         }
       />
 
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-          {reviewLoading ? Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-2xl" />) : (<>
-            <Card className="p-6 relative overflow-hidden group hover:bg-[var(--glass-10)] transition-all">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-[var(--success-500)]/5 blur-[40px] rounded-full translate-x-1/2 -translate-y-1/2" />
-              <div className="flex items-center justify-between relative z-10">
-                 <div>
-                    <p className="text-[10px] font-black text-[var(--on-glass-muted)] uppercase tracking-widest mb-1">Reviews Submitted</p>
-                    <p className="text-3xl font-black text-white group-hover:text-[var(--success-500)] transition-colors">{submitted}</p>
-                 </div>
-                 <div className="w-12 h-12 rounded-2xl bg-[var(--success-500)]/10 border border-[var(--success-500)]/20 flex items-center justify-center text-[var(--success-500)] shadow-xl">
-                    <CheckCircle size={24} />
-                 </div>
-              </div>
-            </Card>
-            <Card className="p-6 relative overflow-hidden group hover:bg-[var(--glass-10)] transition-all">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-[var(--warning-500)]/5 blur-[40px] rounded-full translate-x-1/2 -translate-y-1/2" />
-              <div className="flex items-center justify-between relative z-10">
-                 <div>
-                    <p className="text-[10px] font-black text-[var(--on-glass-muted)] uppercase tracking-widest mb-1">Pending Reviews</p>
-                    <p className="text-3xl font-black text-white group-hover:text-[var(--warning-500)] transition-colors">{pending}</p>
-                 </div>
-                 <div className="w-12 h-12 rounded-2xl bg-[var(--warning-500)]/10 border border-[var(--warning-500)]/20 flex items-center justify-center text-[var(--warning-500)] shadow-xl">
-                    <Clock size={24} />
-                 </div>
-              </div>
-            </Card>
-            <Card className="p-6 relative overflow-hidden group hover:bg-[var(--glass-10)] transition-all lg:col-span-1 col-span-2">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-[var(--primary-600)]/5 blur-[40px] rounded-full translate-x-1/2 -translate-y-1/2" />
-              <div className="flex items-center justify-between relative z-10">
-                 <div>
-                    <p className="text-[10px] font-black text-[var(--on-glass-muted)] uppercase tracking-widest mb-1">Team Average</p>
-                    <p className="text-3xl font-black text-white group-hover:text-[var(--primary-600)] transition-colors">
-                      {reviews.length > 0 && submitted > 0
-                        ? Math.round(reviews.filter(r => r.score > 0).reduce((s, r) => s + starToScore(r.score), 0) / submitted)
-                        : '—'}
-                    </p>
-                 </div>
-                 <div className="w-12 h-12 rounded-2xl bg-[var(--primary-600)]/10 border border-[var(--primary-600)]/20 flex items-center justify-center text-[var(--primary-600)] shadow-xl">
-                    <TrendingUp size={24} />
-                 </div>
-              </div>
-            </Card>
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
+          {reviewLoading ? Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-2xl" />) : (<>
+            <KPICard title="Reviews Submitted" value={submitted}  icon={<CheckCircle size={16} />} color="var(--success-500)" bg="#10b981" />
+            <KPICard title="Pending Reviews"   value={pending}    icon={<Clock size={16} />}        color="var(--warning-500)" bg="#f59e0b" />
+            <div className="lg:col-span-1 col-span-2">
+              <KPICard title="Team Average"
+                value={reviews.length > 0 && submitted > 0
+                  ? Math.round(reviews.filter(r => r.score > 0).reduce((s, r) => s + starToScore(r.score), 0) / submitted)
+                  : '—'}
+                icon={<TrendingUp size={16} />} color="var(--primary-600)" bg="#00C896"
+              />
+            </div>
           </>)}
         </div>
 
@@ -243,27 +214,25 @@ export default function PerformancePage() {
               const score = starToScore(review.score);
               const [c] = scoreColor(isSubmitted ? score : 0);
               return (
-                <tr key={review.id} className="hover:bg-[var(--glass-05)] transition-all group">
-                  <td className="py-4 px-6">
+                <tr key={review.id} className="hover:bg-(--glass-05) transition-all group">
+                  <td className="py-3 px-4">
                     {review.user ? (
-                      <div className="flex items-center gap-4">
-                        <Avatar name={review.user.name} size="md" />
-                        <div className="min-w-0">
-                          <p className="text-[15px] font-black text-white group-hover:text-[var(--primary-600)] transition-colors truncate">{review.user.name}</p>
-                        </div>
+                      <div className="flex items-center gap-3">
+                        <Avatar name={review.user.name} size="sm" />
+                        <p className="text-sm font-black text-white group-hover:text-(--primary-600) transition-colors truncate">{review.user.name}</p>
                       </div>
                     ) : '—'}
                   </td>
-                  <td className="py-4 px-6">
-                    <span className="text-[10px] font-bold text-[var(--on-glass-muted)] uppercase tracking-widest">{review.user?.department || 'Operations'}</span>
+                  <td className="py-3 px-4">
+                    <span className="text-[10px] font-bold text-(--on-glass-muted) uppercase tracking-widest">{review.user?.department || 'Operations'}</span>
                   </td>
-                  <td className="py-4 px-6">
+                  <td className="py-3 px-4">
                     {isSubmitted
-                      ? <span className="text-xl font-black" style={{ color: c }}>{score}</span>
-                      : <span className="text-sm font-bold text-[var(--on-glass-dim)]">—</span>}
+                      ? <span className="text-base font-black" style={{ color: c }}>{score}</span>
+                      : <span className="text-xs font-bold text-(--on-glass-dim)">—</span>}
                   </td>
-                  <td className="py-4 px-6"><StarRating value={review.score} readonly /></td>
-                  <td className="py-4 px-6">
+                  <td className="py-3 px-4"><StarRating value={review.score} readonly /></td>
+                  <td className="py-3 px-4">
                     <Badge
                       label={isSubmitted ? 'SUBMITTED' : 'PENDING'}
                       color={isSubmitted ? 'var(--success-500)' : 'var(--warning-500)'}
@@ -271,23 +240,17 @@ export default function PerformancePage() {
                       size="sm"
                     />
                   </td>
-                  <td className="py-4 px-6">
-                    <div className="flex items-center gap-2">
+                  <td className="py-3 px-4">
+                    <div className="flex items-center gap-1.5">
                       {hasRole('manager', 'hr_admin', 'super_admin') && (
-                        <button
-                          onClick={() => openReview(review)}
-                          title={isSubmitted ? 'View Review' : 'Create Review'}
-                          className="w-9 h-9 flex items-center justify-center rounded-xl bg-[var(--glass-10)] text-[var(--on-glass-dim)] hover:text-white hover:bg-[var(--glass-15)] transition-all"
-                        >
-                          {isSubmitted ? <TrendingUp size={16} /> : <Star size={16} />}
+                        <button onClick={() => openReview(review)} title={isSubmitted ? 'View Review' : 'Create Review'}
+                          className="w-7 h-7 flex items-center justify-center rounded-lg bg-(--glass-10) text-(--on-glass-dim) hover:text-white hover:bg-(--glass-15) transition-all">
+                          {isSubmitted ? <TrendingUp size={14} /> : <Star size={14} />}
                         </button>
                       )}
-                      <button
-                        onClick={() => openInsights(review)}
-                        title="AI Analysis"
-                        className="w-9 h-9 flex items-center justify-center rounded-xl bg-[var(--glass-10)] text-[var(--on-glass-dim)] hover:text-[var(--secondary)] hover:bg-[var(--glass-15)] transition-all"
-                      >
-                         <Sparkles size={16} />
+                      <button onClick={() => openInsights(review)} title="AI Analysis"
+                        className="w-7 h-7 flex items-center justify-center rounded-lg bg-(--glass-10) text-(--on-glass-dim) hover:text-(--secondary) hover:bg-(--glass-15) transition-all">
+                        <Sparkles size={14} />
                       </button>
                     </div>
                   </td>
@@ -302,33 +265,33 @@ export default function PerformancePage() {
         isOpen={!!reviewUser}
         onClose={() => setReviewUser(null)}
         title="Performance Review"
-        size="md"
+        size="sm"
         footer={
           reviewUser?.submitted_at ? (
-            <Button onClick={() => setReviewUser(null)}>Close</Button>
+            <Button size="sm" onClick={() => setReviewUser(null)}>Close</Button>
           ) : (
             <>
-              <Button variant="ghost" onClick={() => setReviewUser(null)}>Cancel</Button>
+              <Button variant="ghost" size="sm" onClick={() => setReviewUser(null)}>Cancel</Button>
               {hasRole('manager', 'hr_admin', 'super_admin') && (
-                <Button onClick={reviewForm.handleSubmit(onSubmitReviewForm)}>Submit Review</Button>
+                <Button size="sm" onClick={reviewForm.handleSubmit(onSubmitReviewForm)}>Submit Review</Button>
               )}
             </>
           )
         }
       >
         {reviewUser && (
-          <div className="space-y-6">
+          <div className="space-y-4">
             {reviewUser.user && (
-              <div className="flex items-center gap-4 p-5 rounded-[2rem] bg-[var(--glass-05)] border border-[var(--glass-border)]">
-                <Avatar name={reviewUser.user.name} size="md" />
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-(--glass-05) border border-(--glass-border)">
+                <Avatar name={reviewUser.user.name} size="sm" />
                 <div className="flex-1">
-                  <p className="text-lg font-black text-white tracking-tight">{reviewUser.user.name}</p>
-                  <p className="text-[10px] font-bold text-[var(--on-glass-muted)] uppercase tracking-widest mt-1">Period: {format(new Date(selectedMonth + '-01'), 'MMMM yyyy').toUpperCase()}</p>
+                  <p className="text-sm font-black text-white tracking-tight">{reviewUser.user.name}</p>
+                  <p className="label-xs mt-0.5">Period: {format(new Date(selectedMonth + '-01'), 'MMMM yyyy').toUpperCase()}</p>
                 </div>
               </div>
             )}
-            <div className="p-6 rounded-[2rem] border border-[var(--glass-border)] bg-[var(--glass-05)]">
-              <p className="text-[10px] font-black text-[var(--primary-600)] uppercase tracking-[0.2em] mb-4">Manager Rating</p>
+            <div className="p-4 rounded-xl border border-(--glass-border) bg-(--glass-05)">
+              <p className="text-[10px] font-black text-(--primary-600) uppercase tracking-[0.2em] mb-3">Manager Rating</p>
               <div className="flex items-center justify-between">
                 <StarRating
                   value={starValue}
@@ -336,27 +299,27 @@ export default function PerformancePage() {
                   readonly={!!reviewUser.submitted_at}
                 />
                 {starValue > 0 && (
-                  <span className="text-3xl font-black" style={{ color: scoreColor(starToScore(starValue))[0] }}>
+                  <span className="text-2xl font-black" style={{ color: scoreColor(starToScore(starValue))[0] }}>
                     {starToScore(starValue)}
                   </span>
                 )}
               </div>
               {!reviewUser.submitted_at && starValue === 0 && (
-                <p className="text-[10px] font-bold text-[var(--on-glass-dim)] uppercase tracking-widest mt-4">Select Rating Identity</p>
+                <p className="label-xs mt-3">Select a star rating</p>
               )}
             </div>
             <Textarea
               label="Performance Notes"
               required={!reviewUser.submitted_at}
-              placeholder="Add qualitative notes about this month's performance, achievements, and areas for improvement..."
+              placeholder="Notes about performance, achievements, and areas for improvement..."
               error={reviewForm.formState.errors.comments?.message}
-              className="h-32"
+              className="h-28"
               readOnly={!!reviewUser.submitted_at}
               {...reviewForm.register('comments')}
             />
             {reviewUser.submitted_at && (
-              <p className="text-[10px] font-bold text-[var(--on-glass-dim)] uppercase tracking-widest leading-relaxed">
-                Review submitted on {format(new Date(reviewUser.submitted_at), 'MMM d, yyyy')} by {reviewUser.reviewer?.name}
+              <p className="label-xs leading-relaxed">
+                Submitted on {format(new Date(reviewUser.submitted_at), 'MMM d, yyyy')} by {reviewUser.reviewer?.name}
               </p>
             )}
           </div>
@@ -368,29 +331,29 @@ export default function PerformancePage() {
         isOpen={!!insightsUser}
         onClose={() => { setInsightsUser(null); setInsights(''); }}
         title="AI Performance Insights"
-        size="lg"
-        footer={<Button onClick={() => { setInsightsUser(null); setInsights(''); }}>Close</Button>}
+        size="md"
+        footer={<Button size="sm" onClick={() => { setInsightsUser(null); setInsights(''); }}>Close</Button>}
       >
         {insightsUser && (
-          <div className="space-y-6">
+          <div className="space-y-4">
             {insightsUser.user && (
-              <div className="flex items-center gap-4 p-5 rounded-[2rem] bg-[var(--glass-05)] border border-[var(--glass-border)]">
-                <Avatar name={insightsUser.user.name} size="md" />
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-(--glass-05) border border-(--glass-border)">
+                <Avatar name={insightsUser.user.name} size="sm" />
                 <div className="flex-1">
-                  <p className="text-lg font-black text-white tracking-tight">{insightsUser.user.name}</p>
-                  <p className="text-[10px] font-bold text-[var(--secondary)] uppercase tracking-[0.2em] mt-1 flex items-center gap-1.5">
+                  <p className="text-sm font-black text-white tracking-tight">{insightsUser.user.name}</p>
+                  <p className="text-[10px] font-bold text-(--secondary) uppercase tracking-[0.2em] mt-0.5 flex items-center gap-1.5">
                     <Sparkles size={10} /> AI Performance Insights
                   </p>
                 </div>
               </div>
             )}
             {insightsLoading ? (
-              <div className="flex flex-col items-center gap-4 py-16">
-                <div className="w-8 h-8 border-4 border-[var(--primary-600)] border-t-transparent rounded-full animate-spin" />
-                <p className="text-[10px] font-black text-[var(--on-glass-dim)] uppercase tracking-[0.3em]">Processing Data Stream…</p>
+              <div className="flex flex-col items-center gap-3 py-12">
+                <div className="w-8 h-8 border-4 border-(--primary-600) border-t-transparent rounded-full animate-spin" />
+                <p className="label-xs">Processing Data Stream…</p>
               </div>
             ) : (
-              <div className="p-6 rounded-[2.5rem] bg-gradient-to-br from-[var(--primary-600)]/10 to-transparent border border-[var(--primary-600)]/20 shadow-2xl text-[var(--on-glass-sub)] text-sm leading-[1.8] font-medium whitespace-pre-wrap">
+              <div className="p-4 rounded-xl bg-gradient-to-br from-(--primary-600)/10 to-transparent border border-(--primary-600)/20 text-(--on-glass-sub) text-sm leading-relaxed font-medium whitespace-pre-wrap">
                 {insights}
               </div>
             )}

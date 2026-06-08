@@ -3,10 +3,11 @@ import { useState, useEffect, useCallback } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import {
   PageHeader, Card, Table, Avatar, Badge, Button, Modal, ConfirmDialog,
-  Textarea, StatBox, Dropdown, DatePicker, TimePicker,
+  Textarea, StatBox, SectionCard, RequestItem, Dropdown, DatePicker, TimePicker,
+  type DropdownOption,
 } from '@/components/ui';
 import { leaveApi } from '@/lib/api';
-import { leaveStatusConfig, getApiError } from '@/lib/utils';
+import { leaveStatusConfig, formatDate, getApiError } from '@/lib/utils';
 import type { LeaveRequest } from '@/types';
 import { Calendar, Plus, Check, X } from 'lucide-react';
 import { useForm, Controller } from 'react-hook-form';
@@ -49,7 +50,7 @@ const rejectSchema = z.object({ reason: z.string().min(5, 'Rejection reason requ
 type RejectForm = z.infer<typeof rejectSchema>;
 
 export default function LeavePage() {
-  const { hasRole } = useAuth();
+  const { user, hasRole } = useAuth();
   const [requests, setRequests]   = useState<LeaveRequest[]>([]);
   const [balances, setBalances]   = useState<{leave_type:string; total_days:number; used_days:number; available_days:number}[]>([]);
   const [loading, setLoading]     = useState(true);
@@ -178,52 +179,58 @@ export default function LeavePage() {
           {filtered.map((req) => {
             const cfg = leaveStatusConfig[req.status];
             return (
-              <tr key={req.id} className="hover:bg-(--glass-05) transition-all group">
-                <td className="py-3 px-4">
+              <tr key={req.id} className="hover:bg-[var(--glass-05)] transition-all group">
+                <td className="py-4 px-6">
                   {req.user ? (
-                    <div className="flex items-center gap-3">
-                      <Avatar name={req.user.name} size="sm" />
+                    <div className="flex items-center gap-4">
+                      <Avatar name={req.user.name} size="md" />
                       <div className="min-w-0">
-                        <p className="text-sm font-black text-white group-hover:text-(--primary-600) transition-colors truncate">{req.user.name}</p>
-                        <p className="text-[10px] font-bold text-(--on-glass-muted) uppercase tracking-widest truncate">{req.user.department || 'Operations'}</p>
+                        <p className="text-[15px] font-black text-white group-hover:text-[var(--primary-600)] transition-colors truncate">{req.user.name}</p>
+                        <p className="text-[10px] font-bold text-[var(--on-glass-muted)] uppercase tracking-widest truncate">{req.user.department || 'Operations'}</p>
                       </div>
                     </div>
-                  ) : <span className="text-xs text-(--on-glass-dim)">—</span>}
+                  ) : <span className="text-xs text-[var(--on-glass-dim)]">—</span>}
                 </td>
-                <td className="py-3 px-4">
+                <td className="py-4 px-6">
                   <div>
-                    <p className="text-xs font-bold text-white uppercase tracking-tight">{(req.leave_type as unknown as string) || '—'}</p>
-                    <p className="text-[10px] font-bold text-(--on-glass-dim) uppercase tracking-widest mt-0.5">{(req.leave_type as unknown as string) === 'unpaid' ? 'UNPAID' : 'PAID'}</p>
+                    <p className="text-sm font-bold text-white uppercase tracking-tight">{(req.leave_type as unknown as string) || '—'}</p>
+                    <p className="text-[10px] font-bold text-[var(--on-glass-dim)] uppercase tracking-widest mt-0.5">{(req.leave_type as unknown as string) === 'unpaid' ? 'UNPAID' : 'PAID'}</p>
                   </div>
                 </td>
-                <td className="py-3 px-4">
-                  <span className="text-xs font-black text-white">{req.working_days} DAY{req.working_days !== 1 ? 'S' : ''}</span>
+                <td className="py-4 px-6">
+                  <span className="text-sm font-black text-white">{req.working_days} DAY{req.working_days !== 1 ? 'S' : ''}</span>
                   {req.leave_start_time && req.leave_end_time && (
-                    <p className="text-[10px] font-bold text-(--on-glass-dim) uppercase tracking-widest font-mono mt-0.5">
+                    <p className="text-[10px] font-bold text-[var(--on-glass-dim)] uppercase tracking-widest font-mono mt-0.5">
                       {req.leave_start_time} - {req.leave_end_time}
                     </p>
                   )}
                 </td>
-                <td className="py-3 px-4">
-                  <p className="text-xs font-black text-white font-mono">{format(new Date(req.start_date), 'dd MMM')}</p>
-                  <p className="text-[10px] font-bold text-(--on-glass-dim) uppercase tracking-widest font-mono">TO {format(new Date(req.end_date), 'dd MMM')}</p>
+                <td className="py-4 px-6">
+                  <p className="text-sm font-black text-white font-mono">{format(new Date(req.start_date), 'dd MMM')}</p>
+                  <p className="text-[10px] font-bold text-[var(--on-glass-dim)] uppercase tracking-widest font-mono">TO {format(new Date(req.end_date), 'dd MMM')}</p>
                 </td>
-                <td className="py-3 px-4">
+                <td className="py-4 px-6">
                   <Badge label={cfg.label} color={cfg.color} bg={cfg.bg} size="sm" />
                 </td>
-                <td className="py-3 px-4">
+                <td className="py-4 px-6">
                   {req.status === 'pending' && hasRole('manager', 'hr_admin', 'super_admin') && (
-                    <div className="flex items-center gap-1.5">
-                      <button onClick={() => setApproveReq(req)} className="action-btn action-btn-approve">
-                        <Check size={12} />
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setApproveReq(req)}
+                        className="w-8 h-8 rounded-lg bg-[var(--success-500)] text-white flex items-center justify-center hover:brightness-110 transition-all shadow-lg shadow-[var(--success-500)]/20"
+                      >
+                        <Check size={14} />
                       </button>
-                      <button onClick={() => { setRejectReq(req); rejectForm.reset(); }} className="action-btn action-btn-reject">
-                        <X size={12} />
+                      <button
+                        onClick={() => { setRejectReq(req); rejectForm.reset(); }}
+                        className="w-8 h-8 rounded-lg bg-[var(--danger-500)] text-white flex items-center justify-center hover:brightness-110 transition-all shadow-lg shadow-[var(--danger-500)]/20"
+                      >
+                        <X size={14} />
                       </button>
                     </div>
                   )}
                   {req.rejection_reason && (
-                    <p className="text-[10px] font-medium text-(--danger-500) max-w-50 truncate uppercase tracking-widest" title={req.rejection_reason}>
+                    <p className="text-[10px] font-medium text-[var(--danger-500)] max-w-[200px] truncate uppercase tracking-widest" title={req.rejection_reason}>
                       {req.rejection_reason}
                     </p>
                   )}
@@ -238,55 +245,77 @@ export default function LeavePage() {
       <Modal isOpen={addOpen} onClose={() => setAddOpen(false)} title="Request Leave" size="md"
         footer={
           <>
-            <Button variant="ghost" size="sm" onClick={() => setAddOpen(false)}>Cancel</Button>
-            <Button size="sm" onClick={leaveForm.handleSubmit(onSubmitLeave)} loading={leaveForm.formState.isSubmitting}>
+            <Button variant="ghost" onClick={() => setAddOpen(false)}>Cancel</Button>
+            <Button onClick={leaveForm.handleSubmit(onSubmitLeave)} loading={leaveForm.formState.isSubmitting}>
               Submit Request
             </Button>
           </>
         }
       >
         <div className="space-y-4">
-          <Controller control={leaveForm.control} name="leave_type"
+          <Controller
+            control={leaveForm.control}
+            name="leave_type"
             render={({ field }) => (
-              <Dropdown label="Leave Type" required
+              <Dropdown
+                label="Leave Type"
+                required
+                placeholder="Select type..."
+                options={LEAVE_TYPES as DropdownOption[]}
                 value={field.value ?? ''}
                 onChange={field.onChange}
-                options={LEAVE_TYPES}
-                placeholder="Select type..."
                 error={leaveForm.formState.errors.leave_type?.message}
               />
             )}
           />
-          <div className="grid grid-cols-2 gap-3">
-            <Controller control={leaveForm.control} name="start_date"
+          <div className="grid grid-cols-2 gap-4">
+            <Controller
+              control={leaveForm.control}
+              name="start_date"
               render={({ field }) => (
-                <DatePicker label="Start Date" value={field.value ?? ''}
-                  onChange={v => field.onChange(v ?? '')}
+                <DatePicker
+                  label="Start Date"
+                  required
+                  value={field.value ?? ''}
+                  onChange={field.onChange}
                   error={leaveForm.formState.errors.start_date?.message}
                 />
               )}
             />
-            <Controller control={leaveForm.control} name="end_date"
+            <Controller
+              control={leaveForm.control}
+              name="end_date"
               render={({ field }) => (
-                <DatePicker label="End Date" value={field.value ?? ''}
-                  onChange={v => field.onChange(v ?? '')}
+                <DatePicker
+                  label="End Date"
+                  required
+                  value={field.value ?? ''}
+                  onChange={field.onChange}
                   error={leaveForm.formState.errors.end_date?.message}
                 />
               )}
             />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <Controller control={leaveForm.control} name="leave_start_time"
+          <div className="grid grid-cols-2 gap-4">
+            <Controller
+              control={leaveForm.control}
+              name="leave_start_time"
               render={({ field }) => (
-                <TimePicker label="Start Time (optional)" value={field.value ?? ''}
-                  onChange={v => field.onChange(v ?? '')}
+                <TimePicker
+                  label="Start Time (optional)"
+                  value={field.value ?? ''}
+                  onChange={field.onChange}
                 />
               )}
             />
-            <Controller control={leaveForm.control} name="leave_end_time"
+            <Controller
+              control={leaveForm.control}
+              name="leave_end_time"
               render={({ field }) => (
-                <TimePicker label="End Time (optional)" value={field.value ?? ''}
-                  onChange={v => field.onChange(v ?? '')}
+                <TimePicker
+                  label="End Time (optional)"
+                  value={field.value ?? ''}
+                  onChange={field.onChange}
                   error={leaveForm.formState.errors.leave_end_time?.message}
                 />
               )}

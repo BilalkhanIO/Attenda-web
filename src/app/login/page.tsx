@@ -38,6 +38,7 @@ export default function LoginPage() {
   const [partialToken, setPartialToken] = useState('');
   const [twoFACode, setTwoFACode] = useState('');
   const [submitting2FA, setSubmitting2FA] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
@@ -53,7 +54,7 @@ export default function LoginPage() {
         setPartialToken(payload.partial_token);
         setRequires2FA(true);
       } else {
-        await loginWithTokens(payload.access_token, payload.refresh_token);
+        await loginWithTokens(payload.access_token, payload.refresh_token, rememberMe);
         router.push('/dashboard');
       }
     } catch (err) {
@@ -67,7 +68,7 @@ export default function LoginPage() {
     try {
       const res = await authApi.authenticate2FA(partialToken, twoFACode);
       const { access_token, refresh_token } = res.data.data;
-      await loginWithTokens(access_token, refresh_token);
+      await loginWithTokens(access_token, refresh_token, rememberMe);
       router.push('/dashboard');
     } catch (err) {
       toast.error(getApiError(err));
@@ -244,6 +245,23 @@ export default function LoginPage() {
                         </button>
                       </div>
                    </div>
+
+                   <label className="flex items-center gap-3 cursor-pointer select-none group">
+                     <div className={`relative w-5 h-5 rounded-md border-2 shrink-0 transition-all ${rememberMe ? 'bg-(--primary-600) border-(--primary-600)' : 'bg-transparent border-(--glass-high) group-hover:border-(--primary-600)/50'}`}>
+                       <input
+                         type="checkbox"
+                         className="sr-only"
+                         checked={rememberMe}
+                         onChange={e => setRememberMe(e.target.checked)}
+                       />
+                       {rememberMe && (
+                         <svg className="absolute inset-0 m-auto w-3 h-3 text-white" fill="none" viewBox="0 0 12 12" stroke="currentColor" strokeWidth={2.5}>
+                           <path strokeLinecap="round" strokeLinejoin="round" d="M2 6l3 3 5-5" />
+                         </svg>
+                       )}
+                     </div>
+                     <span className="text-xs font-bold text-(--on-glass-muted) group-hover:text-white transition-colors">Remember me for 30 days</span>
+                   </label>
 
                    <Button type="submit" className="w-full py-5 text-[13px] font-black uppercase tracking-[0.2em]" size="lg" loading={isSubmitting}>
                      Sign In

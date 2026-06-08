@@ -1,10 +1,8 @@
 'use client';
 import { createContext, useContext, useEffect, useState, useCallback, useMemo, ReactNode } from 'react';
-import Cookies from 'js-cookie';
 import { jwtDecode } from 'jwt-decode';
 import { useRouter } from 'next/navigation';
-import { authApi, usersApi, onAccessTokenRefreshed } from './api';
-import { legacyRoleHasPermission } from './rbac';
+import { authApi, usersApi, onAccessTokenRefreshed, getAccessToken, storeTokens, clearTokens } from './api';
 import type { AuthRole, PlanFeatures, UserCapabilities } from '@/types';
 
 export type UserRole = AuthRole;
@@ -23,14 +21,14 @@ interface AuthContextType {
   capabilities: UserCapabilities | null;
   capabilitiesLoading: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  loginWithTokens: (accessToken: string, refreshToken: string) => Promise<void>;
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
+  loginWithTokens: (accessToken: string, refreshToken: string, rememberMe?: boolean) => Promise<void>;
   logout: () => Promise<void>;
   refreshCapabilities: () => Promise<void>;
   isAuthenticated: boolean;
   hasPermission: (key: string) => boolean;
   hasFeature: (key: string) => boolean;
-  /** Exact legacy role match (JWT role or assigned org_role slug) */
+  /** Exact role match (JWT role or assigned org_role slug) */
   hasRole: (...roles: UserRole[]) => boolean;
 }
 
@@ -70,17 +68,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [loadCapabilities, user]);
 
   useEffect(() => {
-    const token = Cookies.get('access_token');
+    const token = getAccessToken();
     if (token) {
       try {
         const decoded = jwtDecode<AuthUser>(token);
         if (decoded.exp * 1000 > Date.now()) {
           setUser(decoded);
         } else {
-          Cookies.remove('access_token');
+          clearTokens();
         }
       } catch {
-        Cookies.remove('access_token');
+        clearTokens();
       }
     }
     setIsLoading(false);
@@ -100,9 +98,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   }, [user, loadCapabilities]);
 
-  const applyTokens = useCallback(async (accessToken: string, refreshToken: string) => {
-    Cookies.set('access_token', accessToken, { expires: 1 / 3 });
-    Cookies.set('refresh_token', refreshToken, { expires: 30 });
+  const applyTokens = useCallback(async (accessToken: string, refreshToken: string, rememberMe = false) => {
+    storeTokens(accessToken, refreshToken, rememberMe);
     const decoded = jwtDecode<AuthUser>(accessToken);
     setUser(decoded);
     await loadCapabilities(decoded);
@@ -111,20 +108,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [loadCapabilities, router]);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, rememberMe = false) => {
     const { data } = await authApi.login(email, password);
     const { access_token, refresh_token } = data.data;
-    await applyTokens(access_token, refresh_token);
+    await applyTokens(access_token, refresh_token, rememberMe);
   };
 
-  const loginWithTokens = async (accessToken: string, refreshToken: string) => {
-    await applyTokens(accessToken, refreshToken);
+  const loginWithTokens = async (accessToken: string, refreshToken: string, rememberMe = false) => {
+    await applyTokens(accessToken, refreshToken, rememberMe);
   };
 
   const logout = async () => {
     try { await authApi.logout(); } catch { /* ignore */ }
-    Cookies.remove('access_token');
-    Cookies.remove('refresh_token');
+    clearTokens();
     setUser(null);
     setCapabilities(null);
     window.location.href = '/login';
@@ -132,8 +128,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const hasPermission = useCallback((key: string): boolean => {
     if (!user) return false;
-    if (permissionSet.has(key)) return true;
-    return legacyRoleHasPermission(user.role, key);
+    return permissionSet.has(key);
   }, [user, permissionSet]);
 
   const hasFeature = useCallback((key: string): boolean => {
