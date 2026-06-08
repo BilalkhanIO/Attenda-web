@@ -1,45 +1,43 @@
 import axios, { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
+import Cookies from 'js-cookie';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
 
-// ─── Token storage helpers (no cookies) ───────────────
-// Access token: sessionStorage by default, localStorage if "remember me" was set
-// Refresh token: always localStorage (long-lived)
-
+// ─── Token storage helpers (cookies for Middleware) ───────────────
 const ACCESS_TOKEN_KEY  = 'access_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';
+const REMEMBER_ME_KEY   = 'remember_me';
 
 export function getAccessToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  return (
-    window.sessionStorage.getItem(ACCESS_TOKEN_KEY) ||
-    window.localStorage.getItem(ACCESS_TOKEN_KEY) ||
-    null
-  );
+  return Cookies.get(ACCESS_TOKEN_KEY) || null;
 }
 
 export function getRefreshToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  return window.localStorage.getItem(REFRESH_TOKEN_KEY);
+  return Cookies.get(REFRESH_TOKEN_KEY) || null;
 }
 
 export function storeTokens(accessToken: string, refreshToken: string, rememberMe = false): void {
-  if (typeof window === 'undefined') return;
-  // Refresh token always in localStorage
-  window.localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
-  // Access token: localStorage if remember me, otherwise sessionStorage
+  const options: Cookies.CookieAttributes = {
+    path: '/',
+    sameSite: 'lax',
+    secure: typeof window !== 'undefined' && window.location.protocol === 'https:',
+  };
+
   if (rememberMe) {
-    window.localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
+    options.expires = 30; // 30 days
+    Cookies.set(REMEMBER_ME_KEY, 'true', options);
   } else {
-    window.sessionStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
+    Cookies.remove(REMEMBER_ME_KEY);
   }
+
+  Cookies.set(ACCESS_TOKEN_KEY, accessToken, options);
+  Cookies.set(REFRESH_TOKEN_KEY, refreshToken, options);
 }
 
 export function clearTokens(): void {
-  if (typeof window === 'undefined') return;
-  window.sessionStorage.removeItem(ACCESS_TOKEN_KEY);
-  window.localStorage.removeItem(ACCESS_TOKEN_KEY);
-  window.localStorage.removeItem(REFRESH_TOKEN_KEY);
+  Cookies.remove(ACCESS_TOKEN_KEY, { path: '/' });
+  Cookies.remove(REFRESH_TOKEN_KEY, { path: '/' });
+  Cookies.remove(REMEMBER_ME_KEY, { path: '/' });
 }
 
 export const apiClient = axios.create({
@@ -82,9 +80,9 @@ apiClient.interceptors.response.use(
         try {
           const { data } = await axios.post(`${BASE_URL}/auth/refresh`, { refresh_token: refresh });
           const newToken = data.data.access_token;
-          // Preserve remember-me state: if it was in localStorage, keep it there
-          const wasInLocal = !!window.localStorage.getItem(ACCESS_TOKEN_KEY);
-          storeTokens(newToken, refresh, wasInLocal);
+          // Preserve remember-me state
+          const wasRemembered = Cookies.get(REMEMBER_ME_KEY) === 'true';
+          storeTokens(newToken, refresh, wasRemembered);
           notifyTokenRefreshed();
           if (original.headers) original.headers.Authorization = `Bearer ${newToken}`;
           return apiClient(original);
