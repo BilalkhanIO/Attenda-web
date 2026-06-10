@@ -3,6 +3,7 @@ import { createContext, useContext, useEffect, useState, useCallback, useMemo, R
 import { jwtDecode } from 'jwt-decode';
 import { useRouter } from 'next/navigation';
 import { authApi, usersApi, onAccessTokenRefreshed, getAccessToken, storeTokens, clearTokens } from './api';
+import { setDisplayTimezone } from './utils';
 import type { AuthRole, PlanFeatures, UserCapabilities } from '@/types';
 
 export type UserRole = AuthRole;
@@ -55,7 +56,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setCapabilitiesLoading(true);
     try {
       const { data } = await usersApi.getMyCapabilities();
-      setCapabilities(data.data as UserCapabilities);
+      const caps = data.data as UserCapabilities;
+      setCapabilities(caps);
+      // Drive all org-local time rendering from the org's timezone.
+      setDisplayTimezone(caps.timezone);
     } catch {
       setCapabilities(null);
     } finally {

@@ -220,6 +220,10 @@ export const shiftsApi = {
     apiClient.put(`/shifts/${id}`, data),
   deleteTemplate: (id: string) =>
     apiClient.delete(`/shifts/${id}`),
+  setDefault: (id: string) =>
+    apiClient.put(`/shifts/${id}/set-default`),
+  setOrgWide: (id: string, org_wide = true) =>
+    apiClient.put(`/shifts/${id}/set-org-wide`, { org_wide }),
   getAssignments: (params?: { week_start?: string; department?: string }) =>
     apiClient.get('/shifts/assignments', { params }),
   assignShift: (data: { user_id: string; shift_id: string; date: string }) =>

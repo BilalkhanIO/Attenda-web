@@ -1,6 +1,7 @@
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { format, formatDistanceToNow, parseISO } from 'date-fns';
+import { formatDistanceToNow, parseISO } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 import type { Role, AttendanceStatus, LeaveStatus } from '@/types';
 
 export function cn(...inputs: ClassValue[]) {
@@ -8,24 +9,50 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 // ─── Date / Time ──────────────────────────────────────
-export function formatDate(date: string | Date, fmt = 'MMM d, yyyy') {
-  const d = typeof date === 'string' ? parseISO(date) : date;
-  return format(d, fmt);
+// All wall-clock display uses the ORGANISATION's timezone, so an employee's
+// 9:00 AM check-in reads as 9:00 AM for every viewer regardless of their own
+// browser timezone. `_displayTz` is set once after login (AuthProvider →
+// setDisplayTimezone) from the org settings; until then we fall back to the
+// browser timezone so the first paint isn't UTC.
+let _displayTz: string = (typeof Intl !== 'undefined'
+  && Intl.DateTimeFormat().resolvedOptions().timeZone) || 'UTC';
+
+export function setDisplayTimezone(tz?: string | null) {
+  if (tz) _displayTz = tz;
+}
+export function getDisplayTimezone() {
+  return _displayTz;
 }
 
-export function formatTime(date: string | Date) {
-  const d = typeof date === 'string' ? parseISO(date) : date;
-  return format(d, 'hh:mm a');
+function toInstant(date: string | Date): Date {
+  return typeof date === 'string' ? parseISO(date) : date;
 }
 
-export function formatDateTime(date: string | Date) {
-  const d = typeof date === 'string' ? parseISO(date) : date;
-  return format(d, 'MMM d, yyyy hh:mm a');
+/** Format a real timestamp (e.g. check_in_at) in the org timezone. */
+export function formatDate(date: string | Date, fmt = 'MMM d, yyyy', tz: string = _displayTz) {
+  return formatInTimeZone(toInstant(date), tz, fmt);
+}
+
+export function formatTime(date: string | Date, tz: string = _displayTz) {
+  return formatInTimeZone(toInstant(date), tz, 'hh:mm a');
+}
+
+export function formatDateTime(date: string | Date, tz: string = _displayTz) {
+  return formatInTimeZone(toInstant(date), tz, 'MMM d, yyyy hh:mm a');
+}
+
+/**
+ * Format a calendar-date-only value (a @db.Date field such as attendance.date,
+ * stored as UTC-midnight carrying the org-local Y-M-D). Rendered in UTC so the
+ * day never shifts in timezones behind UTC.
+ */
+export function formatDateOnly(date: string | Date, fmt = 'MMM d, yyyy') {
+  return formatInTimeZone(toInstant(date), 'UTC', fmt);
 }
 
 export function timeAgo(date: string | Date) {
-  const d = typeof date === 'string' ? parseISO(date) : date;
-  return formatDistanceToNow(d, { addSuffix: true });
+  // Relative ("3 hours ago") — a duration between two instants, timezone-agnostic.
+  return formatDistanceToNow(toInstant(date), { addSuffix: true });
 }
 
 // ─── Status helpers ───────────────────────────────────

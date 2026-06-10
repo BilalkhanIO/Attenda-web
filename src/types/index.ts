@@ -136,6 +136,9 @@ export interface Shift {
   overtime_enabled?: boolean;
   overtime_requires_approval?: boolean;
   extra_time_label?: string;
+  is_org_wide?: boolean;
+  is_default?: boolean;
+  is_published?: boolean;
   breaks?: ShiftBreak[];
 }
 
@@ -300,6 +303,8 @@ export interface UserCapabilities {
   features: PlanFeatures;
   org_role: OrgRoleSummary | null;
   platform_permissions: string[];
+  /** Org IANA timezone — all wall-clock times are rendered in this zone. */
+  timezone?: string;
 }
 
 export interface PermissionDef {

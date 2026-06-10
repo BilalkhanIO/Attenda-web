@@ -15,7 +15,7 @@ import type { Shift, ShiftAssignment } from '@/types';
 interface UserOption { id: string; name: string; }
 import {
   Plus, ChevronLeft, ChevronRight, Send,
-  Check, X, Clock, Edit2, Trash2, Sparkles, ChevronDown, ChevronUp, Coffee, AlertTriangle
+  Check, X, Clock, Edit2, Trash2, Sparkles, ChevronDown, ChevronUp, Coffee, AlertTriangle, Globe
 } from 'lucide-react';
 import { useForm, UseFormReturn, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -40,6 +40,8 @@ const shiftSchema = z.object({
   overtime_enabled:              z.boolean(),
   overtime_requires_approval:    z.boolean(),
   extra_time_label:              z.string().min(1),
+  is_org_wide:                   z.boolean(),
+  is_default:                    z.boolean(),
 });
 type ShiftForm = z.infer<typeof shiftSchema>;
 
@@ -100,6 +102,7 @@ const defaultShiftForm: ShiftForm = {
   overtime_multiplier: 1.5, min_rest_hours: 11, late_tolerance_mins: 15,
   early_checkout_tolerance_mins: 15, auto_checkout: true, auto_checkout_buffer_mins: 30,
   overtime_enabled: false, overtime_requires_approval: true, extra_time_label: 'Extra office time',
+  is_org_wide: false, is_default: false,
 };
 
 function ShiftFormFields({ form }: { form: UseFormReturn<ShiftForm> }) {
@@ -107,6 +110,8 @@ function ShiftFormFields({ form }: { form: UseFormReturn<ShiftForm> }) {
   const selectedColor = form.watch('color');
   const autoCheckout = form.watch('auto_checkout');
   const overtimeEnabled = form.watch('overtime_enabled');
+  const isOrgWide = form.watch('is_org_wide');
+  const isDefault = form.watch('is_default');
   return (
     <div className="space-y-4">
       <Input label="Shift Name" required placeholder="e.g. Morning Shift"
@@ -251,6 +256,21 @@ function ShiftFormFields({ form }: { form: UseFormReturn<ShiftForm> }) {
                 />
              </div>
            )}
+        </div>
+
+        <div className="space-y-3">
+          <ToggleRow
+            label="Apply to whole organisation"
+            description="Everyone without a specific daily assignment follows this shift. Only one shift can be org-wide."
+            checked={isOrgWide}
+            onChange={() => form.setValue('is_org_wide', !isOrgWide)}
+          />
+          <ToggleRow
+            label="Default shift"
+            description="Fallback shift used when no org-wide shift or assignment applies. Only one default per organisation."
+            checked={isDefault}
+            onChange={() => form.setValue('is_default', !isDefault)}
+          />
         </div>
       </div>
     </div>
@@ -723,6 +743,41 @@ export default function ShiftsPage() {
     }
   };
 
+  // Open the edit modal pre-populated from a template (the edit flow was unwired).
+  const openEdit = (shift: Shift) => {
+    form.reset({
+      ...defaultShiftForm,
+      name: shift.name,
+      start_time: shift.start_time,
+      end_time: shift.end_time,
+      color: shift.color || defaultShiftForm.color,
+      active_days: shift.active_days ?? [],
+      overtime_multiplier: shift.overtime_multiplier ?? defaultShiftForm.overtime_multiplier,
+      min_rest_hours: shift.min_rest_hours ?? defaultShiftForm.min_rest_hours,
+      late_tolerance_mins: shift.late_tolerance_mins ?? defaultShiftForm.late_tolerance_mins,
+      early_checkout_tolerance_mins: shift.early_checkout_tolerance_mins ?? defaultShiftForm.early_checkout_tolerance_mins,
+      auto_checkout: shift.auto_checkout ?? defaultShiftForm.auto_checkout,
+      auto_checkout_buffer_mins: shift.auto_checkout_buffer_mins ?? defaultShiftForm.auto_checkout_buffer_mins,
+      overtime_enabled: shift.overtime_enabled ?? defaultShiftForm.overtime_enabled,
+      overtime_requires_approval: shift.overtime_requires_approval ?? defaultShiftForm.overtime_requires_approval,
+      extra_time_label: shift.extra_time_label || defaultShiftForm.extra_time_label,
+      is_org_wide: shift.is_org_wide ?? false,
+      is_default: shift.is_default ?? false,
+    });
+    setEditShift(shift);
+  };
+
+  // One-click "apply this shift to the whole organisation" (toggles is_org_wide).
+  const onSetOrgWide = async (shift: Shift) => {
+    try {
+      await shiftsApi.setOrgWide(shift.id, !shift.is_org_wide);
+      toast.success(shift.is_org_wide ? 'Org-wide shift cleared' : `“${shift.name}” now applies to the whole organisation`);
+      fetchAll();
+    } catch (err) {
+      toast.error(getApiError(err));
+    }
+  };
+
   const onPublish = async () => {
     setPublishing(true);
     try {
@@ -819,12 +874,39 @@ export default function ShiftsPage() {
                 <div key={shift.id} className="contents group">
                   <div className="py-5 px-6 border-t border-r border-[var(--glass-border)] flex items-center gap-4 bg-[var(--glass-05)] group-hover:bg-[var(--glass-10)] transition-colors">
                     <div className="w-1.5 h-10 rounded-full flex-shrink-0 shadow-lg shadow-black/20" style={{ backgroundColor: shift.color }} />
-                    <div className="min-w-0">
-                      <p className="text-xs font-black text-white uppercase truncate">{shift.name}</p>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-xs font-black text-white uppercase truncate">{shift.name}</p>
+                        {shift.is_org_wide && <Badge label="ORG-WIDE" color="#00E5FF" bg="rgba(0,229,255,0.12)" size="sm" />}
+                        {shift.is_default && <Badge label="DEFAULT" color="#f59e0b" bg="rgba(245,158,11,0.12)" size="sm" />}
+                      </div>
                       <p className="text-[10px] font-bold text-[var(--on-glass-dim)] font-mono mt-0.5">
                         {shift.start_time}&ndash;{shift.end_time}
                       </p>
                     </div>
+                    {hasRole('manager', 'hr_admin', 'super_admin') && (
+                      <div className="flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          type="button"
+                          onClick={() => onSetOrgWide(shift)}
+                          title={shift.is_org_wide ? 'Clear org-wide' : 'Apply to whole organisation'}
+                          className={cn(
+                            'w-7 h-7 rounded-lg flex items-center justify-center transition-all',
+                            shift.is_org_wide ? 'bg-[var(--primary-600)] text-white' : 'bg-[var(--glass-10)] text-[var(--on-glass-dim)] hover:text-white',
+                          )}
+                        >
+                          <Globe size={13} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => openEdit(shift)}
+                          title="Edit shift"
+                          className="w-7 h-7 rounded-lg flex items-center justify-center bg-[var(--glass-10)] text-[var(--on-glass-dim)] hover:text-white transition-all"
+                        >
+                          <Edit2 size={13} />
+                        </button>
+                      </div>
+                    )}
                   </div>
                   {weekDays.map(day => {
                     const dayAssignments = getAssignmentsForDay(day).filter(a => a.shift_id === shift.id);
