@@ -117,7 +117,7 @@ export default function AdminPlatformUsersPage() {
         error={form.formState.errors.roles?.message}
         options={[
           { value: 'platform_admin', label: 'Platform Admin (Full Access)' },
-          { value: 'support_agent', label: 'Support Agent (Read-only + Assist)' }
+          { value: 'platform_assistant', label: 'Platform Assistant (Read-only + Assist)' }
         ]}
         // Simplistic multiple select handling via array wrapper since our UI component might only support single select out of the box
         // To keep it simple, we assume single select for the UI here, mapped to array
