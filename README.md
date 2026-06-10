@@ -2,14 +2,18 @@
 
 Next.js 16 frontend for the Attenda Workforce Management Platform.
 
-## Phase 1 — Completed
+## Features
 
-- **Authentication** — Login, forgot password, JWT with auto-refresh, route guards
-- **Layout** — Sidebar navigation (role-scoped), top header, mobile responsive
+- **Authentication** — Login (+ TOTP 2FA, Google SSO), forgot/reset password, JWT with auto-refresh, route guards
+- **Layout** — Sidebar navigation (role- and permission-scoped), notification bell with SSE live unread count, mobile responsive
 - **Dashboard** — Live attendance grid, KPI cards, alerts panel (auto-refreshes every 60s)
-- **Employees** — List, add, edit, view profile, deactivate — all via modals
-- **Attendance** — Daily records table with override modal (audited)
-- **Leave** — Request, approve, reject — all via modals with form validation
+- **Employees** — List, add, edit, deactivate, CSV import, per-user permission grants
+- **Attendance** — Check-in/out, breaks, late notices, manager override (audited), CSV export
+- **Leave** — Request, approve, reject, balances
+- **Shifts** — Templates with break policies, weekly assignment board, publishing, AI scheduling, swap approvals
+- **Payroll** — Generate, adjust, process with payslip PDFs
+- **Overtime / Remote / Performance / Analytics** — Requests & approvals, remote-session monitoring, reviews & goals, charts and CSV reports
+- **Admin console** — Platform org/plan/user/blog management (platform_admin role)
 
 ## Tech Stack
 
@@ -32,14 +36,29 @@ npm run dev
 
 ## API Connection
 
-All API calls go to `NEXT_PUBLIC_API_URL`. The client:
-- Attaches JWT from cookies on every request
+All API calls go to `NEXT_PUBLIC_API_URL` (default: the `/api/v1` rewrite in
+`next.config.ts`, which proxies to `BACKEND_API_URL`). The client
+(`src/lib/api.ts`):
+- Attaches the JWT from cookies on every request
 - Auto-refreshes expired tokens using the refresh token
 - Redirects to /login on 401 if refresh fails
 
-## Phase 2 (Next)
-- Shift Scheduling (weekly calendar, drag-assign)
-- Payroll (review, adjust, process, payslips)
-- Performance Tracking
-- Analytics & Reports (Recharts)
-- WhatsApp & Settings configuration
+### Contract rules (read before touching `src/lib/api.ts`)
+
+The **backend (attenda-api) route definitions are the source of truth** for
+every path, HTTP verb, and payload. When adding or changing a call:
+
+1. Find the route in `attenda-api/src/routes/*.ts` and match its method,
+   path, and body fields exactly — do not guess.
+2. All success responses are wrapped in `{ success: true, data: ... }` —
+   always read `res.data.data`.
+3. Approve/reject style reviews are `PUT`, not `POST`.
+4. Remote-work session endpoints live under `/attendance/remote/*`.
+5. Reports are generated via `POST /reports/:type` and return a
+   `download_url` (presigned S3 URL, or a `data:` URI when S3 is not
+   configured) — there is no separate download endpoint.
+6. Payslip downloads (`GET /payroll/payslips/:id/download`) return JSON
+   `{ url }`, not a blob.
+7. Employee import (`POST /users/import`) takes parsed JSON
+   `{ users: [{ name, email, role?, department?, phone? }] }` — parse the
+   CSV in the browser first.
