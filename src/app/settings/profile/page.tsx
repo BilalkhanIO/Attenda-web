@@ -77,7 +77,7 @@ export default function ProfilePage() {
     setSaving2FA(true);
     try {
       const { data } = await authApi.setup2FA();
-      setQrDataUrl(data.data?.qr_code_url || '');
+      setQrDataUrl(data.data?.qr_code || '');
       setOtpSecret(data.data?.secret || '');
     } catch (err) {
       toast.error(getApiError(err));
