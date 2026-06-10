@@ -31,7 +31,7 @@ const userSchema = z.object({
 type UserForm = z.infer<typeof userSchema>;
 
 export default function EmployeesPage() {
-  const { hasRole, hasPermission } = useAuth();
+  const { hasPermission } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [departments, setDepartments] = useState<string[]>([]);
   const [managers, setManagers] = useState<User[]>([]);
@@ -134,7 +134,7 @@ export default function EmployeesPage() {
   });
 
   const UserFormFields = ({ isEdit }: { isEdit?: boolean }) => {
-    const canUpdateCreds = hasPermission('employees.credentials.update') || hasRole('super_admin');
+    const canUpdateCreds = hasPermission('employees.credentials.update');
     
     return (
       <div className="space-y-4">

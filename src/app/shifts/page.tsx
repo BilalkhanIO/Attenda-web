@@ -585,7 +585,7 @@ function BreaksPanel({ shift }: { shift: Shift }) {
 }
 
 export default function ShiftsPage() {
-  const { hasRole } = useAuth();
+  const { hasPermission } = useAuth();
   const [shifts, setShifts]         = useState<Shift[]>([]);
   const [assignments, setAssignments] = useState<ShiftAssignment[]>([]);
   const [loading, setLoading]         = useState(true);
@@ -799,18 +799,18 @@ export default function ShiftsPage() {
         subtitle="Manage weekly schedules and shift templates"
         actions={
           <div className="flex gap-4">
-            {hasRole('manager', 'hr_admin', 'super_admin') && (
+            {hasPermission('shifts.ai_schedule') && (
               <Button variant="ghost" size="sm" icon={<Sparkles size={14} />} onClick={() => setAiOpen(true)}>
                 AI Schedule
               </Button>
             )}
-            {hasRole('manager', 'hr_admin', 'super_admin') && (
+            {hasPermission('shifts.manage') && (
               <Button variant="outline" size="sm" icon={<Plus size={14} />}
                 onClick={() => { form.reset(defaultShiftForm); setAddShiftOpen(true); }}>
                 New Template
               </Button>
             )}
-            {hasRole('manager', 'hr_admin', 'super_admin') && (
+            {hasPermission('shifts.assign') && (
               <Button size="sm" icon={<Send size={14} />} onClick={() => setPublishConfirm(true)}>
                 Publish Schedule
               </Button>
@@ -884,7 +884,7 @@ export default function ShiftsPage() {
                         {shift.start_time}&ndash;{shift.end_time}
                       </p>
                     </div>
-                    {hasRole('manager', 'hr_admin', 'super_admin') && (
+                    {hasPermission('shifts.manage') && (
                       <div className="flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
                           type="button"
@@ -922,7 +922,7 @@ export default function ShiftsPage() {
                             className="mb-2 pl-3 pr-1.5 py-1.5 rounded-xl text-white text-[11px] font-black uppercase tracking-tight shadow-xl border border-white/10 flex items-center gap-1 group/chip"
                             style={{ backgroundColor: shift.color }}>
                             <span className="truncate flex-1">{a.user.name.split(' ')[0]}</span>
-                            {hasRole('manager', 'hr_admin', 'super_admin') && (
+                            {hasPermission('shifts.assign') && (
                               <button
                                 onClick={(e) => { e.stopPropagation(); onRemoveAssignment(a.id); }}
                                 disabled={removingAssignId === a.id}
@@ -938,7 +938,7 @@ export default function ShiftsPage() {
                             )}
                           </div>
                         ))}
-                        {isActiveDay && hasRole('manager', 'hr_admin', 'super_admin') && (
+                        {isActiveDay && hasPermission('shifts.assign') && (
                           <button
                             onClick={() => { setAssignUserIds([]); setAssignModal({ shiftId: shift.id, date: day }); }}
                             className="w-full mt-1 border border-dashed border-[var(--glass-border)] text-[9px] font-black text-[var(--on-glass-dim)] hover:text-[var(--primary-600)] hover:border-[var(--primary-600)]/50 rounded-xl py-2 transition-all uppercase tracking-widest"

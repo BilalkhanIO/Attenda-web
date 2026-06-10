@@ -296,7 +296,7 @@ function AddNetworkModal({ isOpen, onClose, onAdd, existingIps, existingSsids }:
 
 // ─── Main Page ────────────────────────────────────────
 export default function SettingsPage() {
-  const { hasRole, hasPermission } = useAuth();
+  const { hasPermission } = useAuth();
 
   const [ips, setIps]     = useState<string[]>([]);
   const [ssids, setSsids] = useState<string[]>([]);
@@ -449,7 +449,7 @@ export default function SettingsPage() {
             />
           </div>
         </div>
-        {hasRole('super_admin') && (
+        {hasPermission('org.settings.update') && (
           <Button icon={<Save size={14} />} loading={savingOrg} onClick={saveOrgSettings} size="sm">
             Save Settings
           </Button>
@@ -521,7 +521,7 @@ export default function SettingsPage() {
                 {entry.type === 'ssid' ? 'WiFi Name' : 'IP Range'}
               </span>
 
-              {hasRole('super_admin') && (
+              {hasPermission('org.office.update') && (
                 <button
                   onClick={() => setDeleteEntry(entry)}
                   className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-500 hover:text-rose-400 ml-1"
@@ -545,12 +545,12 @@ export default function SettingsPage() {
 
         {/* Actions */}
         <div className="flex flex-wrap items-center gap-3">
-          {hasRole('super_admin') && (
+          {hasPermission('org.office.update') && (
             <Button variant="outline" size="sm" icon={<Plus size={14} />} onClick={() => setShowAddModal(true)}>
               Add Network
             </Button>
           )}
-          {networksChanged && hasRole('super_admin') && (
+          {networksChanged && hasPermission('org.office.update') && (
             <Button
               size="sm"
               icon={<Save size={14} />}
@@ -593,7 +593,7 @@ export default function SettingsPage() {
               <p className="text-xs text-slate-400">Display at the office entrance for manual scan check-in</p>
             </div>
           </div>
-          {qrCode && hasRole('hr_admin', 'super_admin') && (
+          {qrCode && hasPermission('org.qr.manage') && (
             <Button variant="outline" size="sm" icon={<RefreshCw size={13} />} onClick={() => setRegenConfirm(true)}>
               Regenerate
             </Button>
@@ -628,7 +628,7 @@ export default function SettingsPage() {
             <div>
               <p className="text-sm font-semibold text-slate-200 mb-1">No QR code generated yet</p>
               <p className="text-xs text-slate-500 mb-3">Generate one for your office entrance.</p>
-              {hasRole('hr_admin', 'super_admin') && (
+              {hasPermission('org.qr.manage') && (
                 <Button size="sm" icon={<QrCode size={13} />} onClick={regenQR} loading={regenerating}>
                   Generate QR Code
                 </Button>

@@ -49,7 +49,7 @@ const rejectSchema = z.object({ reason: z.string().min(5, 'Rejection reason requ
 type RejectForm = z.infer<typeof rejectSchema>;
 
 export default function LeavePage() {
-  const { hasRole } = useAuth();
+  const { hasPermission } = useAuth();
   const [requests, setRequests]   = useState<LeaveRequest[]>([]);
   const [balances, setBalances]   = useState<{leave_type:string; total_days:number; used_days:number; available_days:number}[]>([]);
   const [loading, setLoading]     = useState(true);
@@ -66,7 +66,7 @@ export default function LeavePage() {
 
   const fetchRequests = useCallback(async () => {
     try {
-      const fn = hasRole('hr_admin', 'super_admin') ? leaveApi.getAllRequests : leaveApi.getTeamRequests;
+      const fn = hasPermission('leave.view_all') ? leaveApi.getAllRequests : leaveApi.getTeamRequests;
       const [reqRes, balRes] = await Promise.allSettled([fn(), leaveApi.getMyBalance()]);
       if (reqRes.status === 'fulfilled') setRequests(reqRes.value.data.data || []);
       if (balRes.status === 'fulfilled') setBalances(balRes.value.data.data || []);
@@ -75,7 +75,7 @@ export default function LeavePage() {
     } finally {
       setLoading(false);
     }
-  }, [hasRole]);
+  }, [hasPermission]);
 
   useEffect(() => { fetchRequests(); }, [fetchRequests]);
 
@@ -212,7 +212,7 @@ export default function LeavePage() {
                   <Badge label={cfg.label} color={cfg.color} bg={cfg.bg} size="sm" />
                 </td>
                 <td className="py-3 px-4">
-                  {req.status === 'pending' && hasRole('manager', 'hr_admin', 'super_admin') && (
+                  {req.status === 'pending' && hasPermission('leave.approve') && (
                     <div className="flex items-center gap-1.5">
                       <button onClick={() => setApproveReq(req)} className="action-btn action-btn-approve">
                         <Check size={12} />

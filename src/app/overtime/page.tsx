@@ -47,8 +47,8 @@ function fmtDate(s: string) {
 }
 
 export default function OvertimePage() {
-  const { hasRole, hasPermission } = useAuth();
-  const canManage = hasPermission('overtime.manage') || hasRole('hr_admin', 'super_admin', 'manager');
+  const { hasPermission } = useAuth();
+  const canManage = hasPermission('overtime.manage');
 
   const [myRequests, setMyRequests] = useState<OvertimeRequest[]>([]);
   const [teamRequests, setTeamRequests] = useState<OvertimeRequest[]>([]);

@@ -50,9 +50,9 @@ function CardElapsed({ checkInAt }: { checkInAt: string }) {
 }
 
 export default function DashboardPage() {
-  const { hasRole } = useAuth();
-  // GET /attendance/today is manager+ only — employees get a personal view instead.
-  const canViewTeam = hasRole('manager', 'hr_admin', 'super_admin');
+  const { hasPermission } = useAuth();
+  // GET /attendance/today needs attendance.view_team — others get a personal view.
+  const canViewTeam = hasPermission('attendance.view_team');
   const [live, setLive] = useState<AttendanceRecord[]>([]);
   const [myStatus, setMyStatus] = useState<MyTodayStatus | null>(null);
   const [loading, setLoading] = useState(true);

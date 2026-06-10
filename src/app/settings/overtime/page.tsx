@@ -47,7 +47,7 @@ const emptyForm: RuleForm = {
 };
 
 export default function OvertimeSettingsPage() {
-  const { hasRole } = useAuth();
+  const { hasPermission } = useAuth();
   const [rules, setRules] = useState<OvertimeRule[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -56,7 +56,7 @@ export default function OvertimeSettingsPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [form, setForm] = useState<RuleForm>({ ...emptyForm });
 
-  const isAdmin = hasRole('hr_admin', 'super_admin');
+  const isAdmin = hasPermission('overtime.manage');
 
   const loadRules = useCallback(async () => {
     setLoading(true);

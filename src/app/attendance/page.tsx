@@ -113,7 +113,7 @@ function useElapsed(checkInAt: string | undefined, checkOutAt: string | undefine
 }
 
 export default function AttendancePage() {
-  const { hasRole } = useAuth();
+  const { hasPermission } = useAuth();
 
   // My own today's record
   const [myRecord, setMyRecord]     = useState<AttendanceRecord | null>(null);
@@ -176,12 +176,12 @@ export default function AttendancePage() {
   }, []);
 
   const loadTeamNotices = useCallback(async () => {
-    if (!hasRole('manager', 'hr_admin', 'super_admin')) return;
+    if (!hasPermission('attendance.late_notices.manage')) return;
     try {
       const { data } = await attendanceApi.getLateNotices({ status: 'pending' });
       setTeamNotices(data.data || []);
     } catch { /* ignore */ }
-  }, [hasRole]);
+  }, [hasPermission]);
 
   const loadTodayStatus = useCallback(async () => {
     try {
@@ -191,7 +191,7 @@ export default function AttendancePage() {
   }, []);
 
   const fetchOrgAttendance = useCallback(async () => {
-    if (!hasRole('manager', 'hr_admin', 'super_admin')) return;
+    if (!hasPermission('attendance.view_team')) return;
     setTableLoading(true);
     try {
       const { data } = await attendanceApi.getToday({ date: selectedDate });
@@ -201,23 +201,23 @@ export default function AttendancePage() {
     } finally {
       setTableLoading(false);
     }
-  }, [selectedDate, hasRole]);
+  }, [selectedDate, hasPermission]);
 
   const loadRemoteSessions = useCallback(async () => {
-    if (!hasRole('manager', 'hr_admin', 'super_admin')) return;
+    if (!hasPermission('remote.approve')) return;
     try {
       const { data } = await remoteApi.getSessions({ status: 'pending' });
       setRemoteSessions(data.data || []);
     } catch { /* ignore */ }
-  }, [hasRole]);
+  }, [hasPermission]);
 
   const loadOvertimeRequests = useCallback(async () => {
-    if (!hasRole('manager', 'hr_admin', 'super_admin')) return;
+    if (!hasPermission('overtime.manage')) return;
     try {
       const { data } = await overtimeApi.getRequests({ status: 'pending' });
       setOvertimeRequests(data.data || []);
     } catch { /* ignore */ }
-  }, [hasRole]);
+  }, [hasPermission]);
 
   useEffect(() => {
     loadMyRecord();
@@ -442,7 +442,7 @@ export default function AttendancePage() {
         title="Attendance"
         subtitle="Track and manage daily attendance"
         actions={
-          hasRole('hr_admin', 'super_admin') && (
+          hasPermission('attendance.export') && (
             <Button
               variant="outline"
               size="sm"
@@ -703,7 +703,7 @@ export default function AttendancePage() {
       )}
 
       {/* ── Pending Requests (Managers) ──────────────────── */}
-      {hasRole('manager', 'hr_admin', 'super_admin') && (remoteSessions.length > 0 || teamNotices.length > 0 || overtimeRequests.length > 0) && (
+      {(remoteSessions.length > 0 || teamNotices.length > 0 || overtimeRequests.length > 0) && (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-4">
            {remoteSessions.length > 0 && (
               <SectionCard icon={<Home size={14} />} title="Remote Requests" count={remoteSessions.length} accentColor="var(--secondary)">
@@ -761,7 +761,7 @@ export default function AttendancePage() {
       )}
 
       {/* ── Global Attendance Registry ──────────────────── */}
-      {hasRole('manager', 'hr_admin', 'super_admin') && (
+      {hasPermission('attendance.view_team') && (
         <Card className="overflow-hidden">
           <div className="flex flex-wrap items-end gap-3 px-4 py-3 bg-(--glass-05) border-b border-(--glass-border)">
             <DatePicker
@@ -840,7 +840,7 @@ export default function AttendancePage() {
                     <span className="text-[10px] text-[var(--on-glass-muted)]">{cit ? (typeLabel[cit] || cit) : '—'}</span>
                   </td>
                   <td className="py-3 px-4">
-                    {hasRole('manager', 'hr_admin', 'super_admin') && (
+                    {hasPermission('attendance.override') && (
                       <button
                         onClick={() => openOverride(record)}
                         className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--glass-10)] text-[var(--on-glass-dim)] hover:text-[var(--primary-600)] hover:bg-[var(--glass-15)] transition-all"
