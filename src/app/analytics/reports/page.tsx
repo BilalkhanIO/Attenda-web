@@ -28,12 +28,12 @@ export default function ReportsPage() {
     setGenerating(true);
     setDownloadUrl(null);
     try {
-      const { data } = await analyticsApi.generateReport(selectedReport, { start_date: reportStart, end_date: reportEnd, format: 'csv' });
-      const reportId = data.data?.id || data.data?.report_id;
-      if (reportId) {
-        const dlRes = await analyticsApi.downloadReport(reportId);
-        setDownloadUrl(dlRes.data.data?.url || dlRes.data.url || null);
-      }
+      // Payroll & performance reports are month-based; attendance & leave use a date range.
+      const periodParams = selectedReport === 'payroll' || selectedReport === 'performance'
+        ? { month: Number(reportStart.slice(5, 7)), year: Number(reportStart.slice(0, 4)) }
+        : { start_date: reportStart, end_date: reportEnd };
+      const { data } = await analyticsApi.generateReport(selectedReport, { ...periodParams, format: 'csv' });
+      setDownloadUrl(data.data?.download_url || null);
       toast.success('Report ready');
     } catch (err) {
       toast.error(getApiError(err));

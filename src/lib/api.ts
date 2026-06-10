@@ -144,8 +144,10 @@ export const usersApi = {
     apiClient.put('/users/me', data),
   deactivate: (id: string) =>
     apiClient.patch(`/users/${id}/deactivate`),
-  importCSV: (formData: FormData) =>
-    apiClient.post('/users/import', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  // Backend expects a parsed JSON array, not a file upload.
+  // Returns { created, skipped, errors }.
+  import: (users: Array<{ name: string; email: string; role?: string; department?: string; phone?: string }>) =>
+    apiClient.post('/users/import', { users }),
   getPermissions: (id: string) =>
     apiClient.get(`/users/${id}/permissions`),
   updatePermissions: (id: string, grants: Array<{ permission_key: string; effect: 'allow' | 'deny' }>) =>
@@ -166,8 +168,8 @@ export const attendanceApi = {
     apiClient.post('/attendance/checkout'),
   override: (id: string, data: { check_in_at?: string; check_out_at?: string; reason: string }) =>
     apiClient.put(`/attendance/${id}/override`, data),
-  getReport: (params: { start_date: string; end_date: string; department?: string; user_ids?: string[] }) =>
-    apiClient.get('/attendance/report', { params }),
+  getReport: (params: { start_date: string; end_date: string; department?: string }) =>
+    apiClient.get('/attendance/report/export', { params }),
   getQRCode: () =>
     apiClient.get('/org/qr-code'),
   regenerateQR: () =>
@@ -194,40 +196,40 @@ export const attendanceApi = {
 
 // ─── LEAVE ────────────────────────────────────────────
 export const leaveApi = {
-  getAllRequests: () =>
-    apiClient.get('/leave/requests/all'),
+  getAllRequests: (params?: { status?: string; department?: string }) =>
+    apiClient.get('/leave/requests', { params }),
   getTeamRequests: () =>
     apiClient.get('/leave/requests/team'),
   getMyBalance: () =>
     apiClient.get('/leave/balance/me'),
   submit: (data: Record<string, unknown>) =>
-    apiClient.post('/leave/request', data),
+    apiClient.post('/leave/requests', data),
   approve: (id: string) =>
-    apiClient.post(`/leave/requests/${id}/approve`),
+    apiClient.put(`/leave/requests/${id}/approve`),
   reject: (id: string, reason: string) =>
-    apiClient.post(`/leave/requests/${id}/reject`, { reason }),
+    apiClient.put(`/leave/requests/${id}/reject`, { reason }),
 };
 
 // ─── SHIFTS ───────────────────────────────────────────
 export const shiftsApi = {
   getTemplates: () =>
-    apiClient.get('/shifts/templates'),
+    apiClient.get('/shifts'),
   createTemplate: (data: Record<string, unknown>) =>
-    apiClient.post('/shifts/templates', data),
+    apiClient.post('/shifts', data),
   updateTemplate: (id: string, data: Record<string, unknown>) =>
-    apiClient.put(`/shifts/templates/${id}`, data),
+    apiClient.put(`/shifts/${id}`, data),
   deleteTemplate: (id: string) =>
-    apiClient.delete(`/shifts/templates/${id}`),
-  getAssignments: (params?: { week_start?: string }) =>
+    apiClient.delete(`/shifts/${id}`),
+  getAssignments: (params?: { week_start?: string; department?: string }) =>
     apiClient.get('/shifts/assignments', { params }),
   assignShift: (data: { user_id: string; shift_id: string; date: string }) =>
-    apiClient.post('/shifts/assign', data),
+    apiClient.post('/shifts/assignments', data),
   deleteAssignment: (id: string) =>
     apiClient.delete(`/shifts/assignments/${id}`),
-  publishSchedule: (week_start: string) =>
-    apiClient.post('/shifts/publish', { week_start }),
-  aiSchedule: (prompt: string, week_start: string) =>
-    apiClient.post('/shifts/ai-schedule', { prompt, week_start }),
+  publishSchedule: (from_date: string, to_date: string) =>
+    apiClient.post('/shifts/schedule/publish', { from_date, to_date }),
+  aiSchedule: (description: string, week_start: string) =>
+    apiClient.post('/shifts/ai-schedule', { description, week_start }),
   getBreaks: (shiftId: string) =>
     apiClient.get(`/shifts/${shiftId}/breaks`),
   addBreak: (shiftId: string, data: Record<string, unknown>) =>
@@ -237,9 +239,9 @@ export const shiftsApi = {
   getSwapRequests: () =>
     apiClient.get('/shifts/swaps'),
   approveSwap: (id: string) =>
-    apiClient.post(`/shifts/swaps/${id}/approve`),
+    apiClient.put(`/shifts/swaps/${id}/approve`),
   rejectSwap: (id: string, reason: string) =>
-    apiClient.post(`/shifts/swaps/${id}/reject`, { reason }),
+    apiClient.put(`/shifts/swaps/${id}/reject`, { reason }),
 };
 
 // ─── PAYROLL ──────────────────────────────────────────
@@ -249,11 +251,12 @@ export const payrollApi = {
   generate: (month: number, year: number) =>
     apiClient.post('/payroll/generate', { month, year }),
   processFull: (month: number, year: number) =>
-    apiClient.post('/payroll/process', { month, year }),
+    apiClient.post('/payroll/process-full', { month, year }),
   adjust: (id: string, data: Record<string, unknown>) =>
     apiClient.put(`/payroll/${id}/adjust`, data),
+  // Returns { url } — a presigned S3 link to the payslip PDF.
   downloadPayslip: (recordId: string) =>
-    apiClient.get(`/payroll/payslip/${recordId}/download`, { responseType: 'blob' }),
+    apiClient.get(`/payroll/payslips/${recordId}/download`),
 };
 
 // ─── PERFORMANCE ──────────────────────────────────────
@@ -267,23 +270,23 @@ export const performanceApi = {
   submitReview: (userId: string, data: Record<string, unknown>) =>
     apiClient.post(`/performance/reviews/${userId}`, data),
   getInsights: (userId: string) =>
-    apiClient.get(`/performance/insights/${userId}`),
+    apiClient.get(`/performance/reviews/${userId}/insights`),
 };
 
 // ─── OVERTIME ─────────────────────────────────────────
 export const overtimeApi = {
   getMyRequests: () =>
-    apiClient.get('/overtime/me'),
+    apiClient.get('/overtime/requests/me'),
   getRequests: (params?: { status?: string }) =>
     apiClient.get('/overtime/requests', { params }),
   getSummary: () =>
     apiClient.get('/overtime/summary'),
   request: (data: Record<string, unknown>) =>
-    apiClient.post('/overtime/request', data),
+    apiClient.post('/overtime/requests', data),
   approveRequest: (id: string) =>
-    apiClient.post(`/overtime/requests/${id}/approve`),
+    apiClient.put(`/overtime/requests/${id}/approve`),
   rejectRequest: (id: string, reason: string) =>
-    apiClient.post(`/overtime/requests/${id}/reject`, { reason }),
+    apiClient.put(`/overtime/requests/${id}/reject`, { reason }),
   getRules: () =>
     apiClient.get('/overtime/rules'),
   createRule: (data: Record<string, unknown>) =>
@@ -297,13 +300,13 @@ export const overtimeApi = {
 // ─── REMOTE ───────────────────────────────────────────
 export const remoteApi = {
   getSessions: (params?: { status?: string }) =>
-    apiClient.get('/remote/sessions', { params }),
+    apiClient.get('/attendance/remote/sessions', { params }),
   approveSession: (id: string) =>
-    apiClient.post(`/remote/sessions/${id}/approve`),
+    apiClient.put(`/attendance/remote/sessions/${id}/approve`),
   rejectSession: (id: string) =>
-    apiClient.post(`/remote/sessions/${id}/reject`),
+    apiClient.put(`/attendance/remote/sessions/${id}/reject`),
   getMonitor: () =>
-    apiClient.get('/remote/monitor'),
+    apiClient.get('/attendance/remote/monitor'),
 };
 
 // ─── ANALYTICS ────────────────────────────────────────
@@ -320,10 +323,9 @@ export const analyticsApi = {
     apiClient.get('/analytics/anomalies'),
   getPayrollAnomalies: () =>
     apiClient.get('/analytics/payroll-anomalies'),
+  // Returns { download_url, type, generated_at } — open download_url directly.
   generateReport: (type: string, params: Record<string, unknown>) =>
-    apiClient.post('/analytics/reports/generate', { type, ...params }),
-  downloadReport: (id: string) =>
-    apiClient.get(`/analytics/reports/${id}/download`, { responseType: 'blob' }),
+    apiClient.post(`/reports/${type}`, params),
   chat: (message: string) =>
     apiClient.post('/analytics/chat', { message }),
 };
@@ -337,13 +339,13 @@ export const orgApi = {
   getDepartments: () =>
     apiClient.get('/org/departments'),
   getOfficeNetworks: () =>
-    apiClient.get('/org/office-networks'),
+    apiClient.get('/org/office-ips'),
   updateOfficeIPs: (ips: string[]) =>
     apiClient.put('/org/office-ips', { ips }),
   updateOfficeSSIDs: (ssids: string[]) =>
     apiClient.put('/org/office-ssids', { ssids }),
   detectMyIp: () =>
-    apiClient.get('/org/detect-ip'),
+    apiClient.get('/org/my-ip'),
   getWhatsAppSettings: () =>
     apiClient.get('/org/whatsapp'),
   updateWhatsAppSettings: (data: Record<string, unknown>) =>
@@ -365,9 +367,9 @@ export const orgRbacApi = {
   deleteRole: (id: string) =>
     apiClient.delete(`/org/roles/${id}`),
   ensureSystemRoles: () =>
-    apiClient.post('/org/roles/seed'),
+    apiClient.post('/org/roles/ensure-system'),
   getPermissionCatalog: () =>
-    apiClient.get('/org/permissions/catalog'),
+    apiClient.get('/org/permissions'),
   assignUserRole: (userId: string, roleId: string, syncLegacy?: boolean) =>
     apiClient.put(`/org/users/${userId}/role`, { org_role_id: roleId, sync_legacy_role: syncLegacy }),
 };
@@ -391,7 +393,7 @@ export const adminApi = {
   getOrgs: () =>
     apiClient.get('/admin/orgs'),
   getPendingOrgs: () =>
-    apiClient.get('/admin/orgs', { params: { status: 'pending' } }),
+    apiClient.get('/admin/orgs/pending'),
   getOrg: (id: string) =>
     apiClient.get(`/admin/orgs/${id}`),
   getOrgUsers: (id: string) =>
@@ -399,15 +401,15 @@ export const adminApi = {
   createOrg: (data: Record<string, unknown>) =>
     apiClient.post('/admin/orgs', data),
   updateOrg: (id: string, data: Record<string, unknown>) =>
-    apiClient.put(`/admin/orgs/${id}`, data),
+    apiClient.patch(`/admin/orgs/${id}`, data),
   updateSubscription: (id: string, data: Record<string, unknown>) =>
-    apiClient.put(`/admin/orgs/${id}/subscription`, data),
+    apiClient.patch(`/admin/orgs/${id}/subscription`, data),
   approveOrg: (id: string) =>
     apiClient.post(`/admin/orgs/${id}/approve`),
-  rejectOrg: (id: string) =>
-    apiClient.post(`/admin/orgs/${id}/reject`),
+  rejectOrg: (id: string, reason?: string) =>
+    apiClient.post(`/admin/orgs/${id}/reject`, { reason }),
   suspendOrg: (id: string) =>
-    apiClient.post(`/admin/orgs/${id}/suspend`),
+    apiClient.patch(`/admin/orgs/${id}/suspend`),
   activateOrg: (id: string) =>
     apiClient.post(`/admin/orgs/${id}/activate`),
   extendTrial: (id: string, days: number) =>
@@ -421,13 +423,13 @@ export const adminApi = {
   deletePlan: (id: string) =>
     apiClient.delete(`/admin/plans/${id}`),
   getPlatformUsers: () =>
-    apiClient.get('/admin/platform-users'),
+    apiClient.get('/admin/users'),
   createPlatformUser: (data: Record<string, unknown>) =>
-    apiClient.post('/admin/platform-users', data),
+    apiClient.post('/admin/users', data),
   updatePlatformUser: (id: string, data: Record<string, unknown>) =>
-    apiClient.put(`/admin/platform-users/${id}`, data),
+    apiClient.put(`/admin/users/${id}`, data),
   deletePlatformUser: (id: string) =>
-    apiClient.delete(`/admin/platform-users/${id}`),
+    apiClient.delete(`/admin/users/${id}`),
   getBlogPosts: (params?: { page?: number; limit?: number }) =>
     apiClient.get('/admin/blog', { params }),
   createBlogPost: (data: Record<string, unknown>) =>

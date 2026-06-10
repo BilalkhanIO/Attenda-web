@@ -726,7 +726,7 @@ export default function ShiftsPage() {
   const onPublish = async () => {
     setPublishing(true);
     try {
-      await shiftsApi.publishSchedule(format(weekStart, 'yyyy-MM-dd'));
+      await shiftsApi.publishSchedule(format(weekStart, 'yyyy-MM-dd'), format(addDays(weekStart, 6), 'yyyy-MM-dd'));
       toast.success('Schedule published — all employees notified');
       setPublishConfirm(false);
     } catch (err) {
