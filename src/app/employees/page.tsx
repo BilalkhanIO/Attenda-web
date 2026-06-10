@@ -223,11 +223,24 @@ export default function EmployeesPage() {
               input.onchange = async (e) => {
                 const file = (e.target as HTMLInputElement).files?.[0];
                 if (!file) return;
-                const formData = new FormData();
-                formData.append('file', file);
                 try {
-                  const { data } = await usersApi.importCSV(formData);
-                  toast.success(`Imported ${data.data?.imported || 0} employees`);
+                  const text = await file.text();
+                  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+                  if (lines.length < 2) { toast.error('CSV must have a header row and at least one employee'); return; }
+                  const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+                  const rows = lines.slice(1).map(line => {
+                    const cols = line.split(',').map(c => c.trim());
+                    const row: Record<string, string> = {};
+                    headers.forEach((h, i) => { row[h] = cols[i] ?? ''; });
+                    return row;
+                  });
+                  const parsed = rows
+                    .filter(r => r.name && r.email)
+                    .map(r => ({ name: r.name, email: r.email, role: r.role || undefined, department: r.department || undefined, phone: r.phone || undefined }));
+                  if (!parsed.length) { toast.error('No valid rows found — CSV needs "name" and "email" columns'); return; }
+                  const { data } = await usersApi.import(parsed);
+                  const result = data.data || {};
+                  toast.success(`Imported ${result.created ?? 0} employees${result.skipped ? `, ${result.skipped} skipped` : ''}`);
                   fetchUsers();
                 } catch (err) { toast.error(getApiError(err)); }
               };

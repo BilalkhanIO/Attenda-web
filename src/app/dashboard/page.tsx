@@ -3,10 +3,24 @@ import { useState, useEffect, useCallback } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { KPICard, Card, Avatar, Badge, Skeleton, PageHeader, Button, Modal } from '@/components/ui';
 import { attendanceApi } from '@/lib/api';
+import { useAuth } from '@/lib/auth';
 import { statusConfig, formatTime, getApiError } from '@/lib/utils';
 import type { AttendanceRecord } from '@/types';
 import { Users, Clock, Wifi, Calendar, AlertTriangle, RefreshCw, LogIn, LogOut } from 'lucide-react';
 import toast from 'react-hot-toast';
+
+interface MyTodayStatus {
+  shift?: { name: string; start_time: string; end_time: string } | null;
+  attendance?: {
+    status: string;
+    check_in_at?: string | null;
+    check_out_at?: string | null;
+    late_minutes?: number;
+    net_hours_worked?: unknown;
+    break_minutes?: number;
+  } | null;
+  pre_checkin_late_minutes?: number;
+}
 
 const n = (v: unknown) => Number(v) || 0;
 
@@ -36,7 +50,11 @@ function CardElapsed({ checkInAt }: { checkInAt: string }) {
 }
 
 export default function DashboardPage() {
+  const { hasRole } = useAuth();
+  // GET /attendance/today is manager+ only — employees get a personal view instead.
+  const canViewTeam = hasRole('manager', 'hr_admin', 'super_admin');
   const [live, setLive] = useState<AttendanceRecord[]>([]);
+  const [myStatus, setMyStatus] = useState<MyTodayStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [filter, setFilter] = useState<string>('all');
@@ -44,15 +62,20 @@ export default function DashboardPage() {
 
   const fetchLive = useCallback(async () => {
     try {
-      const { data } = await attendanceApi.getToday();
-      setLive(data.data || []);
+      if (canViewTeam) {
+        const { data } = await attendanceApi.getToday();
+        setLive(data.data || []);
+      } else {
+        const { data } = await attendanceApi.getTodayStatus();
+        setMyStatus(data.data || null);
+      }
       setLastUpdated(new Date());
     } catch (err) {
       toast.error(getApiError(err));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [canViewTeam]);
 
   useEffect(() => {
     fetchLive();
@@ -80,6 +103,61 @@ export default function DashboardPage() {
   const filtered = filter === 'all' ? live : live.filter(e => e.status === filter);
 
   const secondsAgo = Math.round((new Date().getTime() - lastUpdated.getTime()) / 1000);
+
+  if (!canViewTeam) {
+    const att = myStatus?.attendance;
+    const cfg = att ? statusConfig[att.status as keyof typeof statusConfig] : null;
+    const preLate = myStatus?.pre_checkin_late_minutes ?? 0;
+    return (
+      <DashboardLayout>
+        <PageHeader
+          title="My Day"
+          subtitle="Your attendance overview for today"
+          actions={
+            <Button variant="ghost" size="sm" icon={<RefreshCw size={14} />} onClick={fetchLive}>
+              Refresh
+            </Button>
+          }
+        />
+        {loading ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+            {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+              <KPICard title="Status" value={cfg?.label ?? (preLate > 0 ? `${preLate}m late` : 'Not checked in')}
+                icon={<Wifi size={16} />} color={cfg?.color ?? 'var(--on-glass-muted)'} bg="#10b981" />
+              <KPICard title="Check-In" value={att?.check_in_at ? formatTime(att.check_in_at) : '—'}
+                icon={<LogIn size={16} />} color="var(--success-500)" bg="#10b981"
+                delta={(att?.late_minutes ?? 0) > 0 ? `+${att!.late_minutes}m late` : undefined} deltaPositive={false} />
+              <KPICard title="Check-Out" value={att?.check_out_at ? formatTime(att.check_out_at) : '—'}
+                icon={<LogOut size={16} />} color="var(--on-glass-muted)" bg="#94a3b8" />
+              <KPICard title="Hours" value={att?.net_hours_worked != null ? fmtHours(n(att.net_hours_worked)) : '—'}
+                icon={<Clock size={16} />} color="var(--primary-500)" bg="#00C896"
+                delta={(att?.break_minutes ?? 0) > 0 ? `${att!.break_minutes}m breaks` : undefined} />
+            </div>
+            <Card className="p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <Calendar size={16} className="text-[var(--primary-600)]" />
+                <h3 className="text-xs font-black text-white uppercase tracking-widest">Today&apos;s Shift</h3>
+              </div>
+              {myStatus?.shift ? (
+                <p className="text-sm font-bold text-white">
+                  {myStatus.shift.name}
+                  <span className="ml-3 font-mono text-[var(--on-glass-muted)]">
+                    {myStatus.shift.start_time} – {myStatus.shift.end_time}
+                  </span>
+                </p>
+              ) : (
+                <p className="text-sm text-[var(--on-glass-muted)]">No shift scheduled for today.</p>
+              )}
+            </Card>
+          </>
+        )}
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>

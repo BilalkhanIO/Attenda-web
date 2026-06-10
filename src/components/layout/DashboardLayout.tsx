@@ -140,7 +140,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     const token = getAccessToken();
     if (!token) return;
 
-    const apiBase = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1');
+    // Same base as the axios client — default to the Next.js /api/v1 rewrite proxy.
+    const apiBase = (process.env.NEXT_PUBLIC_API_URL || '/api/v1');
     const es = new EventSource(`${apiBase}/notifications/stream?token=${encodeURIComponent(token)}`);
     sseRef.current = es;
 
