@@ -16,20 +16,28 @@ interface NavItem {
   href: string;
   icon: ReactNode;
   exact?: boolean;
+  /** Visible if the user holds ANY of these platform permissions. */
+  permissions: string[];
 }
 
 const NAV: NavItem[] = [
-  { label: 'Dashboard', href: '/admin', icon: <LayoutDashboard size={18} />, exact: true },
-  { label: 'Organisations', href: '/admin#organisations', icon: <Building2 size={18} /> },
-  { label: 'Pending', href: '/admin#pending', icon: <AlertCircle size={18} /> },
-  { label: 'Plans', href: '/admin/plans', icon: <Tag size={18} /> },
-  { label: 'Blog', href: '/admin/blog', icon: <FileText size={18} /> },
-  { label: 'Platform users', href: '/admin/users', icon: <Users size={18} /> },
+  { label: 'Dashboard', href: '/admin', icon: <LayoutDashboard size={18} />, exact: true, permissions: ['platform.orgs.view', 'platform.orgs.manage'] },
+  { label: 'Organisations', href: '/admin#organisations', icon: <Building2 size={18} />, permissions: ['platform.orgs.view', 'platform.orgs.manage'] },
+  { label: 'Pending', href: '/admin#pending', icon: <AlertCircle size={18} />, permissions: ['platform.orgs.view', 'platform.orgs.manage'] },
+  { label: 'Plans', href: '/admin/plans', icon: <Tag size={18} />, permissions: ['platform.plans.manage'] },
+  { label: 'Blog', href: '/admin/blog', icon: <FileText size={18} />, permissions: ['platform.blog.manage'] },
+  { label: 'Platform users', href: '/admin/users', icon: <Users size={18} />, permissions: ['platform.users.manage'] },
 ];
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const { logout } = useAuth();
+  const { logout, capabilities } = useAuth();
+
+  // Until capabilities load, show everything to avoid a nav flash for full admins.
+  const platformPerms = capabilities?.platform_permissions;
+  const visibleNav = platformPerms?.length
+    ? NAV.filter(item => item.permissions.some(p => platformPerms.includes(p)))
+    : NAV;
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [hash, setHash] = useState('');
 
@@ -63,7 +71,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         <AttendaLogo iconSize={32} variant="dark" />
       </div>
       <nav className="flex-1 px-3 py-6 space-y-1 overflow-y-auto custom-scrollbar">
-        {NAV.map(item => {
+        {visibleNav.map(item => {
           const active = isActive(item);
           return (
             <Link
