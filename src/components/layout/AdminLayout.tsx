@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode, useState } from 'react';
+import { ReactNode, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -27,18 +27,35 @@ const NAV: NavItem[] = [
   { label: 'Platform users', href: '/admin/users', icon: <Users size={18} /> },
 ];
 
-function isActive(pathname: string, item: NavItem) {
-  if (item.href.startsWith('/admin#')) {
-    return pathname === '/admin';
-  }
-  if (item.exact) return pathname === item.href;
-  return pathname === item.href || pathname.startsWith(`${item.href}/`);
-}
-
 export default function AdminLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [hash, setHash] = useState('');
+
+  // Track hash changes for active state
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setHash(window.location.hash);
+      const handleHashChange = () => setHash(window.location.hash);
+      window.addEventListener('hashchange', handleHashChange);
+      return () => window.removeEventListener('hashchange', handleHashChange);
+    }
+  }, []);
+
+  const isActive = (item: NavItem) => {
+    const [itemPath, itemHash] = item.href.split('#');
+    
+    if (itemHash) {
+      return pathname === itemPath && hash === `#${itemHash}`;
+    }
+    
+    if (item.exact) {
+      return pathname === itemPath && (!hash || hash === '#');
+    }
+    
+    return pathname === itemPath || pathname.startsWith(`${itemPath}/`);
+  };
 
   const sidebar = (
     <div className="flex flex-col h-full">
@@ -47,12 +64,16 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       </div>
       <nav className="flex-1 px-3 py-6 space-y-1 overflow-y-auto custom-scrollbar">
         {NAV.map(item => {
-          const active = isActive(pathname, item);
+          const active = isActive(item);
           return (
             <Link
               key={item.href}
               href={item.href}
-              onClick={() => setSidebarOpen(false)}
+              onClick={() => {
+                setSidebarOpen(false);
+                if (item.href.includes('#')) setHash(item.href.split('#')[1] ? `#${item.href.split('#')[1]}` : '');
+                else if (item.href === '/admin') setHash('');
+              }}
               className={cn(
                 'flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all',
                 active
