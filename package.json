@@ -19,10 +19,10 @@
     "js-cookie": "^3.0.7",
     "jwt-decode": "^4.0.0",
     "lucide-react": "^1.16.0",
-    "next": "16.2.6",
+    "next": "^16.2.9",
     "qrcode.react": "^4.2.0",
-    "react": "19.2.4",
-    "react-dom": "19.2.4",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
     "react-hook-form": "^7.76.0",
     "react-hot-toast": "^2.6.0",
     "recharts": "^3.8.1",
@@ -36,7 +36,7 @@
     "@types/react": "^19.2.15",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.2.6",
+    "eslint-config-next": "^16.2.9",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
