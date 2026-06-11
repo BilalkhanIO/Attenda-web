@@ -15,6 +15,13 @@ const profileSchema = z.object({
   name:      z.string().min(2, 'Name required'),
   phone:     z.string().optional(),
   job_title: z.string().optional(),
+  date_of_birth: z.string().optional(),
+  gender:    z.string().optional(),
+  address:   z.string().optional(),
+  city:      z.string().optional(),
+  country:   z.string().optional(),
+  emergency_contact_name:  z.string().optional(),
+  emergency_contact_phone: z.string().optional(),
 });
 type ProfileForm = z.infer<typeof profileSchema>;
 
@@ -50,7 +57,15 @@ export default function ProfilePage() {
       const u: User = r.data.data;
       setMe(u);
       setTwoFAEnabled(!!(u as unknown as { totp_enabled?: boolean }).totp_enabled);
-      profileForm.reset({ name: u.name, phone: u.phone || '', job_title: u.job_title || '' });
+      const ux = u as unknown as Record<string, string | null>;
+      profileForm.reset({
+        name: u.name, phone: u.phone || '', job_title: u.job_title || '',
+        date_of_birth: ux.date_of_birth ? String(ux.date_of_birth).slice(0, 10) : '',
+        gender: ux.gender || '', address: ux.address || '',
+        city: ux.city || '', country: ux.country || '',
+        emergency_contact_name: ux.emergency_contact_name || '',
+        emergency_contact_phone: ux.emergency_contact_phone || '',
+      });
     }).catch(() => toast.error('Failed to load profile')).finally(() => setLoading(false));
   }, []);
 
@@ -77,7 +92,7 @@ export default function ProfilePage() {
     setSaving2FA(true);
     try {
       const { data } = await authApi.setup2FA();
-      setQrDataUrl(data.data?.qr_code_url || '');
+      setQrDataUrl(data.data?.qr_code || '');
       setOtpSecret(data.data?.secret || '');
     } catch (err) {
       toast.error(getApiError(err));
@@ -166,6 +181,34 @@ export default function ProfilePage() {
               <Input label="Job Title"
                 error={profileForm.formState.errors.job_title?.message}
                 {...profileForm.register('job_title')} />
+              <div className="grid grid-cols-2 gap-4">
+                <Input label="Date of Birth" type="date"
+                  {...profileForm.register('date_of_birth')} />
+                <div>
+                  <label className="text-sm font-semibold text-slate-300 block mb-1">Gender</label>
+                  <select
+                    {...profileForm.register('gender')}
+                    className="w-full px-3 py-2 text-sm bg-slate-800/50 border border-glass rounded-lg text-slate-100 outline-none focus:border-emerald-500/50"
+                  >
+                    <option value="" className="bg-slate-900">Prefer not to say</option>
+                    <option value="male" className="bg-slate-900">Male</option>
+                    <option value="female" className="bg-slate-900">Female</option>
+                    <option value="other" className="bg-slate-900">Other</option>
+                  </select>
+                </div>
+              </div>
+              <Input label="Address" placeholder="Street address"
+                {...profileForm.register('address')} />
+              <div className="grid grid-cols-2 gap-4">
+                <Input label="City" {...profileForm.register('city')} />
+                <Input label="Country" {...profileForm.register('country')} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <Input label="Emergency Contact Name"
+                  {...profileForm.register('emergency_contact_name')} />
+                <Input label="Emergency Contact Phone" type="tel"
+                  {...profileForm.register('emergency_contact_phone')} />
+              </div>
               <Button icon={<Save size={14} />}
                 loading={profileForm.formState.isSubmitting}
                 onClick={profileForm.handleSubmit(onSaveProfile)}>

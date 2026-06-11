@@ -73,7 +73,7 @@ function CompletionBar({ value }: { value: number }) {
 
 // ─── Main Component ──────────────────────────────────────
 export default function PerformancePage() {
-  const { hasRole } = useAuth();
+  const { hasPermission } = useAuth();
 
   // Reviews state
   const [reviews, setReviews]   = useState<PerformanceReview[]>([]);
@@ -242,7 +242,7 @@ export default function PerformancePage() {
                   </td>
                   <td className="py-3 px-4">
                     <div className="flex items-center gap-1.5">
-                      {hasRole('manager', 'hr_admin', 'super_admin') && (
+                      {hasPermission('performance.manage') && (
                         <button onClick={() => openReview(review)} title={isSubmitted ? 'View Review' : 'Create Review'}
                           className="w-7 h-7 flex items-center justify-center rounded-lg bg-(--glass-10) text-(--on-glass-dim) hover:text-white hover:bg-(--glass-15) transition-all">
                           {isSubmitted ? <TrendingUp size={14} /> : <Star size={14} />}
@@ -272,7 +272,7 @@ export default function PerformancePage() {
           ) : (
             <>
               <Button variant="ghost" size="sm" onClick={() => setReviewUser(null)}>Cancel</Button>
-              {hasRole('manager', 'hr_admin', 'super_admin') && (
+              {hasPermission('performance.manage') && (
                 <Button size="sm" onClick={reviewForm.handleSubmit(onSubmitReviewForm)}>Submit Review</Button>
               )}
             </>

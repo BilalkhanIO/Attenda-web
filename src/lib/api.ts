@@ -358,6 +358,30 @@ export const orgApi = {
     apiClient.post('/org/whatsapp/test'),
 };
 
+// ─── DEPARTMENTS ──────────────────────────────────────
+export interface DepartmentNode {
+  id: string;
+  name: string;
+  parent_id: string | null;
+  member_count: number;
+  created_at: string;
+  children: DepartmentNode[];
+}
+
+export const departmentsApi = {
+  // Flat names (legacy strings merged in) — used by dropdowns
+  getNames: () =>
+    apiClient.get('/org/departments'),
+  getTree: () =>
+    apiClient.get<{ data: DepartmentNode[] }>('/org/departments/tree'),
+  create: (name: string, parent_id?: string | null) =>
+    apiClient.post('/org/departments', { name, parent_id }),
+  update: (id: string, data: { name?: string; parent_id?: string | null }) =>
+    apiClient.put(`/org/departments/${id}`, data),
+  remove: (id: string) =>
+    apiClient.delete(`/org/departments/${id}`),
+};
+
 // ─── ORG RBAC ─────────────────────────────────────────
 export const orgRbacApi = {
   getRoles: () =>

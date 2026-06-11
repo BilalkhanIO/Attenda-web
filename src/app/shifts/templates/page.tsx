@@ -36,8 +36,8 @@ const defaultForm: ShiftForm = {
 };
 
 export default function ShiftTemplatesPage() {
-  const { hasRole } = useAuth();
-  const canManage = hasRole('manager', 'hr_admin', 'super_admin');
+  const { hasPermission } = useAuth();
+  const canManage = hasPermission('shifts.manage');
 
   const [shifts, setShifts]   = useState<Shift[]>([]);
   const [loading, setLoading] = useState(true);

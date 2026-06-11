@@ -46,8 +46,8 @@ function ProgressBar({ value }: { value: number }) {
 }
 
 export default function GoalsPage() {
-  const { hasRole } = useAuth();
-  const canManage = hasRole('manager', 'hr_admin', 'super_admin');
+  const { hasPermission } = useAuth();
+  const canManage = hasPermission('performance.manage');
 
   const [goals, setGoals]           = useState<Goal[]>([]);
   const [loading, setLoading]       = useState(true);

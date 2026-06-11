@@ -48,7 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const loadCapabilities = useCallback(async (authUser: AuthUser | null) => {
-    if (!authUser || authUser.role === 'platform_admin') {
+    if (!authUser) {
       setCapabilities(null);
       setCapabilitiesLoading(false);
       return;
@@ -58,8 +58,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { data } = await usersApi.getMyCapabilities();
       const caps = data.data as UserCapabilities;
       setCapabilities(caps);
-      // Drive all org-local time rendering from the org's timezone.
-      setDisplayTimezone(caps.timezone);
+      // Platform staff aren't bound to a tenant org — don't let the SYSTEM
+      // org override the browser timezone for them.
+      if (authUser.role !== 'platform_admin') {
+        // Drive all org-local time rendering from the org's timezone.
+        setDisplayTimezone(caps.timezone);
+      }
     } catch {
       setCapabilities(null);
     } finally {
@@ -89,10 +93,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (!user || user.role === 'platform_admin') {
+    if (!user) {
       setCapabilities(null);
       return;
     }
+    // Platform users need capabilities too — platform_permissions drives the
+    // admin console nav (platform_admin vs platform_assistant).
     loadCapabilities(user);
   }, [user?.sub, user?.org_id, user?.role, loadCapabilities]);
 

@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { PageHeader, Card, Button, Input, Modal, ConfirmDialog } from '@/components/ui';
+import DepartmentsCard from '@/components/settings/DepartmentsCard';
 import { orgApi, attendanceApi } from '@/lib/api';
 import { getApiError } from '@/lib/utils';
 import {
@@ -296,7 +297,7 @@ function AddNetworkModal({ isOpen, onClose, onAdd, existingIps, existingSsids }:
 
 // ─── Main Page ────────────────────────────────────────
 export default function SettingsPage() {
-  const { hasRole, hasPermission } = useAuth();
+  const { hasPermission } = useAuth();
 
   const [ips, setIps]     = useState<string[]>([]);
   const [ssids, setSsids] = useState<string[]>([]);
@@ -314,6 +315,10 @@ export default function SettingsPage() {
   const [orgName, setOrgName]           = useState('');
   const [timezone, setTimezone]         = useState('UTC');
   const [lateThreshold, setLateThreshold] = useState(15);
+  const [orgAddress, setOrgAddress]     = useState('');
+  const [orgPhone, setOrgPhone]         = useState('');
+  const [orgWebsite, setOrgWebsite]     = useState('');
+  const [orgIndustry, setOrgIndustry]   = useState('');
   const [savingOrg, setSavingOrg]       = useState(false);
 
   useEffect(() => {
@@ -335,10 +340,14 @@ export default function SettingsPage() {
           setOrgName(s?.name || '');
           setTimezone(s?.timezone || 'UTC');
           setLateThreshold(s?.late_threshold ?? 15);
+          setOrgAddress(s?.address || '');
+          setOrgPhone(s?.phone || '');
+          setOrgWebsite(s?.website || '');
+          setOrgIndustry(s?.industry || '');
         }
         if (qrRes.status === 'fulfilled') {
           const qr = qrRes.value.data.data;
-          setQrCode(qr?.qr_code_url || qr?.qr_code_base64 || null);
+          setQrCode(qr?.qr_code || null);
         }
       } catch { /* ignore */ } finally {
         setQrLoading(false);
@@ -394,7 +403,10 @@ export default function SettingsPage() {
   const saveOrgSettings = async () => {
     setSavingOrg(true);
     try {
-      await orgApi.updateSettings({ name: orgName, timezone, late_threshold: lateThreshold });
+      await orgApi.updateSettings({
+        name: orgName, timezone, late_threshold: lateThreshold,
+        address: orgAddress, phone: orgPhone, website: orgWebsite, industry: orgIndustry,
+      });
       toast.success('Organisation settings saved');
     } catch (err) {
       toast.error(getApiError(err));
@@ -449,12 +461,25 @@ export default function SettingsPage() {
             />
           </div>
         </div>
-        {hasRole('super_admin') && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+          <Input label="Address" placeholder="Street, city" value={orgAddress}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setOrgAddress(e.target.value)} />
+          <Input label="Phone" placeholder="+1 234 567 8900" value={orgPhone}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setOrgPhone(e.target.value)} />
+          <Input label="Website" placeholder="https://company.com" value={orgWebsite}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setOrgWebsite(e.target.value)} />
+          <Input label="Industry" placeholder="e.g. Software" value={orgIndustry}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setOrgIndustry(e.target.value)} />
+        </div>
+        {hasPermission('org.settings.update') && (
           <Button icon={<Save size={14} />} loading={savingOrg} onClick={saveOrgSettings} size="sm">
             Save Settings
           </Button>
         )}
       </Card>
+
+      {/* ── Departments ───────────────────────────────── */}
+      <DepartmentsCard />
 
       {/* ── Office Networks ───────────────────────────── */}
       <Card className="glass-card p-6 mb-6">
@@ -521,7 +546,7 @@ export default function SettingsPage() {
                 {entry.type === 'ssid' ? 'WiFi Name' : 'IP Range'}
               </span>
 
-              {hasRole('super_admin') && (
+              {hasPermission('org.office.update') && (
                 <button
                   onClick={() => setDeleteEntry(entry)}
                   className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-500 hover:text-rose-400 ml-1"
@@ -545,12 +570,12 @@ export default function SettingsPage() {
 
         {/* Actions */}
         <div className="flex flex-wrap items-center gap-3">
-          {hasRole('super_admin') && (
+          {hasPermission('org.office.update') && (
             <Button variant="outline" size="sm" icon={<Plus size={14} />} onClick={() => setShowAddModal(true)}>
               Add Network
             </Button>
           )}
-          {networksChanged && hasRole('super_admin') && (
+          {networksChanged && hasPermission('org.office.update') && (
             <Button
               size="sm"
               icon={<Save size={14} />}
@@ -593,7 +618,7 @@ export default function SettingsPage() {
               <p className="text-xs text-slate-400">Display at the office entrance for manual scan check-in</p>
             </div>
           </div>
-          {qrCode && hasRole('hr_admin', 'super_admin') && (
+          {qrCode && hasPermission('org.qr.manage') && (
             <Button variant="outline" size="sm" icon={<RefreshCw size={13} />} onClick={() => setRegenConfirm(true)}>
               Regenerate
             </Button>
@@ -628,7 +653,7 @@ export default function SettingsPage() {
             <div>
               <p className="text-sm font-semibold text-slate-200 mb-1">No QR code generated yet</p>
               <p className="text-xs text-slate-500 mb-3">Generate one for your office entrance.</p>
-              {hasRole('hr_admin', 'super_admin') && (
+              {hasPermission('org.qr.manage') && (
                 <Button size="sm" icon={<QrCode size={13} />} onClick={regenQR} loading={regenerating}>
                   Generate QR Code
                 </Button>

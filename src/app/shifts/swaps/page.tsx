@@ -17,8 +17,8 @@ const STATUS_COLOR: Record<string, { color: string; bg: string }> = {
 };
 
 export default function ShiftSwapsPage() {
-  const { hasRole } = useAuth();
-  const canManage = hasRole('manager', 'hr_admin', 'super_admin');
+  const { hasPermission } = useAuth();
+  const canManage = hasPermission('shifts.swaps.approve');
 
   const [swaps, setSwaps]         = useState<SwapRequest[]>([]);
   const [loading, setLoading]     = useState(true);
