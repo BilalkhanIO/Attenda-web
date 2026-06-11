@@ -69,6 +69,29 @@ function notifyTokenRefreshed() {
 }
 
 // --- Response interceptor: handle 401 refresh ---
+// Single-flight refresh: when several requests 401 at once (e.g. a page firing
+// parallel queries with an expired token), only ONE refresh call goes out and
+// the rest await it. Without this they race, and a losing request can clear
+// freshly-stored tokens and bounce the user to /login.
+let refreshInFlight: Promise<string> | null = null;
+
+function refreshAccessToken(refreshToken: string): Promise<string> {
+  if (!refreshInFlight) {
+    refreshInFlight = axios
+      .post(`${BASE_URL}/auth/refresh`, { refresh_token: refreshToken })
+      .then(({ data }) => {
+        const newToken = data.data.access_token as string;
+        // Preserve remember-me state
+        const wasRemembered = Cookies.get(REMEMBER_ME_KEY) === 'true';
+        storeTokens(newToken, refreshToken, wasRemembered);
+        notifyTokenRefreshed();
+        return newToken;
+      })
+      .finally(() => { refreshInFlight = null; });
+  }
+  return refreshInFlight;
+}
+
 apiClient.interceptors.response.use(
   (res: AxiosResponse) => res,
   async (error: AxiosError) => {
@@ -78,12 +101,7 @@ apiClient.interceptors.response.use(
       const refresh = getRefreshToken();
       if (refresh) {
         try {
-          const { data } = await axios.post(`${BASE_URL}/auth/refresh`, { refresh_token: refresh });
-          const newToken = data.data.access_token;
-          // Preserve remember-me state
-          const wasRemembered = Cookies.get(REMEMBER_ME_KEY) === 'true';
-          storeTokens(newToken, refresh, wasRemembered);
-          notifyTokenRefreshed();
+          const newToken = await refreshAccessToken(refresh);
           if (original.headers) original.headers.Authorization = `Bearer ${newToken}`;
           return apiClient(original);
         } catch {

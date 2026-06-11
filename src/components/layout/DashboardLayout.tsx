@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { Avatar } from '@/components/ui';
 import AttendaLogo from '@/components/ui/AttendaLogo';
+import { fetchEventSource } from '@microsoft/fetch-event-source';
 import { notificationApi, getAccessToken } from '@/lib/api';
 import type { AuthRole, InAppNotification } from '@/types';
 import TrialBanner from '@/components/TrialBanner';
@@ -126,7 +127,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [unreadCount, setUnreadCount]     = useState(0);
   const [notifsLoading, setNotifsLoading] = useState(false);
   const bellRef = useRef<HTMLDivElement>(null);
-  const sseRef  = useRef<EventSource | null>(null);
 
   useEffect(() => {
     if (user?.role === 'platform_admin') {
@@ -134,26 +134,49 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     }
   }, [user, router]);
 
-  // SSE: subscribe to live unread count
+  // SSE: subscribe to live unread count.
+  // Uses fetch-event-source instead of native EventSource so the token travels
+  // in the Authorization header (not the URL → access logs) and reconnects
+  // survive errors with capped exponential backoff. The custom fetch reads the
+  // token per attempt, so retries pick up refreshed tokens automatically.
   useEffect(() => {
     if (!user) return;
-    const token = getAccessToken();
-    if (!token) return;
 
+    const ctrl = new AbortController();
     // Same base as the axios client — default to the Next.js /api/v1 rewrite proxy.
     const apiBase = (process.env.NEXT_PUBLIC_API_URL || '/api/v1');
-    const es = new EventSource(`${apiBase}/notifications/stream?token=${encodeURIComponent(token)}`);
-    sseRef.current = es;
+    let retryMs = 1_000;
 
-    es.onmessage = (e) => {
-      try {
-        const msg = JSON.parse(e.data);
-        if (msg.type === 'count') setUnreadCount(msg.count);
-      } catch { /* ignore malformed */ }
-    };
-    es.onerror = () => es.close();
+    fetchEventSource(`${apiBase}/notifications/stream`, {
+      signal: ctrl.signal,
+      // Pause the stream while the tab is hidden; reopens on focus.
+      openWhenHidden: false,
+      fetch: (input, init) =>
+        fetch(input, {
+          ...init,
+          headers: {
+            ...(init?.headers as Record<string, string>),
+            Authorization: `Bearer ${getAccessToken() ?? ''}`,
+          },
+        }),
+      onopen: async (res) => {
+        if (res.ok) { retryMs = 1_000; return; }
+        throw new Error(`notification stream rejected: ${res.status}`);
+      },
+      onmessage: (e) => {
+        try {
+          const msg = JSON.parse(e.data);
+          if (msg.type === 'count') setUnreadCount(msg.count);
+        } catch { /* ignore malformed */ }
+      },
+      onerror: () => {
+        const delay = retryMs;
+        retryMs = Math.min(retryMs * 2, 30_000);
+        return delay; // wait, then retry — never give up permanently
+      },
+    }).catch(() => { /* aborted on unmount */ });
 
-    return () => { es.close(); sseRef.current = null; };
+    return () => ctrl.abort();
   }, [user]);
 
   // Load notifications when bell is opened
