@@ -1,26 +1,13 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { KPICard, Card, Avatar, Badge, Skeleton, PageHeader, Button, Modal } from '@/components/ui';
-import { attendanceApi } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
-import { statusConfig, formatTime, getApiError } from '@/lib/utils';
+import { todayAttendanceQuery, myTodayStatusQuery } from '@/lib/queries';
+import { statusConfig, formatTime } from '@/lib/utils';
 import type { AttendanceRecord } from '@/types';
 import { Users, Clock, Wifi, Calendar, AlertTriangle, RefreshCw, LogIn, LogOut } from 'lucide-react';
-import toast from 'react-hot-toast';
-
-interface MyTodayStatus {
-  shift?: { name: string; start_time: string; end_time: string } | null;
-  attendance?: {
-    status: string;
-    check_in_at?: string | null;
-    check_out_at?: string | null;
-    late_minutes?: number;
-    net_hours_worked?: unknown;
-    break_minutes?: number;
-  } | null;
-  pre_checkin_late_minutes?: number;
-}
 
 const n = (v: unknown) => Number(v) || 0;
 
@@ -53,35 +40,31 @@ export default function DashboardPage() {
   const { hasPermission } = useAuth();
   // GET /attendance/today needs attendance.view_team — others get a personal view.
   const canViewTeam = hasPermission('attendance.view_team');
-  const [live, setLive] = useState<AttendanceRecord[]>([]);
-  const [myStatus, setMyStatus] = useState<MyTodayStatus | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [filter, setFilter] = useState<string>('all');
   const [selectedEmployee, setSelectedEmployee] = useState<AttendanceRecord | null>(null);
 
-  const fetchLive = useCallback(async () => {
-    try {
-      if (canViewTeam) {
-        const { data } = await attendanceApi.getToday();
-        setLive(data.data || []);
-      } else {
-        const { data } = await attendanceApi.getTodayStatus();
-        setMyStatus(data.data || null);
-      }
-      setLastUpdated(new Date());
-    } catch (err) {
-      toast.error(getApiError(err));
-    } finally {
-      setLoading(false);
-    }
-  }, [canViewTeam]);
+  // Polls only while a tab is visible; pauses in background tabs and
+  // refetches immediately on focus.
+  const teamQuery = useQuery({
+    ...todayAttendanceQuery(),
+    enabled: canViewTeam,
+    refetchInterval: 60_000,
+    refetchIntervalInBackground: false,
+  });
+  const myQuery = useQuery({
+    ...myTodayStatusQuery(),
+    enabled: !canViewTeam,
+    refetchInterval: 60_000,
+    refetchIntervalInBackground: false,
+  });
 
-  useEffect(() => {
-    fetchLive();
-    const interval = setInterval(fetchLive, 60_000);
-    return () => clearInterval(interval);
-  }, [fetchLive]);
+  const live = teamQuery.data ?? [];
+  const myStatus = myQuery.data ?? null;
+  const loading = canViewTeam ? teamQuery.isPending : myQuery.isPending;
+  const fetchLive = canViewTeam ? teamQuery.refetch : myQuery.refetch;
+  const lastUpdated = new Date(
+    (canViewTeam ? teamQuery.dataUpdatedAt : myQuery.dataUpdatedAt) || Date.now(),
+  );
 
   // Counts
   const counts = {
@@ -114,7 +97,7 @@ export default function DashboardPage() {
           title="My Day"
           subtitle="Your attendance overview for today"
           actions={
-            <Button variant="ghost" size="sm" icon={<RefreshCw size={14} />} onClick={fetchLive}>
+            <Button variant="ghost" size="sm" icon={<RefreshCw size={14} />} onClick={() => fetchLive()}>
               Refresh
             </Button>
           }
@@ -175,7 +158,7 @@ export default function DashboardPage() {
                 Updated {secondsAgo}s ago
               </span>
             </div>
-            <Button variant="ghost" size="sm" className="h-9 py-0 border-none bg-transparent hover:bg-[var(--glass-15)] active:scale-95 transition-all" icon={<RefreshCw size={14} />} onClick={fetchLive}>
+            <Button variant="ghost" size="sm" className="h-9 py-0 border-none bg-transparent hover:bg-[var(--glass-15)] active:scale-95 transition-all" icon={<RefreshCw size={14} />} onClick={() => fetchLive()}>
               Refresh
             </Button>
           </div>

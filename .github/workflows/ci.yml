@@ -17,5 +17,5 @@ jobs:
       # Lint debt is being burned down — fail only on NEW errors via warnings cap
       # once clean, tighten to --max-warnings 0
       - run: npx eslint src --max-warnings 200 || true
-      - run: npm run test:ui --if-present
+      - run: npm test
       - run: npm run build
