@@ -81,9 +81,13 @@ function refreshAccessToken(refreshToken: string): Promise<string> {
       .post(`${BASE_URL}/auth/refresh`, { refresh_token: refreshToken })
       .then(({ data }) => {
         const newToken = data.data.access_token as string;
+        // Rotation: the server consumes the presented refresh token and
+        // returns a successor — storing the old one would trigger reuse
+        // detection (family revocation) on the next refresh.
+        const rotated = (data.data.refresh_token as string | undefined) ?? refreshToken;
         // Preserve remember-me state
         const wasRemembered = Cookies.get(REMEMBER_ME_KEY) === 'true';
-        storeTokens(newToken, refreshToken, wasRemembered);
+        storeTokens(newToken, rotated, wasRemembered);
         notifyTokenRefreshed();
         return newToken;
       })
