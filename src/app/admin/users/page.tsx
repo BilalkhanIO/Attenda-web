@@ -163,8 +163,8 @@ export default function AdminPlatformUsersPage() {
                     <Badge 
                       key={role.slug} 
                       label={role.name} 
-                      color="var(--primary-600)" 
-                      bg="rgba(var(--primary-rgb), 0.1)" 
+                      color="var(--primary-600)"
+                      bg="rgba(0, 200, 150, 0.1)"
                     />
                   ))}
                 </div>
