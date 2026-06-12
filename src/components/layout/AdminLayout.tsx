@@ -64,7 +64,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-2 py-3 overflow-y-auto custom-scrollbar space-y-0.5">
+      <nav className="flex-1 px-2 py-4 overflow-y-auto custom-scrollbar space-y-1">
         {visibleNav.map(item => {
           const active = isActive(item);
           return (
@@ -73,13 +73,13 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
               href={item.href}
               onClick={() => setSidebarOpen(false)}
               className={cn(
-                'group flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[13px] font-medium transition-colors',
+                'group flex items-center gap-3 px-3 py-2 rounded-xl text-[12px] font-black uppercase tracking-wider transition-all duration-300',
                 active
-                  ? 'bg-[var(--primary-600)] text-white'
-                  : 'text-[var(--on-glass-muted)] hover:bg-[var(--glass-10)] hover:text-white',
+                  ? 'bg-[var(--primary-600)] text-white shadow-lg shadow-[var(--primary-600)]/20'
+                  : 'text-[var(--on-glass-muted)] hover:bg-[var(--glass-10)] hover:text-white hover:translate-x-1',
               )}
             >
-              <span className={cn('shrink-0', active ? 'text-white' : 'text-[var(--on-glass-dim)] group-hover:text-white')}>
+              <span className={cn('shrink-0 transition-colors', active ? 'text-white' : 'text-[var(--on-glass-dim)] group-hover:text-white')}>
                 {item.icon}
               </span>
               {item.label}
@@ -144,13 +144,13 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           </div>
 
           {user && (
-            <div className="flex items-center gap-2.5 px-2 py-1.5 rounded-xl">
+            <div className="flex items-center gap-3 px-3 py-1.5 rounded-xl bg-[var(--glass-05)] border border-[var(--glass-border)]">
               <Avatar name={user.name} size="sm" />
               <div className="hidden sm:block min-w-0">
-                <p className="text-[13px] font-semibold text-white truncate leading-tight">{user.name}</p>
-                <p className="text-[10px] text-[var(--on-glass-muted)] uppercase tracking-wider">Platform Admin</p>
+                <p className="text-[12px] font-black text-white truncate leading-tight">{user.name}</p>
+                <p className="text-[9px] text-[var(--on-glass-muted)] font-bold uppercase tracking-widest mt-0.5">Platform Admin</p>
               </div>
-              <button onClick={logout} className="text-[var(--on-glass-dim)] hover:text-[var(--danger-500)] transition-colors p-1 shrink-0" title="Logout">
+              <button onClick={logout} className="ml-2 text-[var(--on-glass-dim)] hover:text-[var(--danger-500)] transition-colors p-1 shrink-0 bg-[var(--glass-05)] rounded-lg border border-[var(--glass-border)]" title="Logout">
                 <LogOut size={14} />
               </button>
             </div>

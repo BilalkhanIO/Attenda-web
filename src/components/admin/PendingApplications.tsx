@@ -79,20 +79,20 @@ export default function PendingApplications({ orgs, onChanged, limit, viewAllHre
   return (
     <>
       <Card className="overflow-hidden border-[var(--warning-500)]/20 bg-[var(--warning-500)]/5">
-        <div className="flex items-center gap-4 px-6 py-5 border-b border-[var(--glass-border)]">
-          <div className="w-10 h-10 rounded-2xl bg-[var(--warning-500)]/15 flex items-center justify-center flex-shrink-0">
+        <div className="flex items-center gap-4 px-6 py-4 border-b border-[var(--glass-border)]">
+          <div className="w-10 h-10 rounded-xl bg-[var(--warning-500)]/15 flex items-center justify-center flex-shrink-0 shadow-inner">
             <AlertCircle size={18} className="text-[var(--warning-500)]" />
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="text-sm font-black text-white uppercase tracking-widest">Pending Applications</h2>
-            <p className="text-xs text-[var(--on-glass-dim)] mt-0.5">
-              {orgs.length === 0 ? 'Nothing awaiting review' : `${orgs.length} awaiting review`}
+            <h2 className="text-[11px] font-black text-white uppercase tracking-[0.2em]">Pending Applications</h2>
+            <p className="text-[10px] text-[var(--on-glass-dim)] mt-0.5 font-bold">
+              {orgs.length === 0 ? 'Nothing awaiting review' : `${orgs.length} applications awaiting review`}
             </p>
           </div>
           {viewAllHref && orgs.length > 0 && (
             <Link
               href={viewAllHref}
-              className="flex items-center gap-1.5 text-xs font-bold text-[var(--on-glass-muted)] hover:text-white transition-colors flex-shrink-0"
+              className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-[var(--on-glass-muted)] hover:text-[var(--warning-500)] transition-colors flex-shrink-0"
             >
               View all <ArrowRight size={12} />
             </Link>
@@ -102,34 +102,34 @@ export default function PendingApplications({ orgs, onChanged, limit, viewAllHre
           <EmptyState
             icon={<AlertCircle size={24} />}
             title="No pending applications"
-            description="New sign-up applications will appear here."
+            description="New sign-up applications will appear here for review."
           />
         ) : (
           <div className="divide-y divide-[var(--glass-border)]">
             {visible.map(org => (
-              <div key={org.id} className="flex items-start gap-4 px-6 py-5 hover:bg-[var(--glass-05)] transition-all">
-                <div className="w-10 h-10 rounded-2xl bg-[var(--glass-10)] border border-[var(--glass-border)] flex items-center justify-center flex-shrink-0">
+              <div key={org.id} className="flex items-center gap-4 px-6 py-3.5 hover:bg-[var(--glass-05)] transition-all group">
+                <div className="w-10 h-10 rounded-xl bg-[var(--glass-10)] border border-[var(--glass-border)] flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
                   <Building2 size={18} className="text-[var(--on-glass-muted)]" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-black text-white">{org.name}</p>
-                  <div className="flex flex-wrap gap-4 mt-1.5">
+                  <p className="text-sm font-black text-white group-hover:text-[var(--warning-500)] transition-colors">{org.name}</p>
+                  <div className="flex items-center gap-3 mt-1 font-bold">
                     {org.contact_name && (
-                      <span className="text-xs font-medium text-[var(--on-glass-muted)]">{org.contact_name}</span>
+                      <span className="text-[10px] text-[var(--on-glass-muted)] uppercase tracking-tight">{org.contact_name}</span>
                     )}
                     {org.contact_email && (
-                      <span className="flex items-center gap-1.5 text-xs font-medium text-[var(--on-glass-muted)]">
+                      <span className="flex items-center gap-1 text-[10px] text-[var(--on-glass-dim)] uppercase tracking-tight">
                         <Mail size={10} />{org.contact_email}
                       </span>
                     )}
-                    <span className="text-xs text-[var(--on-glass-dim)]">{timeAgo(org.created_at)}</span>
+                    <span className="text-[10px] text-[var(--on-glass-dim)] font-bold">{timeAgo(org.created_at)}</span>
                   </div>
                 </div>
                 <div className="flex gap-2 flex-shrink-0">
-                  <Button size="sm" variant="success" icon={<CheckCircle size={13} />} loading={approvingId === org.id} onClick={() => handleApprove(org)}>
+                  <Button size="sm" variant="success" className="h-8 px-3" icon={<CheckCircle size={13} />} loading={approvingId === org.id} onClick={() => handleApprove(org)}>
                     Approve
                   </Button>
-                  <Button size="sm" variant="danger" icon={<X size={13} />} onClick={() => setRejectTarget(org)}>
+                  <Button size="sm" variant="danger" className="h-8 px-3" icon={<X size={13} />} onClick={() => setRejectTarget(org)}>
                     Reject
                   </Button>
                 </div>

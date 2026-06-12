@@ -7,7 +7,7 @@ import { adminApi } from '@/lib/api';
 import { getApiError } from '@/lib/utils';
 import {
   PageHeader, Card, Button, Badge, Skeleton, Table, EmptyState,
-  Select, ConfirmDialog,
+  Select, ConfirmDialog, Modal,
 } from '@/components/ui';
 import type { PlanDefinition, PlanFeatures } from '@/types';
 import {
@@ -18,6 +18,7 @@ import {
 } from '@/lib/admin-shared';
 import {
   ChevronLeft, Ban, CheckCircle, Calendar, Pencil, Save, Users,
+  Activity, RefreshCw, Building2,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -54,6 +55,9 @@ export default function AdminOrgDetailPage() {
   const [adminNotes, setAdminNotes] = useState('');
   const [extendDays, setExtendDays] = useState('7');
   const [featureStates, setFeatureStates] = useState<Record<string, FeatureOverrideState>>({});
+  const [showEditOverview, setShowEditOverview] = useState(false);
+  const [showEditSubscription, setShowEditSubscription] = useState(false);
+  const [showEditFeatures, setShowEditFeatures] = useState(false);
 
   const planDef = useMemo(
     () => plans.find(p => p.id === subPlan),
@@ -263,18 +267,193 @@ export default function AdminOrgDetailPage() {
         )}
       </div>
 
-      <div className="space-y-6">
-        {/* Overview */}
-        <Card className="glass-card p-6 space-y-4">
-          <h2 className="text-sm font-black text-white uppercase tracking-widest">Overview</h2>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Left Column: Overview & Users */}
+        <div className="lg:col-span-8 space-y-6">
+          <Card className="glass-card overflow-hidden">
+            <div className="px-6 py-4 border-b border-[var(--glass-border)] flex items-center justify-between bg-[var(--glass-05)]">
+              <div className="flex items-center gap-2">
+                <Building2 size={16} className="text-[var(--primary-600)]" />
+                <h2 className="text-[11px] font-black text-white uppercase tracking-widest">Organisation Details</h2>
+              </div>
+              <Button variant="ghost" size="sm" icon={<Pencil size={14} />} onClick={() => setShowEditOverview(true)}>
+                Edit
+              </Button>
+            </div>
+            <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
+              <div>
+                <p className={labelCls}>Contact Name</p>
+                <p className="text-sm font-black text-white">{org.contact_name || '—'}</p>
+              </div>
+              <div>
+                <p className={labelCls}>Contact Email</p>
+                <p className="text-sm font-black text-white">{org.contact_email || '—'}</p>
+              </div>
+              <div>
+                <p className={labelCls}>Company Size</p>
+                <p className="text-sm font-black text-white">{org.company_size || '—'}</p>
+              </div>
+              <div>
+                <p className={labelCls}>Timezone</p>
+                <p className="text-sm font-black text-white">{org.timezone}</p>
+              </div>
+              <div>
+                <p className={labelCls}>Created At</p>
+                <p className="text-sm font-black text-white">{fmtDate(org.created_at)}</p>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="glass-card overflow-hidden">
+            <div className="px-6 py-4 border-b border-[var(--glass-border)] flex items-center justify-between bg-[var(--glass-05)]">
+              <div className="flex items-center gap-2">
+                <Users size={16} className="text-[var(--primary-600)]" />
+                <h2 className="text-[11px] font-black text-white uppercase tracking-widest">Users ({users.length})</h2>
+              </div>
+            </div>
+            <Table
+              headers={['Name', 'Email', 'Role', 'Status']}
+              loading={loadingUsers}
+              emptyState={
+                <EmptyState
+                  icon={<Users size={24} />}
+                  title="No users"
+                  description="This organisation has no users yet."
+                />
+              }
+            >
+              {users.map(u => {
+                const rs = ROLE_STYLES[u.role] ?? ROLE_STYLES.employee;
+                return (
+                  <tr key={u.id} className="border-b border-[var(--glass-border)] hover:bg-[var(--glass-05)] transition-colors">
+                    <td className="py-3.5 px-6 text-sm font-black text-white">{u.name}</td>
+                    <td className="py-3.5 px-6 text-[13px] font-medium text-[var(--on-glass-muted)]">{u.email}</td>
+                    <td className="py-3.5 px-6">
+                      <Badge label={u.role.replace(/_/g, ' ')} color={rs.color} bg={rs.bg} size="sm" />
+                    </td>
+                    <td className="py-3.5 px-6">
+                      <Badge
+                        label={u.is_active ? 'Active' : 'Inactive'}
+                        color={u.is_active ? 'var(--primary-600)' : 'var(--on-glass-muted)'}
+                        bg={u.is_active ? 'var(--primary-600)' : 'var(--on-glass-dim)'}
+                        size="sm"
+                      />
+                    </td>
+                  </tr>
+                );
+              })}
+            </Table>
+          </Card>
+        </div>
+
+        {/* Right Column: Subscription & Features */}
+        <div className="lg:col-span-4 space-y-6">
+          <Card className="glass-card overflow-hidden">
+            <div className="px-6 py-4 border-b border-[var(--glass-border)] flex items-center justify-between bg-[var(--glass-05)]">
+              <div className="flex items-center gap-2">
+                <Calendar size={16} className="text-[var(--secondary)]" />
+                <h2 className="text-[11px] font-black text-white uppercase tracking-widest">Subscription</h2>
+              </div>
+              <Button variant="ghost" size="sm" icon={<Pencil size={14} />} onClick={() => setShowEditSubscription(true)}>
+                Manage
+              </Button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <p className={labelCls}>Status</p>
+                <Badge label={subStyle.label} color={subStyle.color} bg={subStyle.bg} size="sm" />
+              </div>
+              <div>
+                <p className={labelCls}>Plan</p>
+                <p className="text-sm font-black text-white uppercase tracking-wider">{org.plan}</p>
+              </div>
+              <div>
+                <p className={labelCls}>Seats Limit</p>
+                <p className="text-sm font-black text-white">{org.seats_limit ?? 'Unlimited'}</p>
+              </div>
+              {org.trial_ends_at && (
+                <div>
+                  <p className={labelCls}>Trial Ends</p>
+                  <p className="text-sm font-black text-white">{fmtDate(org.trial_ends_at)}</p>
+                </div>
+              )}
+              {org.billing_email && (
+                <div>
+                  <p className={labelCls}>Billing Email</p>
+                  <p className="text-sm font-black text-white">{org.billing_email}</p>
+                </div>
+              )}
+            </div>
+          </Card>
+
+          <Card className="glass-card overflow-hidden">
+            <div className="px-6 py-4 border-b border-[var(--glass-border)] flex items-center justify-between bg-[var(--glass-05)]">
+              <div className="flex items-center gap-2">
+                <RefreshCw size={16} className="text-[#a855f7]" />
+                <h2 className="text-[11px] font-black text-white uppercase tracking-widest">Features</h2>
+              </div>
+              <Button variant="ghost" size="sm" icon={<Pencil size={14} />} onClick={() => setShowEditFeatures(true)}>
+                Override
+              </Button>
+            </div>
+            <div className="p-6">
+              <p className="text-[10px] text-[var(--on-glass-muted)] font-bold uppercase tracking-wider mb-4">
+                Active Overrides: {Object.keys(org.features_override || {}).length}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {Object.entries(org.features_override || {}).map(([key, val]) => (
+                  <Badge
+                    key={key}
+                    label={FEATURE_LABELS[key] || key}
+                    color={val ? 'var(--primary-600)' : 'var(--danger-500)'}
+                    bg={val ? 'var(--primary-600)' : 'var(--danger-500)'}
+                    size="sm"
+                  />
+                ))}
+                {Object.keys(org.features_override || {}).length === 0 && (
+                  <p className="text-[11px] text-[var(--on-glass-dim)] font-black uppercase italic">No active overrides</p>
+                )}
+              </div>
+            </div>
+          </Card>
+
+          {org.record_counts && (
+            <Card className="glass-card p-6">
+              <h2 className="text-[11px] font-black text-white uppercase tracking-widest mb-4">Quick Stats</h2>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-[var(--on-glass-muted)] font-bold uppercase tracking-wider">Attendance</span>
+                  <span className="font-black text-white">{org.record_counts.attendance}</span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-[var(--on-glass-muted)] font-bold uppercase tracking-wider">Leave</span>
+                  <span className="font-black text-white">{org.record_counts.leave}</span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-[var(--on-glass-muted)] font-bold uppercase tracking-wider">Payroll</span>
+                  <span className="font-black text-white">{org.record_counts.payroll}</span>
+                </div>
+              </div>
+            </Card>
+          )}
+        </div>
+      </div>
+
+      {/* Edit Overview Modal */}
+      <Modal isOpen={showEditOverview} onClose={() => setShowEditOverview(false)} title="Edit Organisation Details">
+        <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
+            <div className="sm:col-span-2">
               <label className={labelCls}>Organisation name</label>
               <input value={name} onChange={e => setName(e.target.value)} className={inputCls} />
             </div>
             <div>
               <label className={labelCls}>Timezone</label>
               <input value={timezone} onChange={e => setTimezone(e.target.value)} className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Company size</label>
+              <input value={companySize} onChange={e => setCompanySize(e.target.value)} className={inputCls} />
             </div>
             <div>
               <label className={labelCls}>Contact name</label>
@@ -284,44 +463,19 @@ export default function AdminOrgDetailPage() {
               <label className={labelCls}>Contact email</label>
               <input type="email" value={contactEmail} onChange={e => setContactEmail(e.target.value)} className={inputCls} />
             </div>
-            <div>
-              <label className={labelCls}>Company size</label>
-              <input value={companySize} onChange={e => setCompanySize(e.target.value)} className={inputCls} />
-            </div>
-            <div>
-              <label className={labelCls}>Created</label>
-              <p className="text-sm text-[var(--on-glass-sub)] py-2">{fmtDate(org.created_at)}</p>
-            </div>
           </div>
-          {org.record_counts && (
-            <div className="grid grid-cols-3 gap-3 pt-2 border-t border-[var(--glass-border)]">
-              <div className="p-3 rounded-lg bg-[var(--glass-05)] text-center">
-                <p className="text-lg font-bold text-white">{org.record_counts.attendance}</p>
-                <p className="text-xs text-[var(--on-glass-muted)]">Attendance records</p>
-              </div>
-              <div className="p-3 rounded-lg bg-[var(--glass-05)] text-center">
-                <p className="text-lg font-bold text-white">{org.record_counts.leave}</p>
-                <p className="text-xs text-[var(--on-glass-muted)]">Leave requests</p>
-              </div>
-              <div className="p-3 rounded-lg bg-[var(--glass-05)] text-center">
-                <p className="text-lg font-bold text-white">{org.record_counts.payroll}</p>
-                <p className="text-xs text-[var(--on-glass-muted)]">Payroll records</p>
-              </div>
-            </div>
-          )}
-          <Button loading={saving} onClick={saveOverview} icon={<Save size={14} />}>
-            Save overview
-          </Button>
-        </Card>
-
-        {/* Subscription & Features */}
-        <Card className="glass-card p-6 space-y-5">
-          <h2 className="text-sm font-black text-white uppercase tracking-widest">Subscription &amp; Features</h2>
-          {(org.subscription_status === 'inactive' || org.subscription_status === 'defaulted') && (
-            <Button variant="success" size="sm" loading={activating} onClick={activateOrg} icon={<CheckCircle size={14} />}>
-              Activate organisation
+          <div className="pt-4 flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setShowEditOverview(false)}>Cancel</Button>
+            <Button loading={saving} onClick={async () => { await saveOverview(); setShowEditOverview(false); }} icon={<Save size={14} />}>
+              Save Changes
             </Button>
-          )}
+          </div>
+        </div>
+      </Modal>
+
+      {/* Manage Subscription Modal */}
+      <Modal isOpen={showEditSubscription} onClose={() => setShowEditSubscription(false)} title="Manage Subscription">
+        <div className="space-y-5">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className={labelCls}>Subscription status</label>
@@ -363,9 +517,10 @@ export default function AdminOrgDetailPage() {
               <textarea rows={3} value={adminNotes} onChange={e => setAdminNotes(e.target.value)} className={`${inputCls} resize-none`} />
             </div>
           </div>
-          <div>
-            <p className="text-xs font-semibold text-[var(--on-glass-muted)] uppercase tracking-wide mb-2">Extend trial</p>
-            <div className="flex gap-2 max-w-sm">
+
+          <div className="p-4 rounded-xl bg-[var(--glass-05)] border border-[var(--glass-border)] space-y-3">
+            <p className="text-[10px] font-black text-white uppercase tracking-widest">Extend Trial</p>
+            <div className="flex gap-2">
               <input
                 type="number"
                 min={1}
@@ -374,97 +529,76 @@ export default function AdminOrgDetailPage() {
                 onChange={e => setExtendDays(e.target.value)}
                 className={`${inputCls} flex-1`}
               />
-              <Button variant="outline" loading={extendingTrial} onClick={extendTrial} icon={<Calendar size={14} />}>
+              <Button variant="outline" size="sm" loading={extendingTrial} onClick={extendTrial} icon={<Calendar size={14} />}>
                 Extend
               </Button>
             </div>
           </div>
 
-          <div className="pt-4 border-t border-[var(--glass-border)] space-y-4">
-            <p className="text-sm text-[var(--on-glass-muted)]">
-              Per-feature override: <strong className="text-white">Inherit</strong> uses plan defaults,
-              <strong className="text-[var(--success-500)]"> On</strong> forces enable,
-              <strong className="text-[var(--danger-500)]"> Off</strong> forces disable.
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {ALL_FEATURE_KEYS.map(key => {
-                const state = featureStates[key] ?? 'inherit';
-                const planOn = !!(planDef?.features as PlanFeatures)?.[key];
-                return (
-                  <div key={key} className="p-3 rounded-xl border border-[var(--glass-border)] bg-[var(--glass-05)]">
-                    <p className="text-sm font-medium text-white mb-1">{FEATURE_LABELS[key]}</p>
-                    <p className="text-[10px] text-[var(--on-glass-muted)] mb-2">Plan default: {planOn ? 'On' : 'Off'}</p>
-                    <div className="flex gap-1">
-                      {(['inherit', 'on', 'off'] as FeatureOverrideState[]).map(s => (
-                        <button
-                          key={s}
-                          type="button"
-                          onClick={() => setFeatureState(key, s)}
-                          className={`flex-1 py-1.5 text-[10px] font-bold uppercase rounded-lg border transition-all ${
-                            state === s
-                              ? s === 'on'
-                                ? 'bg-[var(--success-500)]/20 border-[var(--success-500)]/40 text-[var(--success-500)]'
-                                : s === 'off'
-                                  ? 'bg-[var(--danger-500)]/20 border-[var(--danger-500)]/40 text-[var(--danger-500)]'
-                                  : 'bg-[var(--glass-15)] border-[var(--glass-high)] text-white'
-                              : 'border-[var(--glass-border)] text-[var(--on-glass-muted)] hover:bg-[var(--glass-05)]'
-                          }`}
-                        >
-                          {s}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          {(org.subscription_status === 'inactive' || org.subscription_status === 'defaulted') && (
+            <Button variant="success" className="w-full" loading={activating} onClick={activateOrg} icon={<CheckCircle size={14} />}>
+              Activate organisation
+            </Button>
+          )}
 
-          <Button loading={saving} onClick={saveSubscription} icon={<Pencil size={14} />}>
-            Save subscription
-          </Button>
-        </Card>
-
-        {/* Users */}
-        <Card className="glass-card overflow-hidden">
-          <div className="px-5 py-4 border-b border-[var(--glass-border)] flex items-center gap-2">
-            <Users size={16} className="text-[var(--primary-600)]" />
-            <h2 className="text-sm font-bold text-white">Users ({users.length})</h2>
+          <div className="pt-4 flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setShowEditSubscription(false)}>Cancel</Button>
+            <Button loading={saving} onClick={async () => { await saveSubscription(); setShowEditSubscription(false); }} icon={<Save size={14} />}>
+              Save Config
+            </Button>
           </div>
-          <Table
-            headers={['Name', 'Email', 'Role', 'Status']}
-            loading={loadingUsers}
-            emptyState={
-              <EmptyState
-                icon={<Users size={24} />}
-                title="No users"
-                description="This organisation has no users yet."
-              />
-            }
-          >
-            {users.map(u => {
-              const rs = ROLE_STYLES[u.role] ?? ROLE_STYLES.employee;
+        </div>
+      </Modal>
+
+      {/* Feature Overrides Modal */}
+      <Modal isOpen={showEditFeatures} onClose={() => setShowEditFeatures(false)} title="Feature Overrides" size="lg">
+        <div className="space-y-6">
+          <p className="text-[11px] font-black text-[var(--on-glass-muted)] uppercase tracking-wider leading-relaxed">
+            Force enable or disable specific features regardless of plan defaults.
+            <span className="text-white ml-1">Inherit</span> uses plan defaults.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {ALL_FEATURE_KEYS.map(key => {
+              const state = featureStates[key] ?? 'inherit';
+              const planOn = !!(planDef?.features as PlanFeatures)?.[key];
               return (
-                <tr key={u.id} className="border-b border-[var(--glass-border)] hover:bg-[var(--glass-05)]">
-                  <td className="py-3 px-4 text-sm font-medium text-white">{u.name}</td>
-                  <td className="py-3 px-4 text-sm text-[var(--on-glass-muted)]">{u.email}</td>
-                  <td className="py-3 px-4">
-                    <Badge label={u.role.replace(/_/g, ' ')} color={rs.color} bg={rs.bg} size="sm" />
-                  </td>
-                  <td className="py-3 px-4">
-                    <Badge
-                      label={u.is_active ? 'Active' : 'Inactive'}
-                      color={u.is_active ? '#00C896' : '#94a3b8'}
-                      bg={u.is_active ? 'rgba(0, 200, 150, 0.1)' : 'rgba(148, 163, 184, 0.1)'}
-                      size="sm"
-                    />
-                  </td>
-                </tr>
+                <div key={key} className="p-3 rounded-xl border border-[var(--glass-border)] bg-[var(--glass-05)]">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs font-black text-white uppercase tracking-tight">{FEATURE_LABELS[key]}</p>
+                    <span className="text-[8px] font-black uppercase text-[var(--on-glass-dim)]">Default {planOn ? 'On' : 'Off'}</span>
+                  </div>
+                  <div className="flex gap-1">
+                    {(['inherit', 'on', 'off'] as FeatureOverrideState[]).map(s => (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => setFeatureState(key, s)}
+                        className={`flex-1 py-1.5 text-[9px] font-black uppercase rounded-lg border transition-all ${
+                          state === s
+                            ? s === 'on'
+                              ? 'bg-[var(--success-500)]/15 border-[var(--success-500)]/40 text-[var(--success-500)]'
+                              : s === 'off'
+                                ? 'bg-[var(--danger-500)]/15 border-[var(--danger-500)]/40 text-[var(--danger-500)]'
+                                : 'bg-white/15 border-white/30 text-white'
+                            : 'border-[var(--glass-border)] text-[var(--on-glass-dim)] hover:bg-[var(--glass-05)] hover:text-white'
+                        }`}
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               );
             })}
-          </Table>
-        </Card>
-      </div>
+          </div>
+          <div className="pt-4 flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setShowEditFeatures(false)}>Cancel</Button>
+            <Button loading={saving} onClick={async () => { await saveSubscription(); setShowEditFeatures(false); }} icon={<Save size={14} />}>
+              Save Overrides
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       <ConfirmDialog
         isOpen={suspendConfirm}
