@@ -22,8 +22,8 @@ export default function AdminRootLayout({ children }: { children: React.ReactNod
 
   if (isLoading || !user || user.role !== 'platform_admin') {
     return (
-      <div className="min-h-screen bg-[#040D12] flex items-center justify-center">
-        <div className="w-8 h-8 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin" />
+      <div className="min-h-screen bg-[var(--dark-950)] flex items-center justify-center">
+        <div className="w-8 h-8 rounded-full border-2 border-[var(--primary-600)] border-t-transparent animate-spin" />
       </div>
     );
   }

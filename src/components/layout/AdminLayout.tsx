@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { cn } from '@/lib/utils';
+import { Avatar } from '@/components/ui';
 import AttendaLogo from '@/components/ui/AttendaLogo';
 
 interface NavItem {
@@ -21,117 +22,143 @@ interface NavItem {
 }
 
 const NAV: NavItem[] = [
-  { label: 'Dashboard', href: '/admin', icon: <LayoutDashboard size={18} />, exact: true, permissions: ['platform.orgs.view', 'platform.orgs.manage'] },
-  { label: 'Organisations', href: '/admin#organisations', icon: <Building2 size={18} />, permissions: ['platform.orgs.view', 'platform.orgs.manage'] },
-  { label: 'Pending', href: '/admin#pending', icon: <AlertCircle size={18} />, permissions: ['platform.orgs.view', 'platform.orgs.manage'] },
-  { label: 'Plans', href: '/admin/plans', icon: <Tag size={18} />, permissions: ['platform.plans.manage'] },
-  { label: 'Blog', href: '/admin/blog', icon: <FileText size={18} />, permissions: ['platform.blog.manage'] },
-  { label: 'Platform users', href: '/admin/users', icon: <Users size={18} />, permissions: ['platform.users.manage'] },
+  { label: 'Dashboard', href: '/admin', icon: <LayoutDashboard size={15} />, exact: true, permissions: ['platform.orgs.view', 'platform.orgs.manage'] },
+  { label: 'Organisations', href: '/admin/orgs', icon: <Building2 size={15} />, permissions: ['platform.orgs.view', 'platform.orgs.manage'] },
+  { label: 'Pending', href: '/admin/pending', icon: <AlertCircle size={15} />, permissions: ['platform.orgs.view', 'platform.orgs.manage'] },
+  { label: 'Plans', href: '/admin/plans', icon: <Tag size={15} />, permissions: ['platform.plans.manage'] },
+  { label: 'Blog', href: '/admin/blog', icon: <FileText size={15} />, permissions: ['platform.blog.manage'] },
+  { label: 'Platform users', href: '/admin/users', icon: <Users size={15} />, permissions: ['platform.users.manage'] },
 ];
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const { logout, capabilities } = useAuth();
+  const { user, logout, capabilities } = useAuth();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [dateStr, setDateStr] = useState('');
+
+  useEffect(() => {
+    const update = () => setDateStr(new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }));
+    update();
+    const t = setInterval(update, 60_000);
+    return () => clearInterval(t);
+  }, []);
 
   // Until capabilities load, show everything to avoid a nav flash for full admins.
   const platformPerms = capabilities?.platform_permissions;
   const visibleNav = platformPerms?.length
     ? NAV.filter(item => item.permissions.some(p => platformPerms.includes(p)))
     : NAV;
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [hash, setHash] = useState('');
 
-  // Track hash changes for active state
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setHash(window.location.hash);
-      const handleHashChange = () => setHash(window.location.hash);
-      window.addEventListener('hashchange', handleHashChange);
-      return () => window.removeEventListener('hashchange', handleHashChange);
-    }
-  }, []);
+  const isActive = (item: NavItem) =>
+    item.exact
+      ? pathname === item.href
+      : pathname === item.href || pathname.startsWith(`${item.href}/`);
 
-  const isActive = (item: NavItem) => {
-    const [itemPath, itemHash] = item.href.split('#');
-    
-    if (itemHash) {
-      return pathname === itemPath && hash === `#${itemHash}`;
-    }
-    
-    if (item.exact) {
-      return pathname === itemPath && (!hash || hash === '#');
-    }
-    
-    return pathname === itemPath || pathname.startsWith(`${itemPath}/`);
-  };
+  const activeLabel = visibleNav.find(isActive)?.label || 'Dashboard';
 
-  const sidebar = (
+  const sidebarContent = (
     <div className="flex flex-col h-full">
-      <div className="h-16 flex items-center px-6 border-b border-(--glass-border) shrink-0">
-        <AttendaLogo iconSize={32} variant="dark" />
+      {/* Logo */}
+      <div className="h-11 flex items-center px-4 border-b border-white/10 shrink-0">
+        <AttendaLogo iconSize={24} variant="dark" />
       </div>
-      <nav className="flex-1 px-3 py-6 space-y-1 overflow-y-auto custom-scrollbar">
+
+      {/* Nav */}
+      <nav className="flex-1 px-2 py-3 overflow-y-auto custom-scrollbar space-y-0.5">
         {visibleNav.map(item => {
           const active = isActive(item);
           return (
             <Link
               key={item.href}
               href={item.href}
-              onClick={() => {
-                setSidebarOpen(false);
-                if (item.href.includes('#')) setHash(item.href.split('#')[1] ? `#${item.href.split('#')[1]}` : '');
-                else if (item.href === '/admin') setHash('');
-              }}
+              onClick={() => setSidebarOpen(false)}
               className={cn(
-                'flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all',
+                'group flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[13px] font-medium transition-colors',
                 active
-                  ? 'bg-(--primary-600)/15 text-(--primary-600) border border-(--primary-600)/25'
-                  : 'text-(--on-glass-dim) hover:bg-(--glass-05) hover:text-white',
+                  ? 'bg-[var(--primary-600)] text-white'
+                  : 'text-[var(--on-glass-muted)] hover:bg-[var(--glass-10)] hover:text-white',
               )}
             >
-              {item.icon}
+              <span className={cn('shrink-0', active ? 'text-white' : 'text-[var(--on-glass-dim)] group-hover:text-white')}>
+                {item.icon}
+              </span>
               {item.label}
             </Link>
           );
         })}
       </nav>
-      <div className="p-4 border-t border-(--glass-border)">
-        <button
-          type="button"
-          onClick={() => logout()}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold text-(--on-glass-dim) hover:bg-rose-500/10 hover:text-rose-400 transition-all"
-        >
-          <LogOut size={18} />
-          Logout
-        </button>
-      </div>
+
+      {/* User at bottom */}
+      {user && (
+        <div className="p-3 border-t border-[var(--glass-border)] shrink-0">
+          <div className="flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-[var(--glass-10)] transition-colors">
+            <Avatar name={user.name} size="sm" />
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] font-semibold text-white truncate">{user.name}</p>
+              <p className="text-[10px] text-[var(--on-glass-muted)] uppercase tracking-wider truncate">Platform Admin</p>
+            </div>
+            <button onClick={logout} className="text-[var(--on-glass-dim)] hover:text-[var(--danger-500)] transition-colors p-1 shrink-0" title="Logout">
+              <LogOut size={14} />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-[#040D12] text-slate-300 flex">
-      <aside className="hidden lg:flex w-64 flex-col shrink-0 border-r border-(--glass-border) bg-[#040D12]">
-        {sidebar}
+    <div className="flex h-screen overflow-hidden bg-[var(--dark-950)]">
+      {/* Desktop Sidebar */}
+      <aside className="hidden lg:flex w-48 flex-col shrink-0 bg-[var(--dark-800)] border-r border-[var(--glass-border)]">
+        {sidebarContent}
       </aside>
 
+      {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
-        <div className="lg:hidden fixed inset-0 z-50 flex">
+        <div className="lg:hidden fixed inset-0 z-40 flex">
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
-          <aside className="relative w-64 h-full flex flex-col bg-(--dark-800) border-r border-(--glass-border) z-50 slide-in-left">
-            {sidebar}
+          <aside className="relative w-48 bg-[var(--dark-800)] border-r border-[var(--glass-border)] flex flex-col z-50 slide-in-left">
+            {sidebarContent}
           </aside>
         </div>
       )}
 
-      <div className="flex-1 flex flex-col min-w-0">
-        <header className="lg:hidden h-14 flex items-center justify-between px-4 border-b border-(--glass-border)">
-          <button type="button" onClick={() => setSidebarOpen(true)} className="p-2 text-(--on-glass-dim)">
-            <Menu size={20} />
-          </button>
-          <span className="text-sm font-black text-white">Platform Admin</span>
-          <div className="w-9" />
+      {/* Main content */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[var(--dark-950)] relative">
+        {/* Background Mesh Effect */}
+        <div className="absolute inset-0 pointer-events-none opacity-20" style={{ background: 'radial-gradient(circle at 10% 20%, var(--primary-600) 0%, transparent 40%), radial-gradient(circle at 90% 80%, var(--secondary) 0%, transparent 40%)' }} />
+
+        {/* Top Header */}
+        <header className="h-11 bg-[var(--dark-950)]/50 backdrop-blur-md border-b border-[var(--glass-border)] flex items-center justify-between px-4 shrink-0 z-10">
+          <div className="flex items-center gap-4">
+            <button
+              className="lg:hidden text-[var(--on-glass-sub)] hover:text-white transition-colors"
+              onClick={() => setSidebarOpen(true)}
+            >
+              <Menu size={20} />
+            </button>
+            <div className="hidden lg:block">
+              <h2 className="text-sm font-bold text-white uppercase tracking-wider">{activeLabel}</h2>
+              {dateStr && <p className="text-[11px] text-[var(--on-glass-muted)] mt-0.5">{dateStr}</p>}
+            </div>
+          </div>
+
+          {user && (
+            <div className="flex items-center gap-2.5 px-2 py-1.5 rounded-xl">
+              <Avatar name={user.name} size="sm" />
+              <div className="hidden sm:block min-w-0">
+                <p className="text-[13px] font-semibold text-white truncate leading-tight">{user.name}</p>
+                <p className="text-[10px] text-[var(--on-glass-muted)] uppercase tracking-wider">Platform Admin</p>
+              </div>
+              <button onClick={logout} className="text-[var(--on-glass-dim)] hover:text-[var(--danger-500)] transition-colors p-1 shrink-0" title="Logout">
+                <LogOut size={14} />
+              </button>
+            </div>
+          )}
         </header>
-        <main className="flex-1 overflow-y-auto custom-scrollbar">
+
+        {/* Page content */}
+        <main className="flex-1 overflow-y-auto custom-scrollbar z-10 page-fade-in" key={pathname}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
             {children}
           </div>

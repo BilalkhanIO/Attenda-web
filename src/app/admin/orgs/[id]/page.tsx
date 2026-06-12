@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { adminApi } from '@/lib/api';
 import { getApiError } from '@/lib/utils';
 import {
-  PageHeader, Card, Button, Badge, Skeleton, Tabs, Table, EmptyState,
+  PageHeader, Card, Button, Badge, Skeleton, Table, EmptyState,
   Select, ConfirmDialog,
 } from '@/components/ui';
 import type { PlanDefinition, PlanFeatures } from '@/types';
@@ -21,6 +21,9 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
+const inputCls = 'w-full px-3 py-2 border border-[var(--glass-border)] bg-[var(--glass-05)] rounded-lg text-sm text-white';
+const labelCls = 'block text-xs font-semibold text-[var(--on-glass-muted)] mb-1.5';
+
 export default function AdminOrgDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -31,7 +34,6 @@ export default function AdminOrgDetailPage() {
   const [plans, setPlans] = useState<PlanDefinition[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingUsers, setLoadingUsers] = useState(true);
-  const [activeTab, setActiveTab] = useState('overview');
   const [saving, setSaving] = useState(false);
   const [suspending, setSuspending] = useState(false);
   const [activating, setActivating] = useState(false);
@@ -92,7 +94,7 @@ export default function AdminOrgDetailPage() {
       setAdminNotes(orgData.admin_notes || '');
     } catch (err) {
       toast.error(getApiError(err));
-      router.replace('/admin');
+      router.replace('/admin/orgs');
     } finally {
       setLoading(false);
     }
@@ -228,11 +230,12 @@ export default function AdminOrgDetailPage() {
         subtitle={`${org.timezone} · ${org.user_count} users`}
         breadcrumb={[
           { label: 'Admin', href: '/admin' },
+          { label: 'Organisations', href: '/admin/orgs' },
           { label: org.name },
         ]}
         actions={
           <div className="flex items-center gap-2">
-            <Link href="/admin">
+            <Link href="/admin/orgs">
               <Button variant="ghost" size="sm" icon={<ChevronLeft size={14} />}>Back</Button>
             </Link>
             <Button
@@ -260,80 +263,49 @@ export default function AdminOrgDetailPage() {
         )}
       </div>
 
-      <Tabs
-        tabs={[
-          { id: 'overview', label: 'Overview' },
-          { id: 'subscription', label: 'Subscription' },
-          { id: 'features', label: 'Features' },
-          { id: 'users', label: 'Users' },
-        ]}
-        activeId={activeTab}
-        onChange={setActiveTab}
-        className="mb-6"
-      />
-
-      {activeTab === 'overview' && (
+      <div className="space-y-6">
+        {/* Overview */}
         <Card className="glass-card p-6 space-y-4">
+          <h2 className="text-sm font-black text-white uppercase tracking-widest">Overview</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-500 mb-1.5">Organisation name</label>
-              <input
-                value={name}
-                onChange={e => setName(e.target.value)}
-                className="w-full px-3 py-2 border border-glass bg-slate-800/50 rounded-lg text-sm text-slate-100"
-              />
+              <label className={labelCls}>Organisation name</label>
+              <input value={name} onChange={e => setName(e.target.value)} className={inputCls} />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-500 mb-1.5">Timezone</label>
-              <input
-                value={timezone}
-                onChange={e => setTimezone(e.target.value)}
-                className="w-full px-3 py-2 border border-glass bg-slate-800/50 rounded-lg text-sm text-slate-100"
-              />
+              <label className={labelCls}>Timezone</label>
+              <input value={timezone} onChange={e => setTimezone(e.target.value)} className={inputCls} />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-500 mb-1.5">Contact name</label>
-              <input
-                value={contactName}
-                onChange={e => setContactName(e.target.value)}
-                className="w-full px-3 py-2 border border-glass bg-slate-800/50 rounded-lg text-sm text-slate-100"
-              />
+              <label className={labelCls}>Contact name</label>
+              <input value={contactName} onChange={e => setContactName(e.target.value)} className={inputCls} />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-500 mb-1.5">Contact email</label>
-              <input
-                type="email"
-                value={contactEmail}
-                onChange={e => setContactEmail(e.target.value)}
-                className="w-full px-3 py-2 border border-glass bg-slate-800/50 rounded-lg text-sm text-slate-100"
-              />
+              <label className={labelCls}>Contact email</label>
+              <input type="email" value={contactEmail} onChange={e => setContactEmail(e.target.value)} className={inputCls} />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-500 mb-1.5">Company size</label>
-              <input
-                value={companySize}
-                onChange={e => setCompanySize(e.target.value)}
-                className="w-full px-3 py-2 border border-glass bg-slate-800/50 rounded-lg text-sm text-slate-100"
-              />
+              <label className={labelCls}>Company size</label>
+              <input value={companySize} onChange={e => setCompanySize(e.target.value)} className={inputCls} />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-500 mb-1.5">Created</label>
-              <p className="text-sm text-slate-300 py-2">{fmtDate(org.created_at)}</p>
+              <label className={labelCls}>Created</label>
+              <p className="text-sm text-[var(--on-glass-sub)] py-2">{fmtDate(org.created_at)}</p>
             </div>
           </div>
           {org.record_counts && (
-            <div className="grid grid-cols-3 gap-3 pt-2 border-t border-glass">
-              <div className="p-3 rounded-lg bg-slate-800/40 text-center">
-                <p className="text-lg font-bold text-slate-100">{org.record_counts.attendance}</p>
-                <p className="text-xs text-slate-500">Attendance records</p>
+            <div className="grid grid-cols-3 gap-3 pt-2 border-t border-[var(--glass-border)]">
+              <div className="p-3 rounded-lg bg-[var(--glass-05)] text-center">
+                <p className="text-lg font-bold text-white">{org.record_counts.attendance}</p>
+                <p className="text-xs text-[var(--on-glass-muted)]">Attendance records</p>
               </div>
-              <div className="p-3 rounded-lg bg-slate-800/40 text-center">
-                <p className="text-lg font-bold text-slate-100">{org.record_counts.leave}</p>
-                <p className="text-xs text-slate-500">Leave requests</p>
+              <div className="p-3 rounded-lg bg-[var(--glass-05)] text-center">
+                <p className="text-lg font-bold text-white">{org.record_counts.leave}</p>
+                <p className="text-xs text-[var(--on-glass-muted)]">Leave requests</p>
               </div>
-              <div className="p-3 rounded-lg bg-slate-800/40 text-center">
-                <p className="text-lg font-bold text-slate-100">{org.record_counts.payroll}</p>
-                <p className="text-xs text-slate-500">Payroll records</p>
+              <div className="p-3 rounded-lg bg-[var(--glass-05)] text-center">
+                <p className="text-lg font-bold text-white">{org.record_counts.payroll}</p>
+                <p className="text-xs text-[var(--on-glass-muted)]">Payroll records</p>
               </div>
             </div>
           )}
@@ -341,10 +313,10 @@ export default function AdminOrgDetailPage() {
             Save overview
           </Button>
         </Card>
-      )}
 
-      {activeTab === 'subscription' && (
+        {/* Subscription & Features */}
         <Card className="glass-card p-6 space-y-5">
+          <h2 className="text-sm font-black text-white uppercase tracking-widest">Subscription &amp; Features</h2>
           {(org.subscription_status === 'inactive' || org.subscription_status === 'defaulted') && (
             <Button variant="success" size="sm" loading={activating} onClick={activateOrg} icon={<CheckCircle size={14} />}>
               Activate organisation
@@ -352,66 +324,47 @@ export default function AdminOrgDetailPage() {
           )}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-500 mb-1.5">Subscription status</label>
-              <select
-                value={subStatus}
-                onChange={e => setSubStatus(e.target.value)}
-                className="w-full px-3 py-2 border border-glass bg-slate-800/50 rounded-lg text-sm text-slate-100"
-              >
+              <label className={labelCls}>Subscription status</label>
+              <select value={subStatus} onChange={e => setSubStatus(e.target.value)} className={inputCls}>
                 {Object.entries(SUB_STATUS_STYLES).map(([k, v]) => (
-                  <option key={k} value={k} className="bg-[#040D12]">{v.label}</option>
+                  <option key={k} value={k} className="bg-[var(--dark-950)]">{v.label}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-500 mb-1.5">Plan</label>
+              <label className={labelCls}>Plan</label>
               {planOptions.length > 0 ? (
                 <Select options={planOptions} value={subPlan} onChange={e => setSubPlan(e.target.value)} />
               ) : (
-                <input value={subPlan} onChange={e => setSubPlan(e.target.value)} className="w-full px-3 py-2 border border-glass bg-slate-800/50 rounded-lg text-sm" />
+                <input value={subPlan} onChange={e => setSubPlan(e.target.value)} className={inputCls} />
               )}
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-500 mb-1.5">Trial ends</label>
-              <input
-                type="date"
-                value={trialEndsAt}
-                onChange={e => setTrialEndsAt(e.target.value)}
-                className="w-full px-3 py-2 border border-glass bg-slate-800/50 rounded-lg text-sm text-slate-100"
-              />
+              <label className={labelCls}>Trial ends</label>
+              <input type="date" value={trialEndsAt} onChange={e => setTrialEndsAt(e.target.value)} className={inputCls} />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-500 mb-1.5">Seats limit</label>
+              <label className={labelCls}>Seats limit</label>
               <input
                 type="number"
                 min={0}
                 value={seatsLimit}
                 onChange={e => setSeatsLimit(e.target.value)}
                 placeholder="Unlimited"
-                className="w-full px-3 py-2 border border-glass bg-slate-800/50 rounded-lg text-sm text-slate-100"
+                className={inputCls}
               />
             </div>
             <div className="sm:col-span-2">
-              <label className="block text-xs font-semibold text-slate-500 mb-1.5">Billing email</label>
-              <input
-                type="email"
-                value={billingEmail}
-                onChange={e => setBillingEmail(e.target.value)}
-                className="w-full px-3 py-2 border border-glass bg-slate-800/50 rounded-lg text-sm text-slate-100"
-              />
+              <label className={labelCls}>Billing email</label>
+              <input type="email" value={billingEmail} onChange={e => setBillingEmail(e.target.value)} className={inputCls} />
             </div>
             <div className="sm:col-span-2">
-              <label className="block text-xs font-semibold text-slate-500 mb-1.5">Admin notes</label>
-              <textarea
-                rows={3}
-                value={adminNotes}
-                onChange={e => setAdminNotes(e.target.value)}
-                className="w-full px-3 py-2 border border-glass bg-slate-800/50 rounded-lg text-sm text-slate-100 resize-none"
-              />
+              <label className={labelCls}>Admin notes</label>
+              <textarea rows={3} value={adminNotes} onChange={e => setAdminNotes(e.target.value)} className={`${inputCls} resize-none`} />
             </div>
           </div>
           <div>
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Extend trial</p>
+            <p className="text-xs font-semibold text-[var(--on-glass-muted)] uppercase tracking-wide mb-2">Extend trial</p>
             <div className="flex gap-2 max-w-sm">
               <input
                 type="number"
@@ -419,69 +372,64 @@ export default function AdminOrgDetailPage() {
                 max={365}
                 value={extendDays}
                 onChange={e => setExtendDays(e.target.value)}
-                className="flex-1 px-3 py-2 border border-glass bg-slate-800/50 rounded-lg text-sm text-slate-100"
+                className={`${inputCls} flex-1`}
               />
               <Button variant="outline" loading={extendingTrial} onClick={extendTrial} icon={<Calendar size={14} />}>
                 Extend
               </Button>
             </div>
           </div>
+
+          <div className="pt-4 border-t border-[var(--glass-border)] space-y-4">
+            <p className="text-sm text-[var(--on-glass-muted)]">
+              Per-feature override: <strong className="text-white">Inherit</strong> uses plan defaults,
+              <strong className="text-[var(--success-500)]"> On</strong> forces enable,
+              <strong className="text-[var(--danger-500)]"> Off</strong> forces disable.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {ALL_FEATURE_KEYS.map(key => {
+                const state = featureStates[key] ?? 'inherit';
+                const planOn = !!(planDef?.features as PlanFeatures)?.[key];
+                return (
+                  <div key={key} className="p-3 rounded-xl border border-[var(--glass-border)] bg-[var(--glass-05)]">
+                    <p className="text-sm font-medium text-white mb-1">{FEATURE_LABELS[key]}</p>
+                    <p className="text-[10px] text-[var(--on-glass-muted)] mb-2">Plan default: {planOn ? 'On' : 'Off'}</p>
+                    <div className="flex gap-1">
+                      {(['inherit', 'on', 'off'] as FeatureOverrideState[]).map(s => (
+                        <button
+                          key={s}
+                          type="button"
+                          onClick={() => setFeatureState(key, s)}
+                          className={`flex-1 py-1.5 text-[10px] font-bold uppercase rounded-lg border transition-all ${
+                            state === s
+                              ? s === 'on'
+                                ? 'bg-[var(--success-500)]/20 border-[var(--success-500)]/40 text-[var(--success-500)]'
+                                : s === 'off'
+                                  ? 'bg-[var(--danger-500)]/20 border-[var(--danger-500)]/40 text-[var(--danger-500)]'
+                                  : 'bg-[var(--glass-15)] border-[var(--glass-high)] text-white'
+                              : 'border-[var(--glass-border)] text-[var(--on-glass-muted)] hover:bg-[var(--glass-05)]'
+                          }`}
+                        >
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
           <Button loading={saving} onClick={saveSubscription} icon={<Pencil size={14} />}>
             Save subscription
           </Button>
         </Card>
-      )}
 
-      {activeTab === 'features' && (
-        <Card className="glass-card p-6 space-y-4">
-          <p className="text-sm text-slate-400">
-            Per-feature override: <strong className="text-slate-200">Inherit</strong> uses plan defaults,
-            <strong className="text-emerald-400"> On</strong> forces enable,
-            <strong className="text-rose-400"> Off</strong> forces disable.
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {ALL_FEATURE_KEYS.map(key => {
-              const state = featureStates[key] ?? 'inherit';
-              const planOn = !!(planDef?.features as PlanFeatures)?.[key];
-              return (
-                <div key={key} className="p-3 rounded-xl border border-glass bg-slate-800/30">
-                  <p className="text-sm font-medium text-slate-200 mb-1">{FEATURE_LABELS[key]}</p>
-                  <p className="text-[10px] text-slate-500 mb-2">Plan default: {planOn ? 'On' : 'Off'}</p>
-                  <div className="flex gap-1">
-                    {(['inherit', 'on', 'off'] as FeatureOverrideState[]).map(s => (
-                      <button
-                        key={s}
-                        type="button"
-                        onClick={() => setFeatureState(key, s)}
-                        className={`flex-1 py-1.5 text-[10px] font-bold uppercase rounded-lg border transition-all ${
-                          state === s
-                            ? s === 'on'
-                              ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400'
-                              : s === 'off'
-                                ? 'bg-rose-500/20 border-rose-500/40 text-rose-400'
-                                : 'bg-slate-700/50 border-slate-500 text-slate-200'
-                            : 'border-glass text-slate-500 hover:bg-white/5'
-                        }`}
-                      >
-                        {s}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          <Button loading={saving} onClick={saveSubscription} icon={<Save size={14} />}>
-            Save feature overrides
-          </Button>
-        </Card>
-      )}
-
-      {activeTab === 'users' && (
+        {/* Users */}
         <Card className="glass-card overflow-hidden">
-          <div className="px-5 py-4 border-b border-glass flex items-center gap-2">
-            <Users size={16} className="text-emerald-400" />
-            <h2 className="text-sm font-bold text-slate-100">Users ({users.length})</h2>
+          <div className="px-5 py-4 border-b border-[var(--glass-border)] flex items-center gap-2">
+            <Users size={16} className="text-[var(--primary-600)]" />
+            <h2 className="text-sm font-bold text-white">Users ({users.length})</h2>
           </div>
           <Table
             headers={['Name', 'Email', 'Role', 'Status']}
@@ -497,9 +445,9 @@ export default function AdminOrgDetailPage() {
             {users.map(u => {
               const rs = ROLE_STYLES[u.role] ?? ROLE_STYLES.employee;
               return (
-                <tr key={u.id} className="border-b border-glass hover:bg-white/5">
-                  <td className="py-3 px-4 text-sm font-medium text-slate-200">{u.name}</td>
-                  <td className="py-3 px-4 text-sm text-slate-400">{u.email}</td>
+                <tr key={u.id} className="border-b border-[var(--glass-border)] hover:bg-[var(--glass-05)]">
+                  <td className="py-3 px-4 text-sm font-medium text-white">{u.name}</td>
+                  <td className="py-3 px-4 text-sm text-[var(--on-glass-muted)]">{u.email}</td>
                   <td className="py-3 px-4">
                     <Badge label={u.role.replace(/_/g, ' ')} color={rs.color} bg={rs.bg} size="sm" />
                   </td>
@@ -516,7 +464,7 @@ export default function AdminOrgDetailPage() {
             })}
           </Table>
         </Card>
-      )}
+      </div>
 
       <ConfirmDialog
         isOpen={suspendConfirm}
