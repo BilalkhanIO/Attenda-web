@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { MarketingNav, MarketingFooter } from '@/app/page';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
@@ -145,8 +146,9 @@ export default async function BlogPostPage({
             <div className="flex flex-wrap items-center gap-8 py-8 border-y border-[var(--glass-border)]">
               <div className="flex items-center gap-4">
                 {post.author_avatar ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={post.author_avatar} alt={post.author_name} className="w-10 h-10 rounded-2xl object-cover border border-[var(--glass-border)] shadow-xl" />
+                  <div className="relative w-10 h-10 rounded-2xl overflow-hidden border border-[var(--glass-border)] shadow-xl">
+                    <Image src={post.author_avatar} alt={post.author_name} fill className="object-cover" />
+                  </div>
                 ) : (
                   <div className="w-10 h-10 rounded-2xl bg-[var(--glass-10)] border border-[var(--glass-border)] flex items-center justify-center">
                     <span className="text-xs font-black text-[var(--primary-600)]">{post.author_name.charAt(0)}</span>
@@ -182,8 +184,9 @@ export default async function BlogPostPage({
         {/* Cover image */}
         {post.cover_image && (
           <div className="max-w-5xl mx-auto px-6 relative z-10">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={post.cover_image} alt={post.title} className="w-full aspect-[21/9] object-cover rounded-[3rem] border border-[var(--glass-border)] shadow-2xl" />
+            <div className="relative w-full aspect-[21/9] rounded-[3rem] overflow-hidden border border-[var(--glass-border)] shadow-2xl">
+              <Image src={post.cover_image} alt={post.title} fill className="object-cover" priority />
+            </div>
           </div>
         )}
 

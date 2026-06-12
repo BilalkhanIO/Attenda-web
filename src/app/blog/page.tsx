@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import Image from 'next/image';
 import { MarketingNav, MarketingFooter } from '@/app/page';
 
 export const metadata: Metadata = {
@@ -61,7 +62,7 @@ export default async function BlogPage({
               Workforce <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--primary-600)] to-[var(--secondary)]">Insights.</span>
             </h1>
             <p className="text-lg md:text-xl text-[var(--on-glass-muted)] max-w-2xl mx-auto font-medium leading-relaxed">
-              Expert analysis on attendance infrastructure, HR strategic mapping, and operational efficiency for modern organisations.
+              Intelligence on workforce optimization, strategic HR mapping, and the future of autonomous attendance infrastructure.
             </p>
           </div>
         </section>
@@ -80,8 +81,9 @@ export default async function BlogPage({
                     <Link key={post.id} href={`/blog/${post.slug}`}
                       className="group bg-[var(--glass-05)] rounded-[2.5rem] overflow-hidden border border-[var(--glass-border)] hover:bg-[var(--glass-10)] hover:border-[var(--glass-high)] transition-all duration-500 hover:-translate-y-1">
                       {post.cover_image ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={post.cover_image} alt={post.title} className="w-full h-56 object-cover grayscale-[0.2] group-hover:grayscale-0 transition-all duration-700" />
+                        <div className="relative w-full h-56 overflow-hidden">
+                          <Image src={post.cover_image} alt={post.title} fill className="object-cover grayscale-[0.2] group-hover:grayscale-0 transition-all duration-700" />
+                        </div>
                       ) : (
                         <div className="w-full h-56 bg-gradient-to-br from-[var(--dark-800)] to-[var(--dark-950)] flex items-center justify-center">
                           <span className="text-4xl filter grayscale">📝</span>
