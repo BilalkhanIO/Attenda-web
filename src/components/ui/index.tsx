@@ -10,6 +10,8 @@ import {
   useEffect,
   useRef,
   useState,
+  isValidElement,
+  cloneElement,
 } from 'react';
 import { cn, getInitials } from '@/lib/utils';
 import { shouldShowTableEmptyState } from './table.utils';
@@ -31,13 +33,13 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 export function Button({
   variant = 'primary', size = 'md', loading, icon, children, className, disabled, ...props
 }: ButtonProps) {
-  const base = 'inline-flex items-center justify-center gap-2 font-bold rounded-xl transition-all duration-200 focus-visible:ring-4 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer active:scale-95';
+  const base = 'inline-flex items-center justify-center gap-2 font-black uppercase tracking-wider rounded-xl transition-all duration-300 focus-visible:ring-4 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer active:scale-95';
   const variants = {
-    primary: 'bg-[var(--primary-600)] text-white hover:brightness-110 hover:shadow-lg hover:shadow-[var(--primary-600)]/30 focus-visible:ring-[var(--primary-600)]/20',
-    ghost:   'bg-[var(--glass-05)] text-[var(--on-glass-sub)] hover:bg-[var(--glass-10)] hover:text-white border border-[var(--glass-border)]',
-    danger:  'bg-[var(--danger-800)]/20 text-[var(--danger-500)] hover:bg-[var(--danger-500)]/20 border border-[var(--danger-500)]/30 focus-visible:ring-[var(--danger-500)]/20',
-    outline: 'bg-transparent text-white border border-[var(--glass-border)] hover:bg-[var(--glass-05)] hover:border-[var(--glass-high)] shadow-sm',
-    success: 'bg-[var(--success-700)]/20 text-[var(--success-500)] hover:bg-[var(--success-500)]/20 border border-[var(--success-500)]/30',
+    primary: 'bg-[var(--primary-600)] text-white hover:brightness-110 hover:shadow-xl hover:shadow-[var(--primary-600)]/25 focus-visible:ring-[var(--primary-600)]/20',
+    ghost:   'bg-[var(--glass-05)] text-[var(--on-glass-sub)] hover:bg-[var(--glass-12)] hover:text-white border border-[var(--glass-border)]',
+    danger:  'bg-[var(--danger-500)]/10 text-[var(--danger-500)] hover:bg-[var(--danger-500)]/20 border border-[var(--danger-500)]/30 focus-visible:ring-[var(--danger-500)]/20',
+    outline: 'bg-transparent text-white border border-[var(--glass-border)] hover:bg-[var(--glass-10)] hover:border-[var(--glass-high)] shadow-sm hover:shadow-md',
+    success: 'bg-[var(--success-500)]/10 text-[var(--success-500)] hover:bg-[var(--success-500)]/20 border border-[var(--success-500)]/30',
   };
   const sizes = {
     sm: 'px-4 py-1.5 text-[13px]',
@@ -67,9 +69,9 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 export function Input({ label, error, hint, leftIcon, rightIcon, className, id, ...props }: InputProps) {
   const inputId = id || label?.toLowerCase().replace(/\s+/g, '-');
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-2">
       {label && (
-        <label htmlFor={inputId} className="text-[13px] font-bold text-[var(--on-glass-sub)] uppercase tracking-wide">
+        <label htmlFor={inputId} className="text-[11px] font-black text-[var(--on-glass-muted)] uppercase tracking-[0.1em]">
           {label}{props.required && <span className="text-[var(--danger-500)] ml-1">*</span>}
         </label>
       )}
@@ -110,9 +112,9 @@ interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
 export function Select({ label, error, options, placeholder, className, id, ...props }: SelectProps) {
   const selectId = id || label?.toLowerCase().replace(/\s+/g, '-');
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-2">
       {label && (
-        <label htmlFor={selectId} className="text-[13px] font-bold text-[var(--on-glass-sub)] uppercase tracking-wide">
+        <label htmlFor={selectId} className="text-[11px] font-black text-[var(--on-glass-muted)] uppercase tracking-[0.1em]">
           {label}{props.required && <span className="text-[var(--danger-500)] ml-1">*</span>}
         </label>
       )}
@@ -147,9 +149,9 @@ interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
 export function Textarea({ label, error, className, id, ...props }: TextareaProps) {
   const taId = id || label?.toLowerCase().replace(/\s+/g, '-');
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-2">
       {label && (
-        <label htmlFor={taId} className="text-[13px] font-bold text-[var(--on-glass-sub)] uppercase tracking-wide">
+        <label htmlFor={taId} className="text-[11px] font-black text-[var(--on-glass-muted)] uppercase tracking-[0.1em]">
           {label}{props.required && <span className="text-[var(--danger-500)] ml-1">*</span>}
         </label>
       )}
@@ -179,10 +181,18 @@ interface BadgeProps {
 }
 
 export function Badge({ label, color, bg, size = 'md' }: BadgeProps) {
+  const isVar = bg.startsWith('var(');
+  const bgColor = isVar ? bg : `${bg}15`;
+  const borderColor = isVar ? bg : `${bg}30`;
+
   return (
     <span
-      className={cn('inline-flex items-center font-bold rounded-full uppercase tracking-wider shadow-sm', size === 'sm' ? 'px-3 py-1 text-[10px]' : 'px-4 py-1.5 text-xs')}
-      style={{ color, backgroundColor: bg + '20', border: `1px solid ${bg}40` }}
+      className={cn('inline-flex items-center font-black rounded-full uppercase tracking-[0.05em] shadow-sm', size === 'sm' ? 'px-2.5 py-0.5 text-[9px]' : 'px-3.5 py-1 text-[10px]')}
+      style={{
+        color,
+        backgroundColor: isVar ? `color-mix(in srgb, ${bg}, transparent 85%)` : bgColor,
+        border: `1px solid ${isVar ? `color-mix(in srgb, ${bg}, transparent 70%)` : borderColor}`
+      }}
     >
       {label}
     </span>
@@ -226,20 +236,40 @@ interface KPICardProps {
 }
 
 export function KPICard({ title, value, icon, color, bg, delta, deltaPositive }: KPICardProps) {
+  const isVar = bg.startsWith('var(');
+  const iconBg = isVar ? `color-mix(in srgb, ${bg}, transparent 80%)` : `${bg}20`;
+  const iconBorder = isVar ? `color-mix(in srgb, ${bg}, transparent 60%)` : `${bg}40`;
+
   return (
-    <Card className="p-4 hover:bg-[var(--glass-15)] hover:border-[var(--glass-high)] transition-all duration-300 group cursor-default">
-      <div className="flex items-start justify-between">
+    <Card className="p-5 hover:bg-[var(--glass-15)] hover:border-[var(--glass-high)] transition-all duration-500 group cursor-default relative overflow-hidden">
+      <div className="absolute -right-4 -bottom-4 opacity-[0.03] group-hover:opacity-[0.06] transition-opacity duration-500 group-hover:scale-110">
+        {isValidElement(icon) ? (
+          <div style={{ color: bg }}>
+            {/* Clone icon with larger size if it's a lucide icon */}
+            {cloneElement(icon as React.ReactElement<any>, { size: 80 })}
+          </div>
+        ) : icon}
+      </div>
+
+      <div className="flex items-start justify-between relative z-10">
         <div className="flex-1">
-          <p className="text-[10px] text-[var(--on-glass-muted)] font-black uppercase tracking-[0.1em]">{title}</p>
-          <p className="text-2xl font-black mt-2 tracking-tight text-white group-hover:text-[var(--primary-600)] transition-colors">{value}</p>
+          <p className="text-[10px] text-[var(--on-glass-muted)] font-black uppercase tracking-[0.15em] mb-1">{title}</p>
+          <p className="text-3xl font-black tracking-tighter text-white group-hover:text-[var(--primary-600)] transition-colors duration-300">{value}</p>
           {delta && (
-            <div className={cn('inline-flex items-center gap-1 mt-2 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider', deltaPositive ? 'bg-[var(--success-500)]/20 text-[var(--success-500)]' : 'bg-[var(--danger-500)]/20 text-[var(--danger-500)]')}>
+            <div className={cn('inline-flex items-center gap-1 mt-3 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border transition-colors',
+              deltaPositive
+                ? 'bg-[var(--success-500)]/10 text-[var(--success-500)] border-[var(--success-500)]/20'
+                : 'bg-[var(--danger-500)]/10 text-[var(--danger-500)] border-[var(--danger-500)]/20'
+            )}>
               <span>{deltaPositive ? '↑' : '↓'}</span>
               <span>{delta}</span>
             </div>
           )}
         </div>
-        <div className="w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-500 group-hover:scale-110 group-hover:rotate-6 shadow-lg" style={{ backgroundColor: bg + '20', color: bg, border: `1px solid ${bg}40` }}>
+        <div
+          className="w-10 h-10 rounded-2xl flex items-center justify-center transition-all duration-500 group-hover:scale-110 group-hover:rotate-6 shadow-xl"
+          style={{ backgroundColor: iconBg, color: bg, border: `1px solid ${iconBorder}` }}
+        >
           {icon}
         </div>
       </div>
@@ -373,11 +403,14 @@ interface EmptyStateProps {
 export function EmptyState({ icon, title, description, action }: EmptyStateProps) {
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center">
-      <div className="w-14 h-14 rounded-2xl bg-[var(--glass-10)] border border-[var(--glass-border)] flex items-center justify-center text-[var(--on-glass-muted)] mb-4">
-        {icon}
+      <div className="w-14 h-14 rounded-2xl bg-[var(--glass-05)] border border-[var(--glass-border)] flex items-center justify-center text-[var(--on-glass-dim)] mb-5 shadow-inner">
+        {isValidElement(icon)
+          ? cloneElement(icon as React.ReactElement<any>, { size: 28 })
+          : icon
+        }
       </div>
-      <h3 className="text-base font-bold text-white mb-1">{title}</h3>
-      <p className="text-sm text-[var(--on-glass-muted)] mb-4 max-w-xs">{description}</p>
+      <h3 className="text-base font-black text-white mb-1.5 tracking-tight">{title}</h3>
+      <p className="text-[13px] text-[var(--on-glass-muted)] mb-6 max-w-xs mx-auto leading-relaxed">{description}</p>
       {action}
     </div>
   );
@@ -514,24 +547,24 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, subtitle, breadcrumb, actions }: PageHeaderProps) {
   return (
-    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-5">
+    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-6">
       <div>
         {breadcrumb && breadcrumb.length > 0 && (
           <nav className="flex items-center gap-1.5 mb-2">
             {breadcrumb.map((crumb, i) => (
               <span key={crumb.label} className="flex items-center gap-1.5">
-                {i > 0 && <ChevronRight size={12} className="text-[var(--on-glass-dim)]" />}
+                {i > 0 && <ChevronRight size={10} className="text-[var(--on-glass-dim)]" />}
                 {crumb.href ? (
-                  <a href={crumb.href} className="text-xs font-bold text-[var(--primary-600)] hover:text-[var(--secondary)] transition-colors">{crumb.label}</a>
+                  <a href={crumb.href} className="text-[9px] font-black uppercase tracking-widest text-[var(--primary-600)] hover:text-white transition-colors">{crumb.label}</a>
                 ) : (
-                  <span className="text-xs font-bold text-[var(--on-glass-muted)]">{crumb.label}</span>
+                  <span className="text-[9px] font-black uppercase tracking-widest text-[var(--on-glass-muted)]">{crumb.label}</span>
                 )}
               </span>
             ))}
           </nav>
         )}
         <h1 className="text-2xl font-black text-white tracking-tight">{title}</h1>
-        {subtitle && <p className="text-xs font-medium text-[var(--on-glass-muted)] mt-1">{subtitle}</p>}
+        {subtitle && <p className="text-[13px] font-medium text-[var(--on-glass-muted)] mt-1">{subtitle}</p>}
       </div>
       {actions && <div className="flex items-center gap-2.5">{actions}</div>}
     </div>
@@ -551,12 +584,12 @@ export function Table({ headers, children, loading, emptyState }: TableProps) {
   const showEmpty = shouldShowTableEmptyState(loading, rowCount);
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full">
+    <div className="overflow-x-auto custom-scrollbar">
+      <table className="w-full border-collapse">
         <thead>
-          <tr className="border-b border-[var(--glass-border)]">
+          <tr className="border-b border-[var(--glass-border)] bg-[var(--glass-05)]">
             {headers.map(h => (
-              <th key={h} className="text-left text-[11px] font-black text-[var(--on-glass-muted)] uppercase tracking-[0.1em] py-4 px-6 whitespace-nowrap">
+              <th key={h} className="text-left text-[10px] font-black text-[var(--on-glass-muted)] uppercase tracking-[0.15em] py-3.5 px-6 whitespace-nowrap">
                 {h}
               </th>
             ))}
