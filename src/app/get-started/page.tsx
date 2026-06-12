@@ -116,7 +116,7 @@ export default function GetStartedPage() {
           </div>
 
           {step === 'success' ? (
-            <div className="p-8 md:p-12 rounded-[3rem] bg-[var(--glass-05)] border border-[var(--glass-border)] backdrop-blur-2xl shadow-2xl relative overflow-hidden page-fade-in text-center">
+            <div className="relative overflow-hidden page-fade-in text-center">
               <div className="w-20 h-20 rounded-[2rem] bg-[var(--success-500)]/20 border border-[var(--success-500)]/30 flex items-center justify-center mx-auto mb-8 shadow-2xl shadow-[var(--success-500)]/10">
                 <CheckCircle size={36} className="text-[var(--success-500)]" />
               </div>
@@ -146,7 +146,7 @@ export default function GetStartedPage() {
               </Link>
             </div>
           ) : (
-            <div className="p-8 md:p-10 rounded-[3rem] bg-[var(--glass-05)] border border-[var(--glass-border)] backdrop-blur-2xl shadow-2xl relative overflow-hidden page-fade-in">
+            <div className="relative overflow-hidden page-fade-in">
               <div className="mb-10">
                 <h2 className="text-3xl font-black text-white mb-2 tracking-tight">Apply for your organisation</h2>
                 <p className="text-sm font-medium text-[var(--on-glass-muted)]">Takes 2 minutes. We&apos;ll be in touch within 24 hours.</p>

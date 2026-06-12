@@ -110,7 +110,7 @@ function SetupAccountContent() {
             <AttendaLogo iconSize={44} />
           </div>
 
-          <div className="p-8 md:p-10 rounded-[3rem] bg-[var(--glass-05)] border border-[var(--glass-border)] backdrop-blur-2xl shadow-2xl relative overflow-hidden page-fade-in">
+          <div className="relative overflow-hidden page-fade-in">
             {!token ? (
               <div className="text-center py-6">
                 <div className="w-20 h-20 rounded-[2rem] bg-[var(--danger-500)]/20 border border-[var(--danger-500)]/30 flex items-center justify-center mx-auto mb-8 shadow-2xl shadow-[var(--danger-500)]/10">
