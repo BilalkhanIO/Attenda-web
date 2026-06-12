@@ -111,16 +111,16 @@ export default function LoginPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 slide-in-left delay-150">
             {[
-              { icon: <MapPin size={20} />, text: 'Auto check-in via office WiFi' },
-              { icon: <MessageCircle size={20} />, text: 'Real-time WhatsApp alerts' },
-              { icon: <Bot size={20} />, text: 'AI-powered remote check-ins' },
-              { icon: <Banknote size={20} />, text: 'One-click payroll processing' },
+              { icon: <MapPin size={22} />, text: 'Auto check-in via office WiFi' },
+              { icon: <MessageCircle size={22} />, text: 'Real-time WhatsApp alerts' },
+              { icon: <Bot size={22} />, text: 'AI-powered remote check-ins' },
+              { icon: <Banknote size={22} />, text: 'One-click payroll processing' },
             ].map((f) => (
-              <div key={f.text} className="flex items-center gap-4 group">
-                <div className="w-11 h-11 flex items-center justify-center rounded-2xl bg-[var(--glass-10)] border border-[var(--glass-border)] text-[var(--primary-600)] transition-all group-hover:scale-110 group-hover:border-[var(--primary-600)]/50">
+              <div key={f.text} className="flex items-center gap-5 group">
+                <div className="w-12 h-12 flex items-center justify-center rounded-2xl bg-[var(--glass-10)] border border-[var(--glass-border)] text-[var(--primary-600)] transition-all group-hover:scale-110 group-hover:border-[var(--primary-600)]/50">
                   {f.icon}
                 </div>
-                <span className="text-white/80 text-[13px] font-bold tracking-tight leading-tight">{f.text}</span>
+                <span className="text-white/80 text-sm font-bold tracking-tight leading-tight">{f.text}</span>
               </div>
             ))}
           </div>
@@ -139,9 +139,9 @@ export default function LoginPage() {
             <AttendaLogo iconSize={44} />
           </div>
 
-          <div className="p-8 md:p-10 rounded-[3rem] bg-[var(--glass-05)] border border-[var(--glass-border)] backdrop-blur-2xl shadow-2xl relative overflow-hidden page-fade-in">
+          <div className="relative overflow-hidden page-fade-in">
              {/* Subtle Glow */}
-             <div className="absolute top-0 right-0 w-[200px] h-[200px] bg-[var(--primary-600)]/5 blur-[60px] rounded-full pointer-events-none" />
+             <div className="absolute top-0 right-0 w-[200px] h-[200px] bg-[var(--primary-600)]/10 blur-[100px] rounded-full pointer-events-none" />
 
              {requires2FA ? (
                /* ── 2FA Step ─────────────────────────────── */
@@ -246,8 +246,8 @@ export default function LoginPage() {
                       </div>
                    </div>
 
-                   <label className="flex items-center gap-3 cursor-pointer select-none group">
-                     <div className={`relative w-5 h-5 rounded-md border-2 shrink-0 transition-all ${rememberMe ? 'bg-(--primary-600) border-(--primary-600)' : 'bg-transparent border-(--glass-high) group-hover:border-(--primary-600)/50'}`}>
+                   <label className="flex items-center gap-3 cursor-pointer select-none group w-fit">
+                     <div className={`relative w-5 h-5 rounded-md border-2 shrink-0 transition-all ${rememberMe ? 'bg-[var(--primary-600)] border-[var(--primary-600)]' : 'bg-transparent border-[var(--glass-border)] group-hover:border-[var(--primary-600)]/50'}`}>
                        <input
                          type="checkbox"
                          className="sr-only"
@@ -260,7 +260,7 @@ export default function LoginPage() {
                          </svg>
                        )}
                      </div>
-                     <span className="text-xs font-bold text-(--on-glass-muted) group-hover:text-white transition-colors">Remember me for 30 days</span>
+                     <span className="text-xs font-bold text-[var(--on-glass-muted)] group-hover:text-white transition-colors">Remember me for 30 days</span>
                    </label>
 
                    <Button type="submit" className="w-full py-5 text-[13px] font-black uppercase tracking-[0.2em]" size="lg" loading={isSubmitting}>
