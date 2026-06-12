@@ -30,9 +30,9 @@ export default function PrivacyPage() {
       {/* Content */}
       <article className="max-w-4xl mx-auto px-6 py-24">
         <div className="p-10 md:p-16 rounded-[3rem] bg-[var(--glass-05)] border border-[var(--glass-border)] backdrop-blur-2xl">
-          <Section title="1. Introduction">
-            <p>Attenda (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;) is committed to protecting the privacy of the organisations and individuals who use our workforce management platform. This Privacy Policy explains how we collect, use, disclose, and safeguard your information.</p>
-            <p>By using Attenda, you agree to the collection and use of information in accordance with this policy. If you do not agree, please do not use our services.</p>
+          <Section title="1. Data Governance Framework">
+            <p>Attenda (&quot;the Platform&quot;) operates under a stringent data governance framework designed to protect the integrity and confidentiality of organisational data. This Privacy Policy outlines our protocols for the acquisition, processing, and protection of information within our ecosystem.</p>
+            <p>Engagement with the Platform constitutes an agreement to these terms. We maintain a policy of absolute transparency regarding data lifecycle management.</p>
           </Section>
 
           <Section title="2. Information We Collect">
@@ -62,8 +62,8 @@ export default function PrivacyPage() {
             <p className="mt-6">We do not sell, rent, or trade your personal information or your employees&apos; data to third parties for marketing purposes.</p>
           </Section>
 
-          <Section title="4. Data Ownership">
-            <p>Your organisation owns all employee data you upload or generate within Attenda. We act as a data processor on your behalf. You retain full control and can export or delete your data at any time.</p>
+          <Section title="4. Sovereignty and Portability">
+            <p>Organisations retain absolute sovereignty over all employee data processed within Attenda. We operate strictly as a Data Processor. The right to data portability is guaranteed; administrators may execute full data exports or permanent deletion protocols at any time without restriction.</p>
           </Section>
 
           <Section title="5. Data Retention">

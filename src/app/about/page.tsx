@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { MarketingNav, MarketingFooter } from '../page';
 import { Target, Heart, Zap, Globe } from 'lucide-react';
 
@@ -12,13 +13,51 @@ export default function AboutPage() {
       {/* Hero */}
       <section className="pt-44 pb-24 px-6 relative overflow-hidden">
         <div className="absolute top-0 right-1/4 w-[500px] h-[500px] bg-[var(--primary-600)]/5 blur-[120px] rounded-full pointer-events-none" />
-        <div className="max-w-4xl mx-auto text-center relative z-10">
-          <p className="text-xs font-bold text-[var(--primary-600)] uppercase tracking-widest mb-6">About Us</p>
-          <h1 className="text-5xl md:text-7xl font-black text-white mb-8 tracking-tighter leading-tight">We believe attendance should be <span className="text-[var(--primary-600)]">invisible.</span></h1>
-          <p className="text-lg md:text-xl text-[var(--on-glass-muted)] leading-relaxed max-w-3xl mx-auto font-medium">
-            Attenda was built by a team tired of watching HR spend hours every week manually reconciling timesheets. We set out to make attendance tracking disappear into the background — automatic, accurate, and effortless.
-          </p>
+        <div className="max-w-7xl mx-auto relative z-10">
+           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+              <div className="text-left">
+                <p className="text-xs font-bold text-[var(--primary-600)] uppercase tracking-widest mb-6">Our Narrative</p>
+                <h1 className="text-5xl md:text-7xl font-black text-white mb-8 tracking-tighter leading-tight">Precision at the core of <span className="text-[var(--primary-600)]">productivity.</span></h1>
+                <p className="text-lg md:text-xl text-[var(--on-glass-muted)] leading-relaxed font-medium">
+                  Attenda emerged from a critical observation: the most successful organisations are those where operational friction is minimised. We engineered a platform that transforms attendance from a manual chore into a seamless, data-driven background process.
+                </p>
+              </div>
+              <div className="relative">
+                 <div className="rounded-[3rem] overflow-hidden border border-[var(--glass-border)] shadow-2xl">
+                    <Image
+                      src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&q=80&w=2070"
+                      alt="Our team"
+                      width={1200}
+                      height={800}
+                      className="w-full h-auto grayscale-[0.2] hover:grayscale-0 transition-all duration-700"
+                    />
+                 </div>
+                 <div className="absolute -bottom-10 -right-10 bg-[var(--dark-950)] border border-[var(--glass-border)] p-8 rounded-[2rem] shadow-2xl hidden md:block">
+                    <p className="text-4xl font-black text-white mb-1">500+</p>
+                    <p className="text-xs font-bold text-[var(--on-glass-dim)] uppercase tracking-widest">Global Clients</p>
+                 </div>
+              </div>
+           </div>
         </div>
+      </section>
+
+      {/* Stats Section */}
+      <section className="py-20 bg-[var(--dark-800)]/20 border-y border-[var(--glass-border)]">
+         <div className="max-w-7xl mx-auto px-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-12 text-center">
+               {[
+                 { label: 'Check-ins daily', val: '50k+' },
+                 { label: 'Time saved/mo', val: '120h' },
+                 { label: 'Data accuracy', val: '99.9%' },
+                 { label: 'Support rating', val: '4.9/5' },
+               ].map(s => (
+                 <div key={s.label}>
+                    <p className="text-4xl md:text-5xl font-black text-white mb-2">{s.val}</p>
+                    <p className="text-[10px] font-bold text-[var(--on-glass-dim)] uppercase tracking-[0.2em]">{s.label}</p>
+                 </div>
+               ))}
+            </div>
+         </div>
       </section>
 
       {/* Mission Grid */}
@@ -26,12 +65,12 @@ export default function AboutPage() {
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-24 items-center">
           <div className="slide-in-left">
             <p className="text-xs font-bold text-[var(--primary-600)] uppercase tracking-widest mb-6">Our Mission</p>
-            <h2 className="text-4xl md:text-5xl font-black text-white mb-8 tracking-tight leading-tight">Eliminate manual time tracking for good.</h2>
+            <h2 className="text-4xl md:text-5xl font-black text-white mb-8 tracking-tight leading-tight">Architecting the future of workforce management.</h2>
             <p className="text-lg text-[var(--on-glass-muted)] leading-relaxed mb-6 font-medium">
-              Every minute an HR manager spends chasing attendance data is a minute not spent on growing the business. We built Attenda to give that time back — through smart automation, real-time visibility, and integrations that actually work.
+              Our objective is to empower HR leaders with absolute data integrity. We believe that by automating the foundational aspects of workforce management—presence, scheduling, and compliance—we enable teams to reach their highest potential.
             </p>
             <p className="text-lg text-[var(--on-glass-muted)] leading-relaxed font-medium">
-              From WiFi-based auto check-in to AI-assisted scheduling and WhatsApp notifications, Attenda handles the entire attendance lifecycle so you don&apos;t have to.
+              Through continuous innovation in WiFi-based automation and AI-driven insights, Attenda provides a robust infrastructure that adapts to the complexities of modern, distributed workforces.
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 slide-in-right">
@@ -51,6 +90,32 @@ export default function AboutPage() {
             ))}
           </div>
         </div>
+      </section>
+
+      {/* Team Section */}
+      <section className="py-32 px-6">
+         <div className="max-w-7xl mx-auto">
+            <div className="text-center mb-20">
+               <p className="text-xs font-bold text-[var(--primary-600)] uppercase tracking-widest mb-6">Our Leadership</p>
+               <h2 className="text-4xl md:text-5xl font-black text-white tracking-tight">The minds behind Attenda</h2>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+               {[
+                 { name: 'Alex Rivers', role: 'CEO & Founder', img: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&auto=format&fit=crop&q=80' },
+                 { name: 'Elena Vance', role: 'CTO', img: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&auto=format&fit=crop&q=80' },
+                 { name: 'David Chen', role: 'Head of Product', img: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&auto=format&fit=crop&q=80' },
+                 { name: 'Sofia Bell', role: 'Head of Design', img: 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=400&h=400&auto=format&fit=crop&q=80' },
+               ].map(m => (
+                 <div key={m.name} className="group">
+                    <div className="aspect-square rounded-[2rem] overflow-hidden border border-[var(--glass-border)] mb-6 grayscale group-hover:grayscale-0 transition-all duration-500">
+                       <Image src={m.img} alt={m.name} width={400} height={400} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                    </div>
+                    <h3 className="text-xl font-black text-white mb-1">{m.name}</h3>
+                    <p className="text-xs font-bold text-[var(--on-glass-dim)] uppercase tracking-widest">{m.role}</p>
+                 </div>
+               ))}
+            </div>
+         </div>
       </section>
 
       {/* Values */}
