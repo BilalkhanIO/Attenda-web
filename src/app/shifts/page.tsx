@@ -355,7 +355,6 @@ function BreakForm({
       {/* Name */}
       <Input
         label="Break Name"
-        size="sm"
         value={form.name}
         onChange={e => setField('name', e.target.value)}
         placeholder="e.g. Lunch"
