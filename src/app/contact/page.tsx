@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { MarketingNav, MarketingFooter } from '../page';
 import { Mail, MessageSquare, Building2, Clock, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -27,9 +28,9 @@ export default function ContactPage() {
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-[var(--primary-600)]/5 blur-[120px] rounded-full pointer-events-none" />
         <div className="max-w-4xl mx-auto text-center relative z-10">
           <p className="text-xs font-bold text-[var(--primary-600)] uppercase tracking-widest mb-6">Contact Us</p>
-          <h1 className="text-5xl md:text-7xl font-black text-white mb-8 tracking-tighter leading-tight">We&apos;d love to <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--primary-600)] to-[var(--secondary)]">hear from you.</span></h1>
+          <h1 className="text-5xl md:text-7xl font-black text-white mb-8 tracking-tighter leading-tight">Connect with our <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--primary-600)] to-[var(--secondary)]">Solutions Team.</span></h1>
           <p className="text-lg md:text-xl text-[var(--on-glass-muted)] leading-relaxed max-w-2xl mx-auto font-medium">
-            Have a question, want a demo, or need help? Our team typically responds within 24 hours.
+            Whether you&apos;re looking for a bespoke enterprise demo or technical support, our specialists are ready to architect the right solution for your organisation.
           </p>
         </div>
       </section>
@@ -39,8 +40,16 @@ export default function ContactPage() {
         <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-20">
           {/* Contact info */}
           <div className="space-y-12 slide-in-left">
+            <div className="mb-12 rounded-[3rem] overflow-hidden border border-[var(--glass-border)] shadow-2xl grayscale-[0.5] hover:grayscale-0 transition-all duration-700 relative h-48">
+               <Image
+                 src="https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=2069"
+                 alt="Office Space"
+                 fill
+                 className="object-cover"
+               />
+            </div>
             <div>
-              <h2 className="text-xl font-bold text-white mb-10">Contact information</h2>
+              <h2 className="text-xl font-bold text-white mb-10">Global Access</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-6">
                 {[
                   { icon: Mail,          label: 'General enquiries',   value: 'hello@attenda.app',   href: 'mailto:hello@attenda.app' },
