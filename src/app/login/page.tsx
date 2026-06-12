@@ -139,9 +139,9 @@ export default function LoginPage() {
             <AttendaLogo iconSize={44} />
           </div>
 
-          <div className="p-8 md:p-10 rounded-[3rem] bg-[var(--glass-05)] border border-[var(--glass-border)] backdrop-blur-2xl shadow-2xl relative overflow-hidden page-fade-in">
+          <div className="relative overflow-hidden page-fade-in">
              {/* Subtle Glow */}
-             <div className="absolute top-0 right-0 w-[200px] h-[200px] bg-[var(--primary-600)]/5 blur-[60px] rounded-full pointer-events-none" />
+             <div className="absolute top-0 right-0 w-[200px] h-[200px] bg-[var(--primary-600)]/10 blur-[100px] rounded-full pointer-events-none" />
 
              {requires2FA ? (
                /* ── 2FA Step ─────────────────────────────── */
