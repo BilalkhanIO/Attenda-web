@@ -23,13 +23,13 @@ export function AttendaLogoIcon({ size = 44 }: { size?: number; variant?: 'dark'
   return (
     <svg width={size} height={size} viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
       <circle cx="22" cy="22" r="20" stroke={ringStroke} strokeWidth="2.5" />
-      <circle cx="22" cy="22" r="14" fill={innerFill} opacity={innerOpacity} />
+      <circle cx="22" cy="22" r="14" fill={innerFill} opacity={innerOpacity} className="animate-logo-pulse" />
       <line x1="22" y1="9"  x2="22" y2="12" stroke={tickMain} strokeWidth="2"   strokeLinecap="round" />
       <line x1="22" y1="32" x2="22" y2="35" stroke={tickMain} strokeWidth="1.2" strokeLinecap="round" opacity="0.4" />
       <line x1="9"  y1="22" x2="12" y2="22" stroke={tickMain} strokeWidth="1.2" strokeLinecap="round" opacity="0.4" />
       <line x1="32" y1="22" x2="35" y2="22" stroke={tickMain} strokeWidth="1.2" strokeLinecap="round" opacity="0.4" />
-      <line x1="22" y1="22" x2="22"   y2="15"  stroke={hourHand}   strokeWidth="2.2" strokeLinecap="round" />
-      <line x1="22" y1="22" x2="27.5" y2="22"  stroke={minuteHand} strokeWidth="2.2" strokeLinecap="round" />
+      <line x1="22" y1="22" x2="22"   y2="15"  stroke={hourHand}   strokeWidth="2.2" strokeLinecap="round" className="animate-logo-spin-slow" />
+      <line x1="22" y1="22" x2="27.5" y2="22"  stroke={minuteHand} strokeWidth="2.2" strokeLinecap="round" className="animate-logo-spin-fast" />
       <circle cx="22" cy="22" r="2.2" fill={centerDot} />
       <circle cx="33" cy="33" r="7" fill={badgeBg} />
       <circle cx="33" cy="33" r="6" fill="#10B981" />
