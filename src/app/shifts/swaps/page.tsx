@@ -1,11 +1,12 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/lib/auth';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { PageHeader, Card, Avatar, Badge, EmptyState, Table, Modal, Input } from '@/components/ui';
 import { Button } from '@/components/ui';
 import { shiftsApi } from '@/lib/api';
-import { getApiError } from '@/lib/utils';
+import { keys, swapRequestsQuery } from '@/lib/queries';
 import type { SwapRequest } from '@/types';
 import { Check, X, ArrowLeftRight } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -18,46 +19,62 @@ const STATUS_COLOR: Record<string, { color: string; bg: string }> = {
 
 export default function ShiftSwapsPage() {
   const { hasPermission } = useAuth();
+  const queryClient = useQueryClient();
   const canManage = hasPermission('shifts.swaps.approve');
 
-  const [swaps, setSwaps]         = useState<SwapRequest[]>([]);
-  const [loading, setLoading]     = useState(true);
   const [rejectModal, setRejectModal] = useState<{ open: boolean; swap: SwapRequest | null }>({ open: false, swap: null });
   const [rejectReason, setRejectReason] = useState('');
-  const [actionId, setActionId]   = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const { data } = await shiftsApi.getSwapRequests();
-      setSwaps(data.data || []);
-    } catch (err) { toast.error(getApiError(err)); }
-    finally { setLoading(false); }
-  }, []);
+  const swapsQuery = useQuery(swapRequestsQuery());
+  const swaps = swapsQuery.data ?? [];
+  const loading = swapsQuery.isPending;
 
-  useEffect(() => { load(); }, [load]);
-
-  const handleApprove = async (swap: SwapRequest) => {
-    setActionId(swap.id);
-    try {
-      await shiftsApi.approveSwap(swap.id);
-      toast.success('Swap approved');
-      load();
-    } catch (err) { toast.error(getApiError(err)); }
-    finally { setActionId(null); }
+  // Optimistic status flip shared by approve/reject: the row updates
+  // instantly, rolls back on failure, and the list re-syncs afterwards.
+  const reviewSwap = (status: 'approved' | 'rejected') =>
+    async (vars: { id: string; reason?: string }) => {
+      await queryClient.cancelQueries({ queryKey: keys.swaps.list() });
+      const previous = queryClient.getQueryData<SwapRequest[]>(keys.swaps.list());
+      queryClient.setQueryData<SwapRequest[]>(keys.swaps.list(), old =>
+        (old ?? []).map(s => s.id === vars.id ? { ...s, status } : s));
+      return { previous };
+    };
+  const rollback = (_e: unknown, _v: unknown, ctx?: { previous?: SwapRequest[] }) => {
+    if (ctx?.previous) queryClient.setQueryData(keys.swaps.list(), ctx.previous);
+  };
+  const resync = () => {
+    queryClient.invalidateQueries({ queryKey: keys.swaps.all });
+    // Keep the unified Approvals inbox in sync
+    queryClient.invalidateQueries({ queryKey: ['approvals', 'swap'] });
   };
 
-  const handleReject = async () => {
-    if (!rejectModal.swap || !rejectReason.trim()) { toast.error('Reason required'); return; }
-    setActionId(rejectModal.swap.id);
-    try {
-      await shiftsApi.rejectSwap(rejectModal.swap.id, rejectReason);
+  const approveMutation = useMutation({
+    mutationFn: (vars: { id: string }) => shiftsApi.approveSwap(vars.id),
+    onMutate: reviewSwap('approved'),
+    onError: rollback,
+    onSettled: resync,
+    onSuccess: () => toast.success('Swap approved'),
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: (vars: { id: string; reason: string }) => shiftsApi.rejectSwap(vars.id, vars.reason),
+    onMutate: reviewSwap('rejected'),
+    onError: rollback,
+    onSettled: resync,
+    onSuccess: () => {
       toast.success('Swap rejected');
       setRejectModal({ open: false, swap: null });
       setRejectReason('');
-      load();
-    } catch (err) { toast.error(getApiError(err)); }
-    finally { setActionId(null); }
+    },
+  });
+
+  const actionPending = (id: string) =>
+    (approveMutation.isPending && approveMutation.variables?.id === id) ||
+    (rejectMutation.isPending && rejectMutation.variables?.id === id);
+
+  const handleReject = () => {
+    if (!rejectModal.swap || !rejectReason.trim()) { toast.error('Reason required'); return; }
+    rejectMutation.mutate({ id: rejectModal.swap.id, reason: rejectReason });
   };
 
   return (
@@ -105,11 +122,11 @@ export default function ShiftSwapsPage() {
                   <td className="px-4 py-3">
                     {req.status === 'pending' && (
                       <div className="flex gap-1.5">
-                        <button onClick={() => handleApprove(req)} disabled={actionId === req.id}
+                        <button onClick={() => approveMutation.mutate({ id: req.id })} disabled={actionPending(req.id)}
                           className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 flex items-center justify-center transition-colors disabled:opacity-50">
                           <Check size={13} />
                         </button>
-                        <button onClick={() => { setRejectModal({ open: true, swap: req }); setRejectReason(''); }} disabled={actionId === req.id}
+                        <button onClick={() => { setRejectModal({ open: true, swap: req }); setRejectReason(''); }} disabled={actionPending(req.id)}
                           className="w-7 h-7 rounded-lg bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 flex items-center justify-center transition-colors disabled:opacity-50">
                           <X size={13} />
                         </button>
@@ -125,7 +142,7 @@ export default function ShiftSwapsPage() {
 
       <Modal isOpen={rejectModal.open} onClose={() => setRejectModal({ open: false, swap: null })}
         title="Reject Swap Request" size="sm"
-        footer={<><Button variant="ghost" onClick={() => setRejectModal({ open: false, swap: null })}>Cancel</Button><Button variant="danger" loading={!!actionId} onClick={handleReject} icon={<X size={13} />}>Reject</Button></>}>
+        footer={<><Button variant="ghost" onClick={() => setRejectModal({ open: false, swap: null })}>Cancel</Button><Button variant="danger" loading={rejectMutation.isPending} onClick={handleReject} icon={<X size={13} />}>Reject</Button></>}>
         <Input label="Reason" required placeholder="Why is this swap not approved?" value={rejectReason} onChange={e => setRejectReason(e.target.value)} />
       </Modal>
     </DashboardLayout>

@@ -1,22 +1,14 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { PageHeader, Card, Button, Input, Modal, Badge, EmptyState, Select } from '@/components/ui';
 import { overtimeApi } from '@/lib/api';
-import { getApiError } from '@/lib/utils';
+import { keys, overtimeRulesQuery } from '@/lib/queries';
+import type { OvertimeRule } from '@/lib/queries';
 import { Clock, Plus, Edit2, Trash2, Save } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/lib/auth';
-
-interface OvertimeRule {
-  id: string;
-  name: string;
-  rule_type: 'daily' | 'weekly' | 'seventh_day';
-  threshold_hours: number;
-  multiplier: number;
-  priority: number;
-  is_active: boolean;
-}
 
 const RULE_TYPE_LABELS: Record<string, string> = {
   daily:       'Daily',
@@ -48,29 +40,41 @@ const emptyForm: RuleForm = {
 
 export default function OvertimeSettingsPage() {
   const { hasPermission } = useAuth();
-  const [rules, setRules] = useState<OvertimeRule[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
   const [editRule, setEditRule] = useState<OvertimeRule | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [form, setForm] = useState<RuleForm>({ ...emptyForm });
 
   const isAdmin = hasPermission('overtime.manage');
 
-  const loadRules = useCallback(async () => {
-    setLoading(true);
-    try {
-      const { data } = await overtimeApi.getRules();
-      setRules(data.data || []);
-    } catch (err) {
-      toast.error(getApiError(err));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const rulesQuery = useQuery(overtimeRulesQuery());
+  const rules = rulesQuery.data ?? [];
+  const loading = rulesQuery.isPending;
 
-  useEffect(() => { loadRules(); }, [loadRules]);
+  const invalidateRules = () =>
+    queryClient.invalidateQueries({ queryKey: keys.overtime.rules() });
+
+  const saveMutation = useMutation({
+    mutationFn: (vars: { id?: string; data: Record<string, unknown> }) =>
+      vars.id ? overtimeApi.updateRule(vars.id, vars.data) : overtimeApi.createRule(vars.data),
+    onSuccess: (_d, vars) => {
+      toast.success(vars.id ? 'Overtime rule updated' : 'Overtime rule created');
+      setModalOpen(false);
+    },
+    onSettled: invalidateRules,
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (vars: { id: string }) => overtimeApi.deleteRule(vars.id),
+    onSuccess: () => toast.success('Rule deleted'),
+    onSettled: invalidateRules,
+  });
+
+  const toggleMutation = useMutation({
+    mutationFn: (vars: { id: string; is_active: boolean }) =>
+      overtimeApi.updateRule(vars.id, { is_active: vars.is_active }),
+    onSettled: invalidateRules,
+  });
 
   const openAdd = () => {
     setEditRule(null);
@@ -90,48 +94,16 @@ export default function OvertimeSettingsPage() {
     setModalOpen(true);
   };
 
-  const handleSave = async () => {
+  const handleSave = () => {
     if (!form.name.trim()) { toast.error('Rule name is required'); return; }
     if (form.multiplier < 1) { toast.error('Multiplier must be at least 1.0'); return; }
-    setSaving(true);
-    try {
-      if (editRule) {
-        await overtimeApi.updateRule(editRule.id, form as unknown as Record<string, unknown>);
-        toast.success('Overtime rule updated');
-      } else {
-        await overtimeApi.createRule(form as unknown as Record<string, unknown>);
-        toast.success('Overtime rule created');
-      }
-      setModalOpen(false);
-      loadRules();
-    } catch (err) {
-      toast.error(getApiError(err));
-    } finally {
-      setSaving(false);
-    }
+    saveMutation.mutate({ id: editRule?.id, data: form as unknown as Record<string, unknown> });
   };
 
-  const handleDelete = async (rule: OvertimeRule) => {
-    setDeletingId(rule.id);
-    try {
-      await overtimeApi.deleteRule(rule.id);
-      toast.success('Rule deleted');
-      setRules(prev => prev.filter(r => r.id !== rule.id));
-    } catch (err) {
-      toast.error(getApiError(err));
-    } finally {
-      setDeletingId(null);
-    }
-  };
+  const handleDelete = (rule: OvertimeRule) => deleteMutation.mutate({ id: rule.id });
 
-  const handleToggleActive = async (rule: OvertimeRule) => {
-    try {
-      await overtimeApi.updateRule(rule.id, { is_active: !rule.is_active });
-      setRules(prev => prev.map(r => r.id === rule.id ? { ...r, is_active: !r.is_active } : r));
-    } catch (err) {
-      toast.error(getApiError(err));
-    }
-  };
+  const handleToggleActive = (rule: OvertimeRule) =>
+    toggleMutation.mutate({ id: rule.id, is_active: !rule.is_active });
 
   return (
     <DashboardLayout>
@@ -186,7 +158,7 @@ export default function OvertimeSettingsPage() {
                     </button>
                     <button
                       onClick={() => handleDelete(rule)}
-                      disabled={deletingId === rule.id}
+                      disabled={deleteMutation.isPending && deleteMutation.variables?.id === rule.id}
                       className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-rose-500/10 text-slate-500 hover:text-rose-400 disabled:opacity-50 transition-colors"
                     >
                       <Trash2 size={13} />
@@ -244,7 +216,7 @@ export default function OvertimeSettingsPage() {
         footer={
           <>
             <Button variant="ghost" onClick={() => setModalOpen(false)}>Cancel</Button>
-            <Button icon={<Save size={14} />} loading={saving} onClick={handleSave}>
+            <Button icon={<Save size={14} />} loading={saveMutation.isPending} onClick={handleSave}>
               {editRule ? 'Save Changes' : 'Create Rule'}
             </Button>
           </>

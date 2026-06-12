@@ -1,12 +1,14 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import {
   PageHeader, Card, Table, Avatar, Badge, Button, Modal, ConfirmDialog,
   Textarea, StatBox, Dropdown, DatePicker, TimePicker,
 } from '@/components/ui';
 import { leaveApi } from '@/lib/api';
-import { leaveStatusConfig, getApiError } from '@/lib/utils';
+import { keys, leaveRequestsQuery, myLeaveBalanceQuery } from '@/lib/queries';
+import { leaveStatusConfig } from '@/lib/utils';
 import type { LeaveRequest } from '@/types';
 import { Calendar, Plus, Check, X } from 'lucide-react';
 import { useForm, Controller } from 'react-hook-form';
@@ -50,73 +52,76 @@ type RejectForm = z.infer<typeof rejectSchema>;
 
 export default function LeavePage() {
   const { hasPermission } = useAuth();
-  const [requests, setRequests]   = useState<LeaveRequest[]>([]);
-  const [balances, setBalances]   = useState<{leave_type:string; total_days:number; used_days:number; available_days:number}[]>([]);
-  const [loading, setLoading]     = useState(true);
+  const queryClient = useQueryClient();
+  const scope = hasPermission('leave.view_all') ? 'all' as const : 'team' as const;
   const [statusFilter, setStatus] = useState('');
 
   // Modal states
   const [addOpen, setAddOpen]           = useState(false);
   const [approveReq, setApproveReq]     = useState<LeaveRequest | null>(null);
   const [rejectReq, setRejectReq]       = useState<LeaveRequest | null>(null);
-  const [approving, setApproving]       = useState(false);
 
   const leaveForm  = useForm<LeaveForm>({ resolver: zodResolver(leaveSchema) });
   const rejectForm = useForm<RejectForm>({ resolver: zodResolver(rejectSchema) });
 
-  const fetchRequests = useCallback(async () => {
-    try {
-      const fn = hasPermission('leave.view_all') ? leaveApi.getAllRequests : leaveApi.getTeamRequests;
-      const [reqRes, balRes] = await Promise.allSettled([fn(), leaveApi.getMyBalance()]);
-      if (reqRes.status === 'fulfilled') setRequests(reqRes.value.data.data || []);
-      if (balRes.status === 'fulfilled') setBalances(balRes.value.data.data || []);
-    } catch (err) {
-      toast.error(getApiError(err));
-    } finally {
-      setLoading(false);
-    }
-  }, [hasPermission]);
+  const requestsQuery = useQuery(leaveRequestsQuery(scope));
+  const balanceQuery  = useQuery(myLeaveBalanceQuery());
+  const requests = requestsQuery.data ?? [];
+  const balances = balanceQuery.data ?? [];
+  const loading  = requestsQuery.isPending;
 
-  useEffect(() => { fetchRequests(); }, [fetchRequests]);
-
-  const onSubmitLeave = async (data: LeaveForm) => {
-    try {
-      await leaveApi.submit(data);
-      toast.success('Leave request submitted');
-      setAddOpen(false);
-      leaveForm.reset();
-      fetchRequests();
-    } catch (err) {
-      toast.error(getApiError(err));
-    }
+  // Optimistic status flip shared by approve/reject: the row updates
+  // instantly, rolls back on failure, and the list re-syncs afterwards.
+  const reviewLeave = (status: 'approved' | 'rejected') =>
+    async (vars: { id: string; reason?: string }) => {
+      await queryClient.cancelQueries({ queryKey: keys.leave.requests(scope) });
+      const previous = queryClient.getQueryData<LeaveRequest[]>(keys.leave.requests(scope));
+      queryClient.setQueryData<LeaveRequest[]>(keys.leave.requests(scope), old =>
+        (old ?? []).map(r => r.id === vars.id ? { ...r, status } : r));
+      return { previous };
+    };
+  const rollback = (_e: unknown, _v: unknown, ctx?: { previous?: LeaveRequest[] }) => {
+    if (ctx?.previous) queryClient.setQueryData(keys.leave.requests(scope), ctx.previous);
+  };
+  const resync = () => {
+    queryClient.invalidateQueries({ queryKey: keys.leave.all });
   };
 
-  const onApprove = async () => {
-    if (!approveReq) return;
-    setApproving(true);
-    try {
-      await leaveApi.approve(approveReq.id);
-      toast.success('Leave request approved');
-      setApproveReq(null);
-      fetchRequests();
-    } catch (err) {
-      toast.error(getApiError(err));
-    } finally {
-      setApproving(false);
-    }
-  };
+  const approveMutation = useMutation({
+    mutationFn: (vars: { id: string }) => leaveApi.approve(vars.id),
+    onMutate: reviewLeave('approved'),
+    onError: rollback,
+    onSettled: resync,
+    onSuccess: () => { toast.success('Leave request approved'); setApproveReq(null); },
+  });
 
-  const onReject = async (data: RejectForm) => {
-    if (!rejectReq) return;
-    try {
-      await leaveApi.reject(rejectReq.id, data.reason);
+  const rejectMutation = useMutation({
+    mutationFn: (vars: { id: string; reason: string }) => leaveApi.reject(vars.id, vars.reason),
+    onMutate: reviewLeave('rejected'),
+    onError: rollback,
+    onSettled: resync,
+    onSuccess: () => {
       toast.success('Leave request rejected');
       setRejectReq(null);
       rejectForm.reset();
-      fetchRequests();
-    } catch (err) {
-      toast.error(getApiError(err));
-    }
+    },
+  });
+
+  const submitMutation = useMutation({
+    mutationFn: (data: LeaveForm) => leaveApi.submit(data),
+    onSuccess: () => {
+      toast.success('Leave request submitted');
+      setAddOpen(false);
+      leaveForm.reset();
+      resync();
+    },
+  });
+
+  const approving = approveMutation.isPending;
+  const onSubmitLeave = (data: LeaveForm) => submitMutation.mutate(data);
+  const onApprove = () => { if (approveReq) approveMutation.mutate({ id: approveReq.id }); };
+  const onReject = (data: RejectForm) => {
+    if (rejectReq) rejectMutation.mutate({ id: rejectReq.id, reason: data.reason });
   };
 
   const filtered = requests.filter(r => !statusFilter || r.status === statusFilter);

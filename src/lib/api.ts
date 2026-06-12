@@ -69,6 +69,33 @@ function notifyTokenRefreshed() {
 }
 
 // --- Response interceptor: handle 401 refresh ---
+// Single-flight refresh: when several requests 401 at once (e.g. a page firing
+// parallel queries with an expired token), only ONE refresh call goes out and
+// the rest await it. Without this they race, and a losing request can clear
+// freshly-stored tokens and bounce the user to /login.
+let refreshInFlight: Promise<string> | null = null;
+
+function refreshAccessToken(refreshToken: string): Promise<string> {
+  if (!refreshInFlight) {
+    refreshInFlight = axios
+      .post(`${BASE_URL}/auth/refresh`, { refresh_token: refreshToken })
+      .then(({ data }) => {
+        const newToken = data.data.access_token as string;
+        // Rotation: the server consumes the presented refresh token and
+        // returns a successor — storing the old one would trigger reuse
+        // detection (family revocation) on the next refresh.
+        const rotated = (data.data.refresh_token as string | undefined) ?? refreshToken;
+        // Preserve remember-me state
+        const wasRemembered = Cookies.get(REMEMBER_ME_KEY) === 'true';
+        storeTokens(newToken, rotated, wasRemembered);
+        notifyTokenRefreshed();
+        return newToken;
+      })
+      .finally(() => { refreshInFlight = null; });
+  }
+  return refreshInFlight;
+}
+
 apiClient.interceptors.response.use(
   (res: AxiosResponse) => res,
   async (error: AxiosError) => {
@@ -78,12 +105,7 @@ apiClient.interceptors.response.use(
       const refresh = getRefreshToken();
       if (refresh) {
         try {
-          const { data } = await axios.post(`${BASE_URL}/auth/refresh`, { refresh_token: refresh });
-          const newToken = data.data.access_token;
-          // Preserve remember-me state
-          const wasRemembered = Cookies.get(REMEMBER_ME_KEY) === 'true';
-          storeTokens(newToken, refresh, wasRemembered);
-          notifyTokenRefreshed();
+          const newToken = await refreshAccessToken(refresh);
           if (original.headers) original.headers.Authorization = `Bearer ${newToken}`;
           return apiClient(original);
         } catch {
@@ -128,7 +150,7 @@ export const authApi = {
 
 // ─── USERS ────────────────────────────────────────────
 export const usersApi = {
-  getAll: (params?: { page?: number; limit?: number; department?: string; role?: string; status?: string }) =>
+  getAll: (params?: { page?: number; limit?: number; department?: string; role?: string; status?: string; search?: string }) =>
     apiClient.get('/users', { params }),
   getOne: (id: string) =>
     apiClient.get(`/users/${id}`),
@@ -240,8 +262,8 @@ export const shiftsApi = {
     apiClient.post(`/shifts/${shiftId}/breaks`, data),
   deleteBreak: (shiftId: string, breakId: string) =>
     apiClient.delete(`/shifts/${shiftId}/breaks/${breakId}`),
-  getSwapRequests: () =>
-    apiClient.get('/shifts/swaps'),
+  getSwapRequests: (params?: { status?: string }) =>
+    apiClient.get('/shifts/swaps', { params }),
   approveSwap: (id: string) =>
     apiClient.put(`/shifts/swaps/${id}/approve`),
   rejectSwap: (id: string, reason: string) =>
@@ -356,6 +378,8 @@ export const orgApi = {
     apiClient.put('/org/whatsapp', data),
   testWhatsApp: () =>
     apiClient.post('/org/whatsapp/test'),
+  getAuditLogs: (params?: { page?: number; limit?: number; action?: string }) =>
+    apiClient.get('/org/audit-logs', { params }),
 };
 
 // ─── DEPARTMENTS ──────────────────────────────────────

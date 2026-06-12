@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { DM_Sans, DM_Mono } from 'next/font/google';
 import { AuthProvider } from '@/lib/auth';
+import { QueryProvider } from '@/lib/query';
 import { Toaster } from 'react-hot-toast';
 
 const dmSans = DM_Sans({ subsets: ['latin'], weight: ['300', '400', '500', '600', '700'], variable: '--font-sans' });
@@ -17,7 +18,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={`${dmSans.variable} ${dmMono.variable}`}>
       <body>
         <AuthProvider>
+          <QueryProvider>
           {children}
+          </QueryProvider>
           <Toaster
             position="top-right"
             toastOptions={{

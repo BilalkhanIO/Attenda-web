@@ -1,56 +1,23 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import {
-  PageHeader, Card, Button, Badge, Avatar, Modal, EmptyState,
+  PageHeader, Button, Badge, Avatar, Modal, EmptyState,
   StatBox, SectionCard, RequestItem,
 } from '@/components/ui';
 import { remoteApi } from '@/lib/api';
-import { getApiError, formatDate } from '@/lib/utils';
+import { keys, remoteMonitorQuery, pendingRemoteSessionsQuery } from '@/lib/queries';
+import type { RemoteSession } from '@/lib/queries';
+import { formatDate } from '@/lib/utils';
+import { useAuth } from '@/lib/auth';
 import {
   Home, MessageCircle, AlertTriangle, RefreshCw,
-  CheckCircle, XCircle, Loader, Sparkles,
+  CheckCircle, Loader, Sparkles,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { formatDistanceToNow, format } from 'date-fns';
 import { cn } from '@/lib/utils';
-
-interface NudgeLog {
-  id: string;
-  nudge_type: 'morning' | 'midday' | 'end_of_day';
-  nudge_sent_at: string;
-  reply_text: string | null;
-  reply_at: string | null;
-  task_summary: string | null;
-  blockers: string | null;
-  sentiment: 'positive' | 'neutral' | 'negative' | null;
-  no_reply_alerted: boolean;
-}
-
-interface RemoteSession {
-  id: string;
-  status: 'pending' | 'approved' | 'rejected';
-  duration_type: string;
-  morning_nudge_at: string | null;
-  midday_nudge_at: string | null;
-  end_nudge_at: string | null;
-  ai_summary: string | null;
-  is_online: boolean;
-  last_seen: string | null;
-  responded_count: number;
-  no_reply_count: number;
-  latest_sentiment: 'positive' | 'neutral' | 'negative' | null;
-  latest_task_summary: string | null;
-  user?: { id: string; name: string; department?: string; avatar_url?: string };
-  attendance?: { date: string };
-  checkin_logs: NudgeLog[];
-}
-
-interface MonitorData {
-  date: string;
-  stats: { total: number; responded: number; no_reply: number; avg_sentiment: string | null };
-  sessions: RemoteSession[];
-}
 
 const SENTIMENT = {
   positive: { color: 'var(--success-500)', bg: '#10b981', label: '😊 Positive' },
@@ -66,31 +33,66 @@ function NudgePill({ label, sent, replied, noReply }: { label: string; sent: boo
 }
 
 export default function RemoteMonitorPage() {
-  const [data, setData]             = useState<MonitorData | null>(null);
-  const [loading, setLoading]       = useState(true);
-  const [detail, setDetail]         = useState<RemoteSession | null>(null);
-  const [lastRefreshed, setLastRefreshed] = useState(new Date());
+  const { hasPermission } = useAuth();
+  const queryClient = useQueryClient();
+  const canApprove = hasPermission('remote.approve');
+  const [detail, setDetail] = useState<RemoteSession | null>(null);
 
-  const load = useCallback(async () => {
-    try {
-      const { data: res } = await remoteApi.getMonitor();
-      setData(res.data);
-      setLastRefreshed(new Date());
-    } catch (err) {
-      toast.error(getApiError(err));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  // Polls only while the tab is visible; refetches immediately on focus.
+  const monitorQuery = useQuery({
+    ...remoteMonitorQuery(),
+    refetchInterval: 60_000,
+    refetchIntervalInBackground: false,
+  });
+  const pendingQuery = useQuery({ ...pendingRemoteSessionsQuery(), enabled: canApprove });
 
-  useEffect(() => { load(); }, [load]);
-  useEffect(() => {
-    const id = setInterval(load, 60_000);
-    return () => clearInterval(id);
-  }, [load]);
-
+  const data     = monitorQuery.data ?? null;
+  const loading  = monitorQuery.isPending;
   const sessions = data?.sessions ?? [];
   const stats    = data?.stats;
+  const pending  = pendingQuery.data ?? [];
+  const lastUpdatedAt = monitorQuery.dataUpdatedAt;
+
+  // Optimistic status flip shared by approve/reject: the row updates
+  // instantly, rolls back on failure, and the lists re-sync afterwards.
+  const reviewSession = (status: 'approved' | 'rejected') =>
+    async (vars: { id: string }) => {
+      await queryClient.cancelQueries({ queryKey: keys.remote.pendingSessions() });
+      const previous = queryClient.getQueryData<RemoteSession[]>(keys.remote.pendingSessions());
+      queryClient.setQueryData<RemoteSession[]>(keys.remote.pendingSessions(), old =>
+        (old ?? []).map(s => s.id === vars.id ? { ...s, status } : s));
+      return { previous };
+    };
+  const rollback = (_e: unknown, _v: unknown, ctx?: { previous?: RemoteSession[] }) => {
+    if (ctx?.previous) queryClient.setQueryData(keys.remote.pendingSessions(), ctx.previous);
+  };
+  const resync = () => {
+    queryClient.invalidateQueries({ queryKey: keys.remote.all });
+    // Keep the unified Approvals inbox in sync
+    queryClient.invalidateQueries({ queryKey: ['approvals', 'remote'] });
+  };
+
+  const approveMutation = useMutation({
+    mutationFn: (vars: { id: string }) => remoteApi.approveSession(vars.id),
+    onMutate: reviewSession('approved'),
+    onError: rollback,
+    onSettled: resync,
+    onSuccess: () => toast.success('Remote session approved'),
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: (vars: { id: string }) => remoteApi.rejectSession(vars.id),
+    onMutate: reviewSession('rejected'),
+    onError: rollback,
+    onSettled: resync,
+    onSuccess: () => toast.success('Remote session rejected'),
+  });
+
+  const actionLoading = (id: string) =>
+    (approveMutation.isPending && approveMutation.variables?.id === id) ||
+    (rejectMutation.isPending && rejectMutation.variables?.id === id);
+
+  const pendingVisible = pending.filter(s => s.status === 'pending');
 
   return (
     <DashboardLayout>
@@ -98,11 +100,33 @@ export default function RemoteMonitorPage() {
         title="Remote Work Monitor"
         subtitle="Live view of remote workers — AI nudge conversations and online status"
         actions={
-          <Button variant="ghost" size="sm" icon={<RefreshCw size={14} />} onClick={load} loading={loading}>
+          <Button variant="ghost" size="sm" icon={<RefreshCw size={14} />}
+            onClick={() => { monitorQuery.refetch(); if (canApprove) pendingQuery.refetch(); }}
+            loading={monitorQuery.isFetching}>
             Refresh
           </Button>
         }
       />
+
+      {/* Pending remote requests (managers) */}
+      {canApprove && pendingVisible.length > 0 && (
+        <div className="mb-5">
+          <SectionCard icon={<Home size={14} />} title="Pending Remote Requests" count={pendingVisible.length} accentColor="var(--secondary)">
+            <div className="space-y-2">
+              {pendingVisible.map(s => (
+                <RequestItem key={s.id}
+                  name={s.user?.name || ''} avatarUrl={s.user?.avatar_url}
+                  primary={s.duration_type.replace(/_/g, ' ')}
+                  secondary={s.user?.department}
+                  onApprove={() => approveMutation.mutate({ id: s.id })}
+                  onReject={() => rejectMutation.mutate({ id: s.id })}
+                  loading={actionLoading(s.id)}
+                />
+              ))}
+            </div>
+          </SectionCard>
+        </div>
+      )}
 
       {/* Stats row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
@@ -137,12 +161,14 @@ export default function RemoteMonitorPage() {
         title={`Active Remote Sessions · ${data?.date ? format(new Date(data.date), 'dd MMM yyyy').toUpperCase() : 'TODAY'}`}
         className="overflow-hidden"
       >
-        <div className="flex items-center gap-2 mb-3">
-          <div className="w-1.5 h-1.5 rounded-full bg-[var(--success-500)] animate-pulse" />
-          <span className="text-[10px] font-black text-[var(--on-glass-dim)] uppercase tracking-[0.2em]">
-            Updated {formatDistanceToNow(lastRefreshed, { addSuffix: true }).toUpperCase()}
-          </span>
-        </div>
+        {lastUpdatedAt > 0 && (
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-1.5 h-1.5 rounded-full bg-[var(--success-500)] animate-pulse" />
+            <span className="text-[10px] font-black text-[var(--on-glass-dim)] uppercase tracking-[0.2em]">
+              Updated {formatDistanceToNow(new Date(lastUpdatedAt), { addSuffix: true }).toUpperCase()}
+            </span>
+          </div>
+        )}
 
         {loading && sessions.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 gap-4">

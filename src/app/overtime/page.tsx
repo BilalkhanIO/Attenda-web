@@ -1,34 +1,16 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { PageHeader, Card, Button, Badge, EmptyState, Modal, Input, SectionCard, RequestItem } from '@/components/ui';
 import { overtimeApi } from '@/lib/api';
-import { getApiError } from '@/lib/utils';
+import {
+  keys, myOvertimeRequestsQuery, pendingOvertimeRequestsQuery, overtimeSummaryQuery,
+} from '@/lib/queries';
+import type { OvertimeRequest } from '@/lib/queries';
 import { useAuth } from '@/lib/auth';
 import { Clock, CheckCircle, XCircle, TrendingUp } from 'lucide-react';
 import toast from 'react-hot-toast';
-
-interface OvertimeRequest {
-  id: string;
-  status: 'pending' | 'approved' | 'rejected';
-  requested_minutes: number;
-  reason?: string;
-  rejection_reason?: string;
-  created_at: string;
-  user?: { id: string; name: string; department?: string; avatar_url?: string };
-  attendance?: { date: string; shift?: { name: string } };
-}
-
-interface SummaryRow {
-  user_id: string;
-  name: string;
-  department?: string;
-  total_hours: number;
-  regular_hours: number;
-  overtime_hours: number;
-  regular_pay: number;
-  overtime_pay: number;
-}
 
 const STATUS_BADGE: Record<string, { label: string; color: string; bg: string }> = {
   pending:  { label: 'Pending',  color: '#f59e0b', bg: 'rgba(245,158,11,0.12)' },
@@ -48,67 +30,67 @@ function fmtDate(s: string) {
 
 export default function OvertimePage() {
   const { hasPermission } = useAuth();
+  const queryClient = useQueryClient();
   const canManage = hasPermission('overtime.manage');
-
-  const [myRequests, setMyRequests] = useState<OvertimeRequest[]>([]);
-  const [teamRequests, setTeamRequests] = useState<OvertimeRequest[]>([]);
-  const [summary, setSummary] = useState<SummaryRow[]>([]);
-  const [loading, setLoading] = useState(true);
 
   const [rejectModal, setRejectModal] = useState<{ open: boolean; id: string }>({ open: false, id: '' });
   const [rejectReason, setRejectReason] = useState('');
-  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const calls: Promise<unknown>[] = [overtimeApi.getMyRequests()];
-      if (canManage) {
-        calls.push(overtimeApi.getRequests({ status: 'pending' }));
-        calls.push(overtimeApi.getSummary());
-      }
-      const [myRes, teamRes, sumRes] = await Promise.all(calls) as any[];
-      setMyRequests(myRes?.data?.data || myRes?.data || []);
-      if (canManage) {
-        setTeamRequests(teamRes?.data?.data || teamRes?.data || []);
-        setSummary(sumRes?.data?.data || sumRes?.data || []);
-      }
-    } catch (err) {
-      toast.error(getApiError(err));
-    } finally {
-      setLoading(false);
-    }
-  }, [canManage]);
+  const myQuery      = useQuery(myOvertimeRequestsQuery());
+  const pendingQuery = useQuery({ ...pendingOvertimeRequestsQuery(), enabled: canManage });
+  const summaryQuery = useQuery({ ...overtimeSummaryQuery(), enabled: canManage });
 
-  useEffect(() => { load(); }, [load]);
+  const myRequests   = myQuery.data ?? [];
+  const teamRequests = pendingQuery.data ?? [];
+  const summary      = summaryQuery.data ?? [];
+  const loading = myQuery.isPending || (canManage && (pendingQuery.isPending || summaryQuery.isPending));
 
-  const handleApprove = async (id: string) => {
-    setActionLoading(id);
-    try {
-      await overtimeApi.approveRequest(id);
-      toast.success('Overtime approved');
-      load();
-    } catch (err) {
-      toast.error(getApiError(err));
-    } finally {
-      setActionLoading(null);
-    }
+  // Optimistic status flip shared by approve/reject: the row updates
+  // instantly, rolls back on failure, and the list re-syncs afterwards.
+  const reviewOvertime = (status: 'approved' | 'rejected') =>
+    async (vars: { id: string; reason?: string }) => {
+      await queryClient.cancelQueries({ queryKey: keys.overtime.pending() });
+      const previous = queryClient.getQueryData<OvertimeRequest[]>(keys.overtime.pending());
+      queryClient.setQueryData<OvertimeRequest[]>(keys.overtime.pending(), old =>
+        (old ?? []).map(r => r.id === vars.id ? { ...r, status } : r));
+      return { previous };
+    };
+  const rollback = (_e: unknown, _v: unknown, ctx?: { previous?: OvertimeRequest[] }) => {
+    if (ctx?.previous) queryClient.setQueryData(keys.overtime.pending(), ctx.previous);
+  };
+  const resync = () => {
+    queryClient.invalidateQueries({ queryKey: keys.overtime.all });
+    // Keep the unified Approvals inbox in sync
+    queryClient.invalidateQueries({ queryKey: ['approvals', 'overtime'] });
   };
 
-  const handleReject = async () => {
-    if (!rejectReason.trim()) { toast.error('Rejection reason required'); return; }
-    setActionLoading(rejectModal.id);
-    try {
-      await overtimeApi.rejectRequest(rejectModal.id, rejectReason);
+  const approveMutation = useMutation({
+    mutationFn: (vars: { id: string }) => overtimeApi.approveRequest(vars.id),
+    onMutate: reviewOvertime('approved'),
+    onError: rollback,
+    onSettled: resync,
+    onSuccess: () => toast.success('Overtime approved'),
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: (vars: { id: string; reason: string }) => overtimeApi.rejectRequest(vars.id, vars.reason),
+    onMutate: reviewOvertime('rejected'),
+    onError: rollback,
+    onSettled: resync,
+    onSuccess: () => {
       toast.success('Overtime rejected');
       setRejectModal({ open: false, id: '' });
       setRejectReason('');
-      load();
-    } catch (err) {
-      toast.error(getApiError(err));
-    } finally {
-      setActionLoading(null);
-    }
+    },
+  });
+
+  const actionLoading = (id: string) =>
+    (approveMutation.isPending && approveMutation.variables?.id === id) ||
+    (rejectMutation.isPending && rejectMutation.variables?.id === id);
+
+  const handleReject = () => {
+    if (!rejectReason.trim()) { toast.error('Rejection reason required'); return; }
+    rejectMutation.mutate({ id: rejectModal.id, reason: rejectReason });
   };
 
   const buildRequestItem = (req: OvertimeRequest, showUser: boolean) => {
@@ -129,8 +111,8 @@ export default function OvertimePage() {
         primary={primary}
         primaryColor="#f59e0b"
         secondary={secondary}
-        loading={actionLoading === req.id}
-        onApprove={showUser && req.status === 'pending' ? () => handleApprove(req.id) : undefined}
+        loading={actionLoading(req.id)}
+        onApprove={showUser && req.status === 'pending' ? () => approveMutation.mutate({ id: req.id }) : undefined}
         onReject={showUser && req.status === 'pending' ? () => { setRejectModal({ open: true, id: req.id }); setRejectReason(''); } : undefined}
         actions={!(showUser && req.status === 'pending') ? statusActions : undefined}
       />
@@ -260,7 +242,7 @@ export default function OvertimePage() {
             <Button variant="ghost" size="sm" onClick={() => setRejectModal({ open: false, id: '' })}>Cancel</Button>
             <Button
               variant="danger" size="sm"
-              loading={actionLoading === rejectModal.id}
+              loading={rejectMutation.isPending}
               onClick={handleReject}
               icon={<XCircle size={14} />}
             >

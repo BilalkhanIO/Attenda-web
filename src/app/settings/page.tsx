@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { PageHeader, Card, Button, Input, Modal, ConfirmDialog } from '@/components/ui';
 import DepartmentsCard from '@/components/settings/DepartmentsCard';
+import AuditLogCard from '@/components/settings/AuditLogCard';
 import { orgApi, attendanceApi } from '@/lib/api';
 import { getApiError } from '@/lib/utils';
 import {
@@ -480,6 +481,9 @@ export default function SettingsPage() {
 
       {/* ── Departments ───────────────────────────────── */}
       <DepartmentsCard />
+
+      {/* ── Audit Trail ───────────────────────────────── */}
+      <AuditLogCard />
 
       {/* ── Office Networks ───────────────────────────── */}
       <Card className="glass-card p-6 mb-6">
