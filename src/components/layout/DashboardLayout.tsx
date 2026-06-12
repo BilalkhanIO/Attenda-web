@@ -6,7 +6,7 @@ import { useAuth } from '@/lib/auth';
 import { cn } from '@/lib/utils';
 import {
   LayoutDashboard, Clock, Calendar, CalendarClock, Wallet, Users, TrendingUp,
-  BarChart2, Settings, LogOut, Bell, Menu, MessageSquare,
+  BarChart2, Settings, LogOut, Bell, Menu, MessageSquare, ClipboardCheck,
   ChevronDown, Home, Check, Trash2, AlarmClock
 } from 'lucide-react';
 import { Avatar } from '@/components/ui';
@@ -32,6 +32,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { label: 'Dashboard',   href: '/dashboard',           icon: <LayoutDashboard size={15} />, roles: ['super_admin', 'hr_admin', 'manager', 'employee'] },
+  { label: 'Approvals',   href: '/approvals',           icon: <ClipboardCheck size={15} />,  permission: 'leave.approve', permissionsAlt: ['overtime.manage', 'remote.approve', 'shifts.swaps.approve', 'attendance.late_notices.manage'], roles: ['super_admin', 'hr_admin', 'manager'] },
 
   { section: 'Workforce',
     label: 'Attendance',  href: '/attendance',           icon: <Clock size={15} />,        feature: 'attendance',         permission: 'attendance.view_team', roles: ['super_admin', 'hr_admin', 'manager'] },

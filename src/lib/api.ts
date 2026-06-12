@@ -262,8 +262,8 @@ export const shiftsApi = {
     apiClient.post(`/shifts/${shiftId}/breaks`, data),
   deleteBreak: (shiftId: string, breakId: string) =>
     apiClient.delete(`/shifts/${shiftId}/breaks/${breakId}`),
-  getSwapRequests: () =>
-    apiClient.get('/shifts/swaps'),
+  getSwapRequests: (params?: { status?: string }) =>
+    apiClient.get('/shifts/swaps', { params }),
   approveSwap: (id: string) =>
     apiClient.put(`/shifts/swaps/${id}/approve`),
   rejectSwap: (id: string, reason: string) =>
