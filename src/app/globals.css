@@ -109,6 +109,34 @@ body {
   to   { transform: translateY(0); opacity: 1; }
 }
 
+@keyframes logoSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes logoPulse {
+  0%, 100% { transform: scale(1); opacity: 0.1; }
+  50%      { transform: scale(1.1); opacity: 0.2; }
+}
+
+.animate-logo-spin-slow {
+  animation: logoSpin 12s linear infinite;
+  transform-origin: center;
+  transform-box: view-box;
+}
+
+.animate-logo-spin-fast {
+  animation: logoSpin 2s linear infinite;
+  transform-origin: center;
+  transform-box: view-box;
+}
+
+.animate-logo-pulse {
+  animation: logoPulse 4s ease-in-out infinite;
+  transform-origin: center;
+  transform-box: view-box;
+}
+
 .modal-animate    { animation: modalIn 0.2s ease-out forwards; }
 .backdrop-animate { animation: backdropIn 0.15s ease-out forwards; }
 .slide-in-right   { animation: slideInRight 0.25s ease-out forwards; }
