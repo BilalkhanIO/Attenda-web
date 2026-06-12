@@ -1,5 +1,8 @@
 import { queryOptions } from '@tanstack/react-query';
-import { attendanceApi, leaveApi, overtimeApi, remoteApi, shiftsApi, usersApi, orgApi } from './api';
+import {
+  attendanceApi, leaveApi, overtimeApi, remoteApi, shiftsApi,
+  usersApi, orgApi, performanceApi
+} from './api';
 import type { AttendanceRecord, LeaveRequest, SwapRequest, User } from '@/types';
 
 /**
@@ -42,6 +45,12 @@ export const keys = {
   org: {
     all: ['org'] as const,
     departments: () => [...keys.org.all, 'departments'] as const,
+  },
+  performance: {
+    all: ['performance'] as const,
+    goals: () => [...keys.performance.all, 'goals'] as const,
+    reviews: (params: { month?: string }) => [...keys.performance.all, 'reviews', params] as const,
+    insights: (userId: string) => [...keys.performance.all, 'insights', userId] as const,
   },
 };
 
@@ -280,4 +289,55 @@ export const departmentsQuery = () =>
     staleTime: 5 * 60_000,
     queryFn: async (): Promise<string[]> =>
       (await orgApi.getDepartments()).data.data ?? [],
+  });
+
+// ─── Performance ──────────────────────────────────────
+
+export interface PerformanceGoal {
+  id: string;
+  user_id: string;
+  review_id?: string;
+  title: string;
+  description?: string;
+  weight: number;
+  target_date?: string;
+  due_date?: string; // some variants use this
+  completion: number;
+  progress?: number; // legacy alias
+  status?: string;
+  user?: { id: string; name: string; department?: string; avatar_url?: string };
+}
+
+export interface PerformanceReview {
+  id: string;
+  user_id: string;
+  user?: { id: string; name: string; department?: string; avatar_url?: string };
+  reviewer_id?: string;
+  reviewer?: { id: string; name: string };
+  score: number;
+  comments: string;
+  month: string;
+  submitted_at: string | null;
+}
+
+export const performanceGoalsQuery = () =>
+  queryOptions({
+    queryKey: keys.performance.goals(),
+    queryFn: async (): Promise<PerformanceGoal[]> =>
+      (await performanceApi.getGoals()).data.data ?? [],
+  });
+
+export const performanceReviewsQuery = (params: { month?: string }) =>
+  queryOptions({
+    queryKey: keys.performance.reviews(params),
+    queryFn: async (): Promise<PerformanceReview[]> =>
+      (await performanceApi.getReviews(params)).data.data ?? [],
+  });
+
+export const performanceInsightsQuery = (userId: string) =>
+  queryOptions({
+    queryKey: keys.performance.insights(userId),
+    enabled: !!userId,
+    queryFn: async (): Promise<string> =>
+      (await performanceApi.getInsights(userId)).data.data?.insights ?? '',
   });
