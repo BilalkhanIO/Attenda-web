@@ -150,7 +150,7 @@ export const authApi = {
 
 // ─── USERS ────────────────────────────────────────────
 export const usersApi = {
-  getAll: (params?: { page?: number; limit?: number; department?: string; role?: string; status?: string }) =>
+  getAll: (params?: { page?: number; limit?: number; department?: string; role?: string; status?: string; search?: string }) =>
     apiClient.get('/users', { params }),
   getOne: (id: string) =>
     apiClient.get(`/users/${id}`),
