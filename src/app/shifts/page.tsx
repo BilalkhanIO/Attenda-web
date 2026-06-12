@@ -7,6 +7,7 @@ import {
   Badge, Avatar, EmptyState, Table, Textarea,
   StatBox, SectionCard, RequestItem, Dropdown, TimePicker,
 } from '@/components/ui';
+import Link from 'next/link';
 import type { DropdownOption } from '@/components/ui';
 import { shiftsApi, usersApi } from '@/lib/api';
 import { getApiError } from '@/lib/utils';
@@ -95,7 +96,7 @@ function ToggleRow({ label, description, checked, onChange }: {
   );
 }
 
-const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat', 'Sun'];
 const SHIFT_COLORS = ['#00C896', '#00E5FF', '#8B5CF6', '#F59E0B', '#EF4444', '#10B981'];
 const defaultShiftForm: ShiftForm = {
   active_days: [], color: '#00C896', name: '', start_time: '', end_time: '',
@@ -298,7 +299,6 @@ function BreakCard({ b, deleting, onDelete }: { b: ShiftBreak; deleting: boolean
       <div className="flex items-center gap-2 flex-shrink-0 ml-3">
         <Badge label={isFixed ? 'FIXED' : 'FLEX'} color={isFixed ? 'var(--primary-400)' : 'var(--on-glass-dim)'} bg={isFixed ? 'rgba(99,102,241,0.18)' : '#1e2533'} size="sm" />
         {b.is_paid && <Badge label="PAID" color="#10b981" bg="rgba(16,185,129,0.12)" size="sm" />}
-        {b.auto_start && <Badge label="AUTO" color="#f59e0b" bg="rgba(245,158,11,0.12)" size="sm" />}
         <button
           type="button"
           onClick={onDelete}
@@ -349,68 +349,61 @@ function BreakForm({
   );
 
   return (
-    <div className="bg-[var(--glass-10)] border border-[var(--glass-border)] rounded-2xl p-5 space-y-5 slide-in-bottom">
+    <div className="bg-[var(--glass-10)] border border-[var(--glass-border)] rounded-2xl p-4 space-y-4 slide-in-bottom">
       <p className="text-[10px] font-black text-[var(--primary-600)] uppercase tracking-widest">New Break</p>
 
       {/* Name */}
       <Input
         label="Break Name"
+        size="sm"
         value={form.name}
         onChange={e => setField('name', e.target.value)}
-        placeholder="e.g. Lunch, Tea Break, Prayer"
+        placeholder="e.g. Lunch"
       />
 
       {/* Type */}
-      <div>
-        <p className="text-[10px] font-black text-[var(--on-glass-muted)] uppercase tracking-widest mb-2">Type</p>
-        <div className="grid grid-cols-2 gap-2">
-          {(['fixed', 'flexible'] as const).map(kind => (
-            <button
-              key={kind}
-              type="button"
-              onClick={() => setField('break_kind', kind)}
-              className={cn(
-                'py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-colors',
-                form.break_kind === kind
-                  ? 'bg-[var(--primary-600)] text-white border-transparent'
-                  : 'bg-white/5 text-[var(--on-glass-muted)] border-white/10 hover:border-white/20',
-              )}
-            >
-              {kind === 'fixed' ? 'Fixed Window' : 'Flexible'}
-            </button>
-          ))}
-        </div>
-        <p className="text-[10px] text-[var(--on-glass-dim)] mt-1.5">
-          {isFixed ? 'Break must happen between set wall-clock times (e.g. 13:00 – 14:00).' : 'Employee takes a break of set duration at any time after check-in.'}
-        </p>
+      <div className="grid grid-cols-2 gap-2">
+        {(['fixed', 'flexible'] as const).map(kind => (
+          <button
+            key={kind}
+            type="button"
+            onClick={() => setField('break_kind', kind)}
+            className={cn(
+              'py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-colors',
+              form.break_kind === kind
+                ? 'bg-[var(--primary-600)] text-white border-transparent'
+                : 'bg-white/5 text-[var(--on-glass-muted)] border-white/10 hover:border-white/20',
+            )}
+          >
+            {kind === 'fixed' ? 'Fixed' : 'Flexible'}
+          </button>
+        ))}
       </div>
 
       {/* Time / duration inputs */}
       {isFixed ? (
         <div className="grid grid-cols-2 gap-3">
-          <Input label="Window Start" type="time" value={form.start_time} onChange={e => setField('start_time', e.target.value)} />
-          <Input label="Window End" type="time" value={form.end_time} onChange={e => setField('end_time', e.target.value)} />
+          <Input label="Start" type="time" value={form.start_time} onChange={e => setField('start_time', e.target.value)} />
+          <Input label="End" type="time" value={form.end_time} onChange={e => setField('end_time', e.target.value)} />
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3">
-          <Input label="Duration (min)" type="number" min={1} value={form.duration_minutes} onChange={e => setField('duration_minutes', Number(e.target.value))} />
-          <Input label="Max per shift" type="number" min={1} value={form.allowed_count_per_shift} onChange={e => setField('allowed_count_per_shift', Number(e.target.value))} />
+          <Input label="Duration (m)" type="number" min={1} value={form.duration_minutes} onChange={e => setField('duration_minutes', Number(e.target.value))} />
+          <Input label="Max/Shift" type="number" min={1} value={form.allowed_count_per_shift} onChange={e => setField('allowed_count_per_shift', Number(e.target.value))} />
         </div>
       )}
 
       {/* Days */}
       <div>
-        <p className="text-[10px] font-black text-[var(--on-glass-muted)] uppercase tracking-widest mb-2">
-          Applies Days <span className="font-normal normal-case text-[var(--on-glass-dim)]">(empty = every shift day)</span>
-        </p>
-        <div className="flex gap-1.5">
+        <p className="text-[10px] font-black text-[var(--on-glass-muted)] uppercase tracking-widest mb-2">Days</p>
+        <div className="flex gap-1">
           {DAYS.map((d, i) => (
             <button
               key={d}
               type="button"
               onClick={() => toggleDay(i)}
               className={cn(
-                'w-8 h-8 rounded-lg text-[9px] font-black uppercase transition-colors',
+                'w-7 h-7 rounded-lg text-[9px] font-black uppercase transition-colors',
                 form.applies_days.includes(i) ? 'bg-[var(--primary-600)] text-white' : 'bg-white/5 text-[var(--on-glass-muted)] hover:bg-white/10',
               )}
             >
@@ -421,53 +414,21 @@ function BreakForm({
       </div>
 
       {/* Behaviour */}
-      <div className="space-y-2">
-        <p className="text-[10px] font-black text-[var(--on-glass-dim)] uppercase tracking-widest">Behaviour</p>
-        <ToggleRow
-          label="Paid Break"
-          description="Break time counts as worked hours — not deducted from net pay"
-          checked={form.is_paid}
-          onChange={() => setField('is_paid', !form.is_paid)}
-        />
-        <ToggleRow
-          label="Deduct overtime"
-          description="Time taken beyond the allowed window is unpaid"
-          checked={form.deduct_extra_time}
-          onChange={() => setField('deduct_extra_time', !form.deduct_extra_time)}
-        />
-        {isFixed && (
-          <ToggleRow
-            label="Auto-Start"
-            description="System opens the break at window start — employee taps 'I'm on it' or defers"
-            checked={form.auto_start}
-            onChange={() => setField('auto_start', !form.auto_start)}
-          />
-        )}
-      </div>
-
-      {/* Auto-start sub-settings */}
-      {isFixed && form.auto_start && (
-        <div className="space-y-2 pl-3 border-l-2 border-[var(--primary-600)]/30">
-          <Input
-            label="Remind after (mins)"
-            type="number"
-            min={1}
-            value={form.reminder_after_mins}
-            hint="How long after 'Take it later' before the reminder fires"
-            onChange={e => setField('reminder_after_mins', Math.max(1, Number(e.target.value)))}
-          />
-          <ToggleRow
-            label="Deduct if skipped"
-            description="If employee never takes this break, deduct the time from net hours at checkout"
-            checked={form.deduct_if_skipped}
-            onChange={() => setField('deduct_if_skipped', !form.deduct_if_skipped)}
-          />
+      <div className="grid grid-cols-2 gap-x-6 gap-y-3 p-4 rounded-xl bg-white/5 border border-white/5">
+        <ToggleRow label="Paid Break" checked={form.is_paid} onChange={() => setField('is_paid', !form.is_paid)} />
+        <ToggleRow label="Paid within limit" checked={form.paid_within_limit} onChange={() => setField('paid_within_limit', !form.paid_within_limit)} />
+        <ToggleRow label="Deduct Extra Time" checked={form.deduct_extra_time} onChange={() => setField('deduct_extra_time', !form.deduct_extra_time)} />
+        <ToggleRow label="Auto-Start" checked={form.auto_start} onChange={() => setField('auto_start', !form.auto_start)} />
+        <ToggleRow label="Deduct if skipped" checked={form.deduct_if_skipped} onChange={() => setField('deduct_if_skipped', !form.deduct_if_skipped)} />
+        <div className="flex flex-col gap-1">
+          <label className="text-[10px] font-black text-[var(--on-glass-muted)] uppercase tracking-widest">Reminder (mins)</label>
+          <input type="number" className="bg-[var(--glass-10)] border border-[var(--glass-border)] rounded-lg px-2 py-1 text-xs text-white" value={form.reminder_after_mins} onChange={e => setField('reminder_after_mins', Number(e.target.value))} />
         </div>
-      )}
+      </div>
 
       <div className="flex gap-3 justify-end pt-1">
         <Button variant="ghost" size="sm" onClick={onCancel}>Cancel</Button>
-        <Button size="sm" loading={saving} onClick={onSave}>Add Break</Button>
+        <Button size="sm" loading={saving} onClick={onSave}>Add</Button>
       </div>
     </div>
   );
@@ -505,7 +466,12 @@ function BreaksPanel({ shift }: { shift: Shift }) {
     if (form.break_kind === 'fixed' && form.start_time >= form.end_time) { toast.error('End time must be after start time'); return; }
     setSaving(true);
     try {
-      await shiftsApi.addBreak(shift.id, form);
+      await shiftsApi.addBreak(shift.id, {
+        ...form,
+        break_minutes: form.duration_minutes,
+        break_start_time: form.start_time,
+        break_end_time: form.end_time,
+      });
       toast.success('Break added');
       setAdding(false);
       setFormState(EMPTY_BREAK);
@@ -798,21 +764,22 @@ export default function ShiftsPage() {
         title="Shift Scheduling"
         subtitle="Manage weekly schedules and shift templates"
         actions={
-          <div className="flex gap-4">
+          <div className="flex gap-2">
             {hasPermission('shifts.ai_schedule') && (
               <Button variant="ghost" size="sm" icon={<Sparkles size={14} />} onClick={() => setAiOpen(true)}>
-                AI Schedule
+                AI
               </Button>
             )}
             {hasPermission('shifts.manage') && (
-              <Button variant="outline" size="sm" icon={<Plus size={14} />}
-                onClick={() => { form.reset(defaultShiftForm); setAddShiftOpen(true); }}>
-                New Template
-              </Button>
+              <Link href="/shifts/templates">
+                <Button variant="outline" size="sm" icon={<Edit2 size={14} />}>
+                  Templates
+                </Button>
+              </Link>
             )}
             {hasPermission('shifts.assign') && (
               <Button size="sm" icon={<Send size={14} />} onClick={() => setPublishConfirm(true)}>
-                Publish Schedule
+                Publish
               </Button>
             )}
           </div>
@@ -910,40 +877,45 @@ export default function ShiftsPage() {
                   </div>
                   {weekDays.map(day => {
                     const dayAssignments = getAssignmentsForDay(day).filter(a => a.shift_id === shift.id);
-                    const isActiveDay = shift.active_days?.includes(day.getDay());
+                    // day.getDay() is 0 for Sunday, 1 for Monday...
+                    // Our DAYS array and active_days use 0 for Monday, 6 for Sunday.
+                    const dayIdx = (day.getDay() + 6) % 7;
+                    const isActiveDay = shift.active_days?.includes(dayIdx);
                     return (
                       <div key={`${shift.id}-${day.toISOString()}`}
                         className={cn(
-                          "py-3 px-3 border-t border-r border-[var(--glass-border)] min-h-[96px] transition-all",
+                          "py-2 px-2 border-t border-r border-[var(--glass-border)] min-h-[80px] transition-all",
                           !isActiveDay ? "bg-black/20" : "hover:bg-[var(--glass-05)]"
                         )}>
-                        {dayAssignments.map(a => a.user && (
-                          <div key={a.id}
-                            className="mb-2 pl-3 pr-1.5 py-1.5 rounded-xl text-white text-[11px] font-black uppercase tracking-tight shadow-xl border border-white/10 flex items-center gap-1 group/chip"
-                            style={{ backgroundColor: shift.color }}>
-                            <span className="truncate flex-1">{a.user.name.split(' ')[0]}</span>
-                            {hasPermission('shifts.assign') && (
-                              <button
-                                onClick={(e) => { e.stopPropagation(); onRemoveAssignment(a.id); }}
-                                disabled={removingAssignId === a.id}
-                                title="Remove assignment"
-                                className="w-4 h-4 rounded flex items-center justify-center hover:bg-white/20 transition-all opacity-0 group-hover/chip:opacity-100 flex-shrink-0 disabled:cursor-not-allowed"
-                              >
-                                {removingAssignId === a.id ? (
-                                  <span className="block w-2 h-2 border border-white/60 border-t-transparent rounded-full animate-spin" />
-                                ) : (
-                                  <X size={9} />
-                                )}
-                              </button>
-                            )}
-                          </div>
-                        ))}
+                        <div className="space-y-1">
+                          {dayAssignments.map(a => a.user && (
+                            <div key={a.id}
+                              className="pl-2 pr-1 py-1 rounded-lg text-white text-[10px] font-black uppercase tracking-tight shadow-md border border-white/5 flex items-center gap-1 group/chip"
+                              style={{ backgroundColor: shift.color }}>
+                              <span className="truncate flex-1">{a.user.name.split(' ')[0]}</span>
+                              {hasPermission('shifts.assign') && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); onRemoveAssignment(a.id); }}
+                                  disabled={removingAssignId === a.id}
+                                  title="Remove assignment"
+                                  className="w-4 h-4 rounded flex items-center justify-center hover:bg-white/20 transition-all opacity-0 group-hover/chip:opacity-100 flex-shrink-0 disabled:cursor-not-allowed"
+                                >
+                                  {removingAssignId === a.id ? (
+                                    <span className="block w-2 h-2 border border-white/60 border-t-transparent rounded-full animate-spin" />
+                                  ) : (
+                                    <X size={8} />
+                                  )}
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
                         {isActiveDay && hasPermission('shifts.assign') && (
                           <button
                             onClick={() => { setAssignUserIds([]); setAssignModal({ shiftId: shift.id, date: day }); }}
-                            className="w-full mt-1 border border-dashed border-[var(--glass-border)] text-[9px] font-black text-[var(--on-glass-dim)] hover:text-[var(--primary-600)] hover:border-[var(--primary-600)]/50 rounded-xl py-2 transition-all uppercase tracking-widest"
+                            className="w-full mt-1 border border-dashed border-[var(--glass-border)] text-[8px] font-black text-[var(--on-glass-dim)] hover:text-[var(--primary-600)] hover:border-[var(--primary-600)]/50 rounded-lg py-1 transition-all uppercase tracking-widest"
                           >
-                            + Add
+                            +
                           </button>
                         )}
                       </div>
@@ -1023,24 +995,34 @@ export default function ShiftsPage() {
         footer={
           <>
             <Button variant="ghost" onClick={() => { setAssignModal(null); setAssignUserIds([]); }}>Cancel</Button>
-            <Button loading={assigning} onClick={onAssignShift}>
-              {assignUserIds.length > 1 ? `Assign ${assignUserIds.length} Employees` : 'Assign'}
+            <Button loading={assigning} onClick={onAssignShift} size="sm">
+              {assignUserIds.length > 1 ? `Assign ${assignUserIds.length}` : 'Assign'}
             </Button>
           </>
         }
       >
         {assignModal && (
-          <div className="space-y-5">
-            <div className="p-4 rounded-2xl bg-[var(--glass-05)] border border-[var(--glass-border)]">
-               <p className="text-[10px] font-black text-[var(--on-glass-dim)] uppercase tracking-widest mb-1">Date</p>
-               <p className="text-sm font-black text-white uppercase">{format(assignModal.date, 'EEEE, MMM d')}</p>
-               <p className="text-xs font-bold text-[var(--primary-600)] uppercase mt-2 tracking-widest">{shifts.find(s => s.id === assignModal.shiftId)?.name}</p>
+          <div className="space-y-4">
+            <div className="p-3 rounded-xl bg-[var(--glass-05)] border border-[var(--glass-border)]">
+               <div className="flex justify-between items-center">
+                  <div>
+                    <p className="text-[10px] font-black text-[var(--on-glass-dim)] uppercase tracking-widest">Date</p>
+                    <p className="text-xs font-black text-white uppercase">{format(assignModal.date, 'EEE, MMM d')}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] font-black text-[var(--on-glass-dim)] uppercase tracking-widest">Shift</p>
+                    <p className="text-xs font-black text-[var(--primary-600)] uppercase tracking-tight">{shifts.find(s => s.id === assignModal.shiftId)?.name}</p>
+                  </div>
+               </div>
             </div>
             <div>
-              <p className="text-[10px] font-black text-[var(--on-glass-dim)] uppercase tracking-widest mb-2">
-                Employees {assignUserIds.length > 0 && <span className="text-[var(--primary-600)]">· {assignUserIds.length} selected</span>}
-              </p>
-              <div className="space-y-1 max-h-56 overflow-y-auto custom-scrollbar pr-1">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[10px] font-black text-[var(--on-glass-dim)] uppercase tracking-widest">
+                  Employees
+                </p>
+                {assignUserIds.length > 0 && <span className="text-[10px] font-black text-[var(--primary-600)] uppercase">{assignUserIds.length} Selected</span>}
+              </div>
+              <div className="space-y-1 max-h-60 overflow-y-auto custom-scrollbar pr-1">
                 {users.map(u => {
                   const checked = assignUserIds.includes(u.id);
                   return (
@@ -1051,19 +1033,19 @@ export default function ShiftsPage() {
                         checked ? prev.filter(id => id !== u.id) : [...prev, u.id]
                       )}
                       className={cn(
-                        'w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-all text-left',
+                        'w-full flex items-center gap-2.5 px-3 py-2 rounded-xl border transition-all text-left',
                         checked
                           ? 'bg-[var(--primary-600)]/10 border-[var(--primary-600)]/40 text-white'
                           : 'bg-[var(--glass-05)] border-[var(--glass-border)] text-[var(--on-glass-muted)] hover:bg-[var(--glass-10)] hover:text-white'
                       )}
                     >
-                      <span className={cn(
-                        'w-4 h-4 rounded flex items-center justify-center border flex-shrink-0 transition-all',
+                      <div className={cn(
+                        'w-4 h-4 rounded-md flex items-center justify-center border flex-shrink-0 transition-all',
                         checked ? 'bg-[var(--primary-600)] border-[var(--primary-600)]' : 'border-[var(--glass-border)]'
                       )}>
                         {checked && <Check size={10} className="text-white" />}
-                      </span>
-                      <span className="text-sm font-bold truncate">{u.name}</span>
+                      </div>
+                      <span className="text-[13px] font-bold truncate">{u.name}</span>
                     </button>
                   );
                 })}
@@ -1078,81 +1060,75 @@ export default function ShiftsPage() {
         isOpen={aiOpen}
         onClose={() => { setAiOpen(false); setAiPrompt(''); setAiPlan([]); setAiSummary(''); setAiWarnings([]); }}
         title="AI Shift Scheduling"
-        size="xl"
+        size="lg"
         footer={
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" onClick={() => { setAiOpen(false); setAiPrompt(''); setAiPlan([]); setAiSummary(''); setAiWarnings([]); }}>
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="sm" onClick={() => { setAiOpen(false); setAiPrompt(''); setAiPlan([]); setAiSummary(''); setAiWarnings([]); }}>
               Close
             </Button>
             {aiPlan.length > 0 && (
-              <Button icon={<Check size={14} />} loading={aiApplying} onClick={onApplyAiPlan}>
-                Apply Plan ({aiPlan.reduce((n, e) => n + (e.dates?.length ?? 0), 0)} assignments)
+              <Button size="sm" icon={<Check size={14} />} loading={aiApplying} onClick={onApplyAiPlan}>
+                Apply Plan ({aiPlan.reduce((n, e) => n + (e.dates?.length ?? 0), 0)})
               </Button>
             )}
           </div>
         }
       >
-        <div className="space-y-6">
+        <div className="space-y-5">
           <div>
-            <label className="text-[11px] font-black text-[var(--on-glass-sub)] uppercase tracking-widest block mb-3">Describe the schedule you need</label>
-            <div className="flex gap-4">
+            <label className="text-[10px] font-black text-[var(--on-glass-sub)] uppercase tracking-widest block mb-2">Describe your requirements</label>
+            <div className="flex gap-3">
               <textarea
                 rows={2}
                 value={aiPrompt}
                 onChange={e => setAiPrompt(e.target.value)}
-                placeholder={`e.g. "Cover all 5 weekdays with at least 2 people on morning shift. Give Sarah and James consecutive days off."`}
-                className="flex-1 rounded-[1.5rem] bg-[var(--glass-10)] border border-[var(--glass-border)] px-5 py-4 text-sm text-white placeholder:text-[var(--on-glass-dim)] outline-none focus:border-[var(--primary-600)] focus:ring-4 focus:ring-[var(--primary-600)]/10 transition-all font-medium resize-none"
+                placeholder={`e.g. "Cover all 5 weekdays with 2 people per shift."`}
+                className="flex-1 rounded-xl bg-[var(--glass-10)] border border-[var(--glass-border)] px-4 py-3 text-sm text-white placeholder:text-[var(--on-glass-dim)] outline-none focus:border-[var(--primary-600)] transition-all font-medium resize-none"
               />
-              <Button loading={aiLoading} onClick={onRunAiSchedule} icon={<Sparkles size={16} />}>
-                Generate
+              <Button size="sm" loading={aiLoading} onClick={onRunAiSchedule} icon={<Sparkles size={16} />}>
+                Go
               </Button>
             </div>
-            <p className="text-[10px] font-bold text-[var(--on-glass-dim)] uppercase mt-3 tracking-widest">
-              Week of {format(weekStart, 'MMM d')} &middot; {shifts.length} templates available
-            </p>
           </div>
 
           {aiSummary && (
-            <div className="p-6 bg-[var(--primary-600)]/5 border border-[var(--primary-600)]/20 rounded-[2rem] slide-in-bottom">
-              <div className="flex items-center gap-3 mb-3">
-                <Sparkles size={16} className="text-[var(--primary-600)]" />
-                <p className="text-[11px] font-black text-[var(--primary-600)] uppercase tracking-[0.2em]">Strategy Overview</p>
+            <div className="p-4 bg-[var(--primary-600)]/5 border border-[var(--primary-600)]/20 rounded-2xl">
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles size={14} className="text-[var(--primary-600)]" />
+                <p className="text-[10px] font-black text-[var(--primary-600)] uppercase tracking-widest">AI Strategy</p>
               </div>
-              <p className="text-sm font-medium text-white/80 leading-relaxed">{aiSummary}</p>
+              <p className="text-xs font-medium text-white/80 leading-relaxed">{aiSummary}</p>
             </div>
           )}
 
           {aiWarnings.length > 0 && (
-            <div className="p-5 bg-[var(--danger-500)]/5 border border-[var(--danger-500)]/20 rounded-[1.5rem]">
-              <p className="text-[10px] font-black text-[var(--danger-500)] uppercase tracking-widest mb-2 flex items-center gap-2">
-                 <AlertTriangle size={12} /> Optimization Conflicts Identified
+            <div className="p-4 bg-[var(--danger-500)]/5 border border-[var(--danger-500)]/20 rounded-2xl">
+              <p className="text-[10px] font-black text-[var(--danger-500)] uppercase tracking-widest mb-1.5 flex items-center gap-2">
+                 <AlertTriangle size={12} /> Optimization Conflicts
               </p>
-              {aiWarnings.map((w, i) => <p key={i} className="text-xs font-medium text-[var(--danger-500)]/70 mt-1">&bull; {w}</p>)}
+              {aiWarnings.map((w, i) => <p key={i} className="text-[11px] font-medium text-[var(--danger-500)]/70 mt-0.5">&bull; {w}</p>)}
             </div>
           )}
 
           {aiPlan.length > 0 && (
-            <div className="slide-in-bottom">
-              <p className="text-[11px] font-black text-white uppercase tracking-widest mb-4">Suggested Assignments ({aiPlan.length})</p>
-              <div className="space-y-3 max-h-72 overflow-y-auto custom-scrollbar pr-2">
+            <div>
+              <p className="text-[10px] font-black text-[var(--on-glass-dim)] uppercase tracking-widest mb-3">Proposed Plan</p>
+              <div className="space-y-2 max-h-60 overflow-y-auto custom-scrollbar pr-1">
                 {aiPlan.map((entry, i) => (
-                  <div key={i} className="flex items-center justify-between p-4 bg-[var(--glass-05)] border border-[var(--glass-border)] rounded-2xl">
+                  <div key={i} className="flex items-center justify-between p-3 bg-[var(--glass-05)] border border-[var(--glass-border)] rounded-xl">
                     <div>
-                      <p className="text-[13px] font-black text-white uppercase tracking-tight">{entry.user_name}</p>
-                      <p className="text-[10px] font-bold text-[var(--primary-600)] uppercase tracking-widest mt-0.5">{entry.shift_name}</p>
+                      <p className="text-xs font-black text-white uppercase truncate">{entry.user_name}</p>
+                      <p className="text-[9px] font-bold text-[var(--primary-600)] uppercase tracking-widest">{entry.shift_name}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-[10px] font-black text-[var(--on-glass-muted)] uppercase tracking-widest">{entry.dates?.length} days</p>
-                      <p className="text-[11px] font-black text-white font-mono mt-1 uppercase">
-                         {entry.dates?.slice(0,3).map((d: string) => format(new Date(d), 'EEE d')).join(', ')}{(entry.dates?.length || 0) > 3 ? '...' : ''}
+                      <p className="text-[10px] font-black text-white font-mono uppercase">
+                         {entry.dates?.slice(0,2).map((d: string) => format(new Date(d), 'EEE d')).join(', ')}{(entry.dates?.length || 0) > 2 ? '...' : ''}
                       </p>
+                      <p className="text-[9px] font-bold text-[var(--on-glass-muted)] uppercase">{entry.dates?.length} days</p>
                     </div>
                   </div>
                 ))}
               </div>
-              <p className="text-[10px] font-bold text-[var(--on-glass-dim)] uppercase text-center mt-6 tracking-widest">
-                Click <span className="text-[var(--primary-600)]">Apply Plan</span> to create all assignments at once, or assign manually from the schedule.
-              </p>
             </div>
           )}
         </div>
