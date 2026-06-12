@@ -378,6 +378,8 @@ export const orgApi = {
     apiClient.put('/org/whatsapp', data),
   testWhatsApp: () =>
     apiClient.post('/org/whatsapp/test'),
+  getAuditLogs: (params?: { page?: number; limit?: number; action?: string }) =>
+    apiClient.get('/org/audit-logs', { params }),
 };
 
 // ─── DEPARTMENTS ──────────────────────────────────────
