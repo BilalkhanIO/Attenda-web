@@ -63,17 +63,17 @@ export default function AdminPage() {
           Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-2xl" />)
         ) : (
           <>
-            <KPICard title="Active Orgs"   value={stats?.org_count ?? 0}      icon={<Building2 size={20} />}     color="#00C896" bg="#00C896" />
-            <KPICard title="Total Users"   value={stats?.user_count ?? 0}     icon={<Users size={20} />}         color="#00E5FF" bg="#00E5FF" />
-            <KPICard title="Active Today"  value={stats?.active_today ?? 0}   icon={<Activity size={20} />}      color="#a855f7" bg="#a855f7" />
-            <KPICard title="Trialing"      value={stats?.trialing_count ?? 0} icon={<Clock size={20} />}         color="#fbbf24" bg="#fbbf24" />
-            <KPICard title="Inactive"      value={stats?.inactive_count ?? 0} icon={<Users size={20} />}         color="#94a3b8" bg="#94a3b8" />
+            <KPICard title="Active Orgs"   value={stats?.org_count ?? 0}      icon={<Building2 size={18} />}     color="var(--primary-600)" bg="var(--primary-600)" />
+            <KPICard title="Total Users"   value={stats?.user_count ?? 0}     icon={<Users size={18} />}         color="var(--secondary)"   bg="var(--secondary)" />
+            <KPICard title="Active Today"  value={stats?.active_today ?? 0}   icon={<Activity size={18} />}      color="#a855f7" bg="#a855f7" />
+            <KPICard title="Trialing"      value={stats?.trialing_count ?? 0} icon={<Clock size={18} />}         color="var(--warning-500)" bg="var(--warning-500)" />
+            <KPICard title="Inactive"      value={stats?.inactive_count ?? 0} icon={<Users size={18} />}         color="#94a3b8" bg="#94a3b8" />
             <KPICard
               title="Pending"
               value={stats?.pending_count ?? 0}
-              icon={<AlertCircle size={20} />}
-              color="#fbbf24"
-              bg="#fbbf24"
+              icon={<AlertCircle size={18} />}
+              color="var(--warning-500)"
+              bg="var(--warning-500)"
               delta={stats?.pending_count ? `${stats.pending_count} awaiting` : undefined}
               deltaPositive={false}
             />
@@ -99,15 +99,15 @@ export default function AdminPage() {
       {loading ? (
         <Skeleton className="h-64 rounded-2xl" />
       ) : (
-        <Card className="overflow-hidden">
-          <div className="flex items-center justify-between px-6 py-5 border-b border-[var(--glass-border)] bg-[var(--glass-05)]">
+        <Card className="overflow-hidden border border-white/5">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--glass-border)] bg-[var(--glass-05)]">
             <div>
-              <h2 className="text-sm font-black text-white uppercase tracking-widest">Recent Organisations</h2>
-              <p className="text-xs text-[var(--on-glass-dim)] mt-0.5">{orgs.length} total</p>
+              <h2 className="text-[11px] font-black text-white uppercase tracking-[0.2em]">Recent Organisations</h2>
+              <p className="text-[10px] text-[var(--on-glass-dim)] mt-0.5 font-bold">{orgs.length} total organisations on platform</p>
             </div>
             <Link
               href="/admin/orgs"
-              className="flex items-center gap-1.5 text-xs font-bold text-[var(--on-glass-muted)] hover:text-white transition-colors"
+              className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-[var(--on-glass-muted)] hover:text-[var(--primary-600)] transition-colors"
             >
               View all <ArrowRight size={12} />
             </Link>
@@ -126,22 +126,22 @@ export default function AdminPage() {
                   <Link
                     key={org.id}
                     href={`/admin/orgs/${org.id}`}
-                    className="flex items-center gap-4 px-6 py-4 hover:bg-[var(--glass-05)] transition-all group"
+                    className="flex items-center gap-4 px-6 py-3.5 hover:bg-[var(--glass-05)] transition-all group"
                   >
-                    <div className="w-9 h-9 rounded-xl bg-[var(--glass-10)] border border-[var(--glass-border)] flex items-center justify-center flex-shrink-0">
-                      <Building2 size={16} className="text-[var(--on-glass-muted)]" />
+                    <div className="w-10 h-10 rounded-xl bg-[var(--glass-05)] border border-[var(--glass-border)] flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
+                      <Building2 size={16} className="text-[var(--on-glass-muted)] group-hover:text-[var(--primary-600)] transition-colors" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-black text-white truncate group-hover:text-[var(--primary-600)] transition-colors">{org.name}</p>
-                      <p className="text-[10px] text-[var(--on-glass-dim)] mt-0.5 font-medium uppercase tracking-wider">{org.timezone}</p>
+                      <p className="text-[10px] text-[var(--on-glass-dim)] mt-0.5 font-bold uppercase tracking-wider">{org.timezone}</p>
                     </div>
                     <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
                       <Badge label={org.plan.toUpperCase()} color={planStyle.color} bg={planStyle.bg} size="sm" />
                       <Badge label={orgSt.label} color={orgSt.color} bg={orgSt.bg} size="sm" />
                     </div>
-                    <div className="text-right flex-shrink-0 w-20">
-                      <p className="text-sm font-black text-white">{org.user_count}</p>
-                      <p className="text-[10px] text-[var(--on-glass-dim)]">{timeAgo(org.created_at)}</p>
+                    <div className="text-right flex-shrink-0 min-w-24">
+                      <p className="text-sm font-black text-white">{org.user_count} users</p>
+                      <p className="text-[10px] text-[var(--on-glass-dim)] font-bold">{timeAgo(org.created_at)}</p>
                     </div>
                   </Link>
                 );
