@@ -3,7 +3,10 @@ import {
   attendanceApi, leaveApi, overtimeApi, remoteApi, shiftsApi,
   usersApi, orgApi, performanceApi
 } from './api';
-import type { AttendanceRecord, LeaveRequest, SwapRequest, User } from '@/types';
+import type {
+  AttendanceRecord, LeaveRequest, SwapRequest, User,
+  PerformanceGoal, PerformanceReview
+} from '@/types';
 
 /**
  * Query-key factory + shared queryOptions. One place owns key shapes so
@@ -292,33 +295,6 @@ export const departmentsQuery = () =>
   });
 
 // ─── Performance ──────────────────────────────────────
-
-export interface PerformanceGoal {
-  id: string;
-  user_id: string;
-  review_id?: string;
-  title: string;
-  description?: string;
-  weight: number;
-  target_date?: string;
-  due_date?: string; // some variants use this
-  completion: number;
-  progress?: number; // legacy alias
-  status?: string;
-  user?: { id: string; name: string; department?: string; avatar_url?: string };
-}
-
-export interface PerformanceReview {
-  id: string;
-  user_id: string;
-  user?: { id: string; name: string; department?: string; avatar_url?: string };
-  reviewer_id?: string;
-  reviewer?: { id: string; name: string };
-  score: number;
-  comments: string;
-  month: string;
-  submitted_at: string | null;
-}
 
 export const performanceGoalsQuery = () =>
   queryOptions({
