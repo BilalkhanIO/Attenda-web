@@ -1,7 +1,7 @@
 import { queryOptions } from '@tanstack/react-query';
 import {
   attendanceApi, leaveApi, overtimeApi, remoteApi, shiftsApi,
-  usersApi, orgApi, performanceApi
+  usersApi, orgApi, performanceApi, orgRbacApi
 } from './api';
 import type {
   AttendanceRecord, LeaveRequest, SwapRequest, User,
@@ -48,6 +48,12 @@ export const keys = {
   org: {
     all: ['org'] as const,
     departments: () => [...keys.org.all, 'departments'] as const,
+  },
+  rbac: {
+    all: ['rbac'] as const,
+    catalog: () => [...keys.rbac.all, 'catalog'] as const,
+    roles: () => [...keys.rbac.all, 'roles'] as const,
+    userPermissions: (userId: string) => [...keys.rbac.all, 'user-permissions', userId] as const,
   },
   performance: {
     all: ['performance'] as const,
@@ -292,6 +298,64 @@ export const departmentsQuery = () =>
     staleTime: 5 * 60_000,
     queryFn: async (): Promise<string[]> =>
       (await orgApi.getDepartments()).data.data ?? [],
+  });
+
+export const orgSettingsQuery = () =>
+  queryOptions({
+    queryKey: keys.org.all,
+    queryFn: async () => (await orgApi.getSettings()).data.data,
+  });
+
+export const whatsappSettingsQuery = () =>
+  queryOptions({
+    queryKey: [...keys.org.all, 'whatsapp'],
+    queryFn: async () => (await orgApi.getWhatsAppSettings()).data.data,
+  });
+
+// ─── RBAC ─────────────────────────────────────────────
+
+export interface OrgRoleRecord {
+  id: string;
+  name: string;
+  slug: string;
+  is_system: boolean;
+  permission_keys: string[];
+  user_count: number;
+  created_at: string;
+}
+
+export interface PermissionDef {
+  key: string;
+  module: string;
+  description: string;
+}
+
+export interface UserPermissionGrant {
+  permission_key: string;
+  effect: 'allow' | 'deny';
+}
+
+export const permissionCatalogQuery = () =>
+  queryOptions({
+    queryKey: keys.rbac.catalog(),
+    staleTime: 10 * 60_000,
+    queryFn: async (): Promise<PermissionDef[]> =>
+      (await orgRbacApi.getPermissionCatalog()).data.data ?? [],
+  });
+
+export const orgRolesQuery = () =>
+  queryOptions({
+    queryKey: keys.rbac.roles(),
+    queryFn: async (): Promise<OrgRoleRecord[]> =>
+      (await orgRbacApi.getRoles()).data.data ?? [],
+  });
+
+export const userPermissionsQuery = (userId: string) =>
+  queryOptions({
+    queryKey: keys.rbac.userPermissions(userId),
+    enabled: !!userId,
+    queryFn: async (): Promise<UserPermissionGrant[]> =>
+      (await usersApi.getPermissions(userId)).data.data ?? [],
   });
 
 // ─── Performance ──────────────────────────────────────
