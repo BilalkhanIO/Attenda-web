@@ -213,28 +213,33 @@ export interface Payroll {
 }
 
 // ─── Performance ──────────────────────────────────────
-export type GoalStatus = 'active' | 'completed' | 'cancelled';
+export type GoalStatus = 'active' | 'completed' | 'cancelled' | string;
 
-export interface Goal {
+export interface PerformanceGoal {
   id: string;
   user_id: string;
+  review_id?: string;
   title: string;
-  description: string;
-  due_date: string;
-  status: GoalStatus;
-  progress: number;
+  description?: string;
+  weight: number;
+  target_date?: string;
+  due_date?: string;
+  completion: number;
+  progress?: number;
+  status?: GoalStatus;
+  user?: { id: string; name: string; department?: string; avatar_url?: string };
 }
 
 export interface PerformanceReview {
   id: string;
   user_id: string;
-  user?: Pick<User, 'id' | 'name' | 'department'>;
-  reviewer_id: string;
-  reviewer?: Pick<User, 'id' | 'name'>;
+  user?: { id: string; name: string; department?: string; avatar_url?: string };
+  reviewer_id?: string;
+  reviewer?: { id: string; name: string };
   score: number;
   comments: string;
   month: string;
-  submitted_at: string;
+  submitted_at: string | null;
 }
 
 // ─── Analytics ────────────────────────────────────────
