@@ -117,8 +117,8 @@ export default function AdminLogsPage() {
           <div className="p-4 border-t border-[var(--glass-border)] flex justify-between items-center bg-[var(--glass-05)]">
             <p className="text-xs text-[var(--on-glass-dim)]">Showing {logs.length} of {total} logs</p>
             <div className="flex gap-2">
-              <Button size="xs" variant="ghost" disabled={page === 1} onClick={() => fetchLogs(page - 1)}>Previous</Button>
-              <Button size="xs" variant="ghost" disabled={logs.length < 50} onClick={() => fetchLogs(page + 1)}>Next</Button>
+              <Button size="sm" variant="ghost" disabled={page === 1} onClick={() => fetchLogs(page - 1)}>Previous</Button>
+              <Button size="sm" variant="ghost" disabled={logs.length < 50} onClick={() => fetchLogs(page + 1)}>Next</Button>
             </div>
           </div>
         )}
