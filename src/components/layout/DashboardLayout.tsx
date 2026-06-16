@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import {
   LayoutDashboard, Clock, Calendar, CalendarClock, Wallet, Users, TrendingUp,
   BarChart2, Settings, LogOut, Bell, Menu, MessageSquare, ClipboardCheck,
-  ChevronDown, Home, Check, Trash2, AlarmClock
+  ChevronDown, Home, Check, Trash2, AlarmClock, Megaphone
 } from 'lucide-react';
 import { Avatar } from '@/components/ui';
 import AttendaLogo from '@/components/ui/AttendaLogo';
@@ -31,61 +31,47 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { label: 'Dashboard',   href: '/dashboard',           icon: <LayoutDashboard size={15} />, roles: ['super_admin', 'hr_admin', 'manager', 'employee'] },
-  { label: 'Approvals',   href: '/approvals',           icon: <ClipboardCheck size={15} />,  permission: 'leave.approve', permissionsAlt: ['overtime.manage', 'remote.approve', 'shifts.swaps.approve', 'attendance.late_notices.manage'], roles: ['super_admin', 'hr_admin', 'manager'] },
+  { label: 'Dashboard',   href: '/dashboard',           icon: <LayoutDashboard size={15} /> },
+  { label: 'Approvals',   href: '/approvals',           icon: <ClipboardCheck size={15} />,  permission: 'leave.approve', permissionsAlt: ['overtime.manage', 'remote.approve', 'shifts.swaps.approve', 'attendance.late_notices.manage'] },
 
   { section: 'Workforce',
-    label: 'Attendance',  href: '/attendance',           icon: <Clock size={15} />,        feature: 'attendance',         permission: 'attendance.view_team', roles: ['super_admin', 'hr_admin', 'manager'] },
-  { label: 'Remote',      href: '/remote',               icon: <Home size={15} />,         feature: 'remote_work',        permission: 'remote.approve',       roles: ['super_admin', 'hr_admin', 'manager'] },
-  { label: 'Leave',       href: '/leave',                icon: <Calendar size={15} />,     feature: 'leave_management',                                       roles: ['super_admin', 'hr_admin', 'manager', 'employee'] },
-  { label: 'Overtime',    href: '/overtime',             icon: <AlarmClock size={15} />,   feature: 'attendance',                                             roles: ['super_admin', 'hr_admin', 'manager', 'employee'] },
+    label: 'Attendance',  href: '/attendance',           icon: <Clock size={15} />,        feature: 'attendance',         permission: 'attendance.view_team' },
+  { label: 'Remote',      href: '/remote',               icon: <Home size={15} />,         feature: 'remote_work',        permission: 'remote.approve' },
+  { label: 'Leave',       href: '/leave',                icon: <Calendar size={15} />,     feature: 'leave_management' },
+  { label: 'Overtime',    href: '/overtime',             icon: <AlarmClock size={15} />,   feature: 'attendance' },
 
   { section: 'Scheduling',
-    label: 'Shifts',      href: '/shifts',               icon: <CalendarClock size={15} />, feature: 'shifts',            permission: 'shifts.view',          roles: ['super_admin', 'hr_admin', 'manager'] },
-  { label: 'Templates',   href: '/shifts/templates',     icon: <CalendarClock size={13} />, feature: 'shifts',            permission: 'shifts.view',          roles: ['super_admin', 'hr_admin', 'manager'], sub: true },
-  { label: 'Swaps',       href: '/shifts/swaps',         icon: <CalendarClock size={13} />, feature: 'shifts',            permission: 'shifts.view',          roles: ['super_admin', 'hr_admin', 'manager'], sub: true },
+    label: 'Shifts',      href: '/shifts',               icon: <CalendarClock size={15} />, feature: 'shifts',            permission: 'shifts.view' },
+  { label: 'Templates',   href: '/shifts/templates',     icon: <CalendarClock size={13} />, feature: 'shifts',            permission: 'shifts.view', sub: true },
+  { label: 'Swaps',       href: '/shifts/swaps',         icon: <CalendarClock size={13} />, feature: 'shifts',            permission: 'shifts.view', sub: true },
 
   { section: 'HR',
-    label: 'Payroll',     href: '/payroll',              icon: <Wallet size={15} />,        feature: 'payroll',           permission: 'payroll.view',         roles: ['super_admin', 'hr_admin'] },
-  { label: 'Employees',   href: '/employees',            icon: <Users size={15} />,                                       permission: 'employees.view',       permissionsAlt: ['employees.view_team'], roles: ['super_admin', 'hr_admin', 'manager'] },
-  { label: 'Performance', href: '/performance',          icon: <TrendingUp size={15} />,    feature: 'performance_reviews', permission: 'performance.view',   roles: ['super_admin', 'hr_admin', 'manager'] },
-  { label: 'Goals',       href: '/performance/goals',    icon: <TrendingUp size={13} />,    feature: 'performance_reviews', permission: 'performance.view',   roles: ['super_admin', 'hr_admin', 'manager'], sub: true },
+    label: 'Payroll',     href: '/payroll',              icon: <Wallet size={15} />,        feature: 'payroll',           permission: 'payroll.view' },
+  { label: 'Employees',   href: '/employees',            icon: <Users size={15} />,                                       permission: 'employees.view', permissionsAlt: ['employees.view_team'] },
+  { label: 'Performance', href: '/performance',          icon: <TrendingUp size={15} />,    feature: 'performance_reviews', permission: 'performance.view' },
+  { label: 'Announcements', href: '/settings/announcements', icon: <Megaphone size={15} />,   permission: 'org.announcements.send' },
+  { label: 'Goals',       href: '/performance/goals',    icon: <TrendingUp size={13} />,    feature: 'performance_reviews', permission: 'performance.view', sub: true },
 
   { section: 'Insights',
-    label: 'Analytics',   href: '/analytics',            icon: <BarChart2 size={15} />,                                   permission: 'analytics.view',       roles: ['super_admin', 'hr_admin'] },
-  { label: 'Reports',     href: '/analytics/reports',    icon: <BarChart2 size={13} />,                                   permission: 'analytics.view',       roles: ['super_admin', 'hr_admin'], sub: true },
-  { label: 'AI Chat',     href: '/analytics/ai',         icon: <BarChart2 size={13} />,                                   permission: 'analytics.view',       roles: ['super_admin', 'hr_admin'], sub: true },
+    label: 'Analytics',   href: '/analytics',            icon: <BarChart2 size={15} />,                                   permission: 'analytics.view' },
+  { label: 'Reports',     href: '/analytics/reports',    icon: <BarChart2 size={13} />,                                   permission: 'analytics.view', sub: true },
+  { label: 'AI Chat',     href: '/analytics/ai',         icon: <BarChart2 size={13} />,                                   permission: 'analytics.view', sub: true },
 
   { section: 'Admin',
-    label: 'WhatsApp',    href: '/settings/whatsapp',    icon: <MessageSquare size={15} />, feature: 'whatsapp',          permission: 'org.whatsapp.update',  roles: ['super_admin'] },
-  { label: 'Settings',    href: '/settings',             icon: <Settings size={15} />,                                    permission: 'org.settings.view',    roles: ['super_admin', 'hr_admin'] },
-];
+    label: 'WhatsApp',    href: '/settings/whatsapp',    icon: <MessageSquare size={15} />, feature: 'whatsapp',          permission: 'org.whatsapp.update' },
+  { label: 'Settings',    href: '/settings',             icon: <Settings size={15} />,                                    permission: 'org.settings.view' },
 
 function navItemVisible(
   item: NavItem,
-  userRole: string,
-  capabilitiesLoading: boolean,
   hasFeature: (key: string) => boolean,
   hasPermission: (key: string) => boolean,
-  hasRole: (...roles: AuthRole[]) => boolean,
 ): boolean {
-  const roleFallback = item.roles?.length
-    ? item.roles.some(r => hasRole(r as AuthRole))
-    : true;
-
-  if (capabilitiesLoading && item.roles?.length) {
-    return item.roles.includes(userRole);
-  }
-
   if (item.feature && !hasFeature(item.feature)) return false;
-
   if (item.permission) {
     const permKeys = [item.permission, ...(item.permissionsAlt ?? [])];
-    if (permKeys.some(k => hasPermission(k))) return true;
-    return roleFallback;
+    return permKeys.some(k => hasPermission(k));
   }
-
-  return roleFallback;
+  return true;
 }
 
 function timeAgo(isoStr: string): string {
@@ -128,6 +114,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [unreadCount, setUnreadCount]     = useState(0);
   const [notifsLoading, setNotifsLoading] = useState(false);
   const bellRef = useRef<HTMLDivElement>(null);
+  const profileRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (user?.role === 'platform_admin') {
@@ -136,21 +123,15 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   }, [user, router]);
 
   // SSE: subscribe to live unread count.
-  // Uses fetch-event-source instead of native EventSource so the token travels
-  // in the Authorization header (not the URL → access logs) and reconnects
-  // survive errors with capped exponential backoff. The custom fetch reads the
-  // token per attempt, so retries pick up refreshed tokens automatically.
   useEffect(() => {
     if (!user) return;
 
     const ctrl = new AbortController();
-    // Same base as the axios client — default to the Next.js /api/v1 rewrite proxy.
     const apiBase = (process.env.NEXT_PUBLIC_API_URL || '/api/v1');
     let retryMs = 1_000;
 
     fetchEventSource(`${apiBase}/notifications/stream`, {
       signal: ctrl.signal,
-      // Pause the stream while the tab is hidden; reopens on focus.
       openWhenHidden: false,
       fetch: (input, init) =>
         fetch(input, {
@@ -173,14 +154,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       onerror: () => {
         const delay = retryMs;
         retryMs = Math.min(retryMs * 2, 30_000);
-        return delay; // wait, then retry — never give up permanently
+        return delay;
       },
-    }).catch(() => { /* aborted on unmount */ });
+    }).catch(() => {});
 
     return () => ctrl.abort();
   }, [user]);
 
-  // Load notifications when bell is opened
   const loadNotifs = useCallback(async () => {
     setNotifsLoading(true);
     try {
@@ -197,11 +177,15 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     }
   }, [bellOpen, loadNotifs]);
 
-  // Close bell on outside click
+  // Handle outside clicks
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (bellRef.current && !bellRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (bellRef.current && !bellRef.current.contains(target)) {
         setBellOpen(false);
+      }
+      if (profileRef.current && !profileRef.current.contains(target)) {
+        setProfileOpen(false);
       }
     };
     document.addEventListener('mousedown', handler);
@@ -240,7 +224,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   }, []);
 
   const filteredNav = navItems.filter(item =>
-    user && navItemVisible(item, user.role, capabilitiesLoading, hasFeature, hasPermission, hasRole),
+    navItemVisible(item, hasFeature, hasPermission),
   );
 
   const roleLabel = capabilities?.org_role?.name
@@ -293,16 +277,16 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         })}
       </nav>
 
-      {/* User at bottom */}
+      {/* User at bottom (simplified for mobile drawer) */}
       {user && (
-        <div className="p-3 border-t border-[var(--glass-border)] shrink-0">
-          <div className="flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-[var(--glass-10)] transition-colors">
+        <div className="p-3 border-t border-[var(--glass-border)] shrink-0 lg:hidden">
+          <div className="flex items-center gap-2.5 px-2 py-2 rounded-lg bg-[var(--glass-05)]">
             <Avatar name={user.name} size="sm" />
             <div className="flex-1 min-w-0">
               <p className="text-[13px] font-semibold text-white truncate">{user.name}</p>
               <p className="text-[10px] text-[var(--on-glass-muted)] uppercase tracking-wider truncate">{roleLabel}</p>
             </div>
-            <button onClick={logout} className="text-[var(--on-glass-dim)] hover:text-[var(--danger-500)] transition-colors p-1 shrink-0" title="Logout">
+            <button onClick={logout} className="text-[var(--on-glass-dim)] hover:text-[var(--danger-500)] transition-colors p-1 shrink-0">
               <LogOut size={14} />
             </button>
           </div>
@@ -320,7 +304,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
       {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
-        <div className="lg:hidden fixed inset-0 z-40 flex">
+        <div className="lg:hidden fixed inset-0 z-50 flex">
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
           <aside className="relative w-48 bg-[var(--dark-800)] border-r border-[var(--glass-border)] flex flex-col z-50 slide-in-left">
             {sidebarContent}
@@ -330,11 +314,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[var(--dark-950)] relative">
-        {/* Background Mesh Effect */}
         <div className="absolute inset-0 pointer-events-none opacity-20" style={{ background: 'radial-gradient(circle at 10% 20%, var(--primary-600) 0%, transparent 40%), radial-gradient(circle at 90% 80%, var(--secondary) 0%, transparent 40%)' }} />
 
-        {/* Top Header */}
-        <header className="h-11 bg-[var(--dark-950)]/50 backdrop-blur-md border-b border-[var(--glass-border)] flex items-center justify-between px-4 shrink-0 z-10">
+        {/* Top Header - HIGH Z-INDEX TO STAY ON TOP */}
+        <header className="h-11 bg-[var(--dark-950)]/50 backdrop-blur-md border-b border-[var(--glass-border)] flex items-center justify-between px-4 shrink-0 z-30">
           <div className="flex items-center gap-4">
             <button
               className="lg:hidden text-[var(--on-glass-sub)] hover:text-white transition-colors"
@@ -366,9 +349,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               </button>
 
               {bellOpen && (
-                <div className="absolute right-0 top-11 z-30 w-80 bg-[var(--dark-800)] rounded-2xl shadow-2xl border border-[var(--glass-border)] flex flex-col max-h-100 fade-in-up overflow-hidden">
+                <div className="absolute right-0 top-11 z-50 w-80 bg-[var(--dark-800)] rounded-2xl shadow-2xl border border-[var(--glass-border)] flex flex-col max-h-100 fade-in-up overflow-hidden">
                   {/* Header */}
-                  <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--glass-border)]">
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--glass-border)] bg-[var(--glass-05)]">
                     <span className="text-xs font-bold text-white uppercase tracking-wide">
                       Notifications {unreadCount > 0 && <span className="ml-1 text-[var(--primary-600)]">({unreadCount})</span>}
                     </span>
@@ -449,7 +432,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
             {/* Profile dropdown */}
             {user && (
-              <div className="relative">
+              <div ref={profileRef} className="relative">
                 <button
                   onClick={() => setProfileOpen(!profileOpen)}
                   className="flex items-center gap-2.5 px-2 py-1.5 rounded-xl hover:bg-[var(--glass-05)] transition-all border border-transparent hover:border-[var(--glass-border)]"
@@ -459,29 +442,26 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[var(--primary-600)] border-2 border-[var(--dark-950)] rounded-full" />
                   </div>
                   <span className="hidden sm:block text-sm font-bold text-white">{user.name}</span>
-                  <ChevronDown size={14} className="text-[var(--on-glass-muted)]" />
+                  <ChevronDown size={14} className={cn('text-[var(--on-glass-muted)] transition-transform duration-300', profileOpen && 'rotate-180')} />
                 </button>
 
                 {profileOpen && (
-                  <>
-                    <div className="fixed inset-0 z-10" onClick={() => setProfileOpen(false)} />
-                    <div className="absolute right-0 top-12 z-20 w-56 bg-[var(--dark-800)] rounded-2xl shadow-2xl border border-[var(--glass-border)] py-2 fade-in-up overflow-hidden">
-                      <div className="px-5 py-4 border-b border-[var(--glass-border)] bg-[var(--glass-05)]">
-                        <p className="text-sm font-bold text-white">{user.name}</p>
-                        <p className="text-[11px] text-[var(--on-glass-muted)] mt-0.5 truncate">{user.email}</p>
-                      </div>
-                      <div className="p-1.5">
-                        <Link href="/settings/profile" onClick={() => setProfileOpen(false)}
-                          className="flex items-center gap-3 px-3.5 py-2.5 text-sm font-medium text-white hover:bg-[var(--glass-10)] rounded-xl transition-colors">
-                          <Settings size={16} className="text-[var(--on-glass-muted)]" /> Profile Settings
-                        </Link>
-                        <button onClick={logout}
-                          className="w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-bold text-[var(--danger-500)] hover:bg-[var(--danger-500)]/10 rounded-xl transition-colors mt-1">
-                          <LogOut size={16} /> Sign Out
-                        </button>
-                      </div>
+                  <div className="absolute right-0 top-12 z-50 w-56 bg-[var(--dark-800)] rounded-2xl shadow-2xl border border-[var(--glass-border)] py-2 fade-in-up overflow-hidden">
+                    <div className="px-5 py-4 border-b border-[var(--glass-border)] bg-[var(--glass-05)]">
+                      <p className="text-sm font-bold text-white">{user.name}</p>
+                      <p className="text-[11px] text-[var(--on-glass-muted)] mt-0.5 truncate">{user.email}</p>
                     </div>
-                  </>
+                    <div className="p-1.5">
+                      <Link href="/settings/profile" onClick={() => setProfileOpen(false)}
+                        className="flex items-center gap-3 px-3.5 py-2.5 text-sm font-medium text-white hover:bg-[var(--glass-10)] rounded-xl transition-colors">
+                        <Settings size={16} className="text-[var(--on-glass-muted)]" /> Profile Settings
+                      </Link>
+                      <button onClick={logout}
+                        className="w-full flex items-center gap-3 px-3.5 py-2.5 text-sm font-bold text-[var(--danger-500)] hover:bg-[var(--danger-500)]/10 rounded-xl transition-colors mt-1">
+                        <LogOut size={16} /> Sign Out
+                      </button>
+                    </div>
+                  </div>
                 )}
               </div>
             )}
@@ -489,7 +469,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto flex flex-col custom-scrollbar z-10">
+        <main className="flex-1 overflow-y-auto flex flex-col custom-scrollbar z-10 relative">
           <TrialBanner />
           <div className="flex-1 p-4 page-fade-in" key={pathname}>
             {children}

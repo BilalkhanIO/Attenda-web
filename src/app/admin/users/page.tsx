@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { adminApi } from '@/lib/api';
 import { getApiError } from '@/lib/utils';
 import { PageHeader, Card, Table, Button, Modal, ConfirmDialog, Input, Select, Badge, Avatar } from '@/components/ui';
-import { UserPlus, Edit, Trash2, Shield } from 'lucide-react';
+import { UserPlus, Edit, Trash2, Shield, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -21,9 +21,10 @@ const userSchema = z.object({
 type UserForm = z.infer<typeof userSchema>;
 
 export default function AdminPlatformUsersPage() {
-  const { hasPermission } = useAuth();
+  const { capabilities } = useAuth();
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
   
   const [addOpen, setAddOpen] = useState(false);
   const [editUser, setEditUser] = useState<any | null>(null);
@@ -98,7 +99,16 @@ export default function AdminPlatformUsersPage() {
     }
   };
 
-  const canManage = hasPermission('platform.users.manage');
+  const filteredUsers = useMemo(() => {
+    if (!search.trim()) return users;
+    const s = search.toLowerCase();
+    return users.filter(u => 
+      u.name.toLowerCase().includes(s) || 
+      u.email.toLowerCase().includes(s)
+    );
+  }, [users, search]);
+
+  const canManage = capabilities?.platform_permissions?.includes('platform.users.manage');
 
   const UserFormFields = ({ isEdit }: { isEdit?: boolean }) => (
     <div className="space-y-4">
@@ -119,8 +129,6 @@ export default function AdminPlatformUsersPage() {
           { value: 'platform_admin', label: 'Platform Admin (Full Access)' },
           { value: 'platform_assistant', label: 'Platform Assistant (Read-only + Assist)' }
         ]}
-        // Simplistic multiple select handling via array wrapper since our UI component might only support single select out of the box
-        // To keep it simple, we assume single select for the UI here, mapped to array
         value={form.watch('roles')?.[0] || 'platform_admin'}
         onChange={(e) => form.setValue('roles', [e.target.value])}
       />
@@ -142,11 +150,24 @@ export default function AdminPlatformUsersPage() {
       />
 
       <Card>
+        <div className="p-4 border-b border-[var(--glass-border)] bg-[var(--glass-05)]">
+          <div className="relative max-w-sm">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--on-glass-dim)]" />
+            <input 
+              type="text"
+              placeholder="Search users..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 bg-[var(--glass-05)] border border-[var(--glass-border)] rounded-xl text-xs text-white focus:outline-none focus:border-[var(--primary-600)] transition-colors"
+            />
+          </div>
+        </div>
+
         <Table
           headers={['User', 'Role(s)', 'Last Active', '']}
           loading={loading}
         >
-          {users.map((user) => (
+          {filteredUsers.map((user) => (
             <tr key={user.id} className="hover:bg-[var(--glass-05)] transition-all">
               <td className="py-4 px-6">
                 <div className="flex items-center gap-4">
@@ -196,11 +217,11 @@ export default function AdminPlatformUsersPage() {
           ))}
         </Table>
 
-        {!loading && users.length === 0 && (
+        {!loading && filteredUsers.length === 0 && (
           <div className="py-20 text-center">
             <Shield size={32} className="mx-auto text-[var(--on-glass-dim)] mb-3" />
             <p className="text-[var(--on-glass-muted)] text-sm font-medium">
-              No platform users found.
+              {search ? 'No users matching your search.' : 'No platform users found.'}
             </p>
           </div>
         )}
@@ -209,12 +230,12 @@ export default function AdminPlatformUsersPage() {
       <Modal isOpen={addOpen} onClose={() => setAddOpen(false)}
         title="Add Platform User" size="md"
         footer={
-          <>
-            <Button variant="ghost" onClick={() => setAddOpen(false)}>Cancel</Button>
-            <Button onClick={form.handleSubmit(onSubmit)} loading={form.formState.isSubmitting}>
+          <div className="flex gap-2 w-full">
+            <Button variant="ghost" className="flex-1" onClick={() => setAddOpen(false)}>Cancel</Button>
+            <Button className="flex-1" onClick={form.handleSubmit(onSubmit)} loading={form.formState.isSubmitting}>
               Create User
             </Button>
-          </>
+          </div>
         }
       >
         <UserFormFields isEdit={false} />
@@ -223,12 +244,12 @@ export default function AdminPlatformUsersPage() {
       <Modal isOpen={!!editUser} onClose={() => setEditUser(null)}
         title="Edit Platform User" size="md"
         footer={
-          <>
-            <Button variant="ghost" onClick={() => setEditUser(null)}>Cancel</Button>
-            <Button onClick={form.handleSubmit(onSubmit)} loading={form.formState.isSubmitting}>
+          <div className="flex gap-2 w-full">
+            <Button variant="ghost" className="flex-1" onClick={() => setEditUser(null)}>Cancel</Button>
+            <Button className="flex-1" onClick={form.handleSubmit(onSubmit)} loading={form.formState.isSubmitting}>
               Save Changes
             </Button>
-          </>
+          </div>
         }
       >
         <UserFormFields isEdit={true} />

@@ -492,4 +492,10 @@ export const adminApi = {
     apiClient.delete(`/admin/blog/${id}`),
   togglePublish: (id: string) =>
     apiClient.patch(`/admin/blog/${id}/publish`),
+  sendAnnouncement: (data: { title: string; body: string; target_dept_id?: string }) =>
+    apiClient.post('/performance/announcements', data),
+  broadcast: (data: { title: string; body: string; target?: 'all' | 'super_admins' }) =>
+    apiClient.post('/admin/broadcast', data),
+  getAuditLogs: (params?: { page?: number; limit?: number; org_id?: string; actor_id?: string; action?: string; entity_type?: string }) =>
+    apiClient.get('/admin/audit-logs', { params }),
 };

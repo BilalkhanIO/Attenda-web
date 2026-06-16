@@ -2,10 +2,10 @@
 import { useEffect, useState, useCallback } from 'react';
 import { adminApi } from '@/lib/api';
 import { getApiError, timeAgo } from '@/lib/utils';
-import { PageHeader, Card, Button, Badge, Skeleton, Modal, Input, ConfirmDialog } from '@/components/ui';
+import { PageHeader, Card, Button, Badge, Skeleton, Modal, ConfirmDialog } from '@/components/ui';
 import {
   Plus, Pencil, Trash2, Eye, EyeOff, RefreshCw,
-  FileText, Tag, Globe, X,
+  FileText, Tag, Globe,
 } from 'lucide-react';
 import type { BlogPost } from '@/types';
 import toast from 'react-hot-toast';
@@ -212,95 +212,89 @@ export default function AdminBlogPage() {
         variant="danger"
       />
 
-      {/* ─── Edit / Create Drawer ─── */}
-      {editing !== null && (
-        <div className="fixed inset-0 z-50 flex">
-          <div className="flex-1 bg-black/60 backdrop-blur-sm" onClick={() => setEditing(null)} />
-          <div className="w-full max-w-xl bg-[var(--dark-950)] h-full shadow-2xl flex flex-col overflow-hidden slide-in-right border-l border-[var(--glass-border)]">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--glass-border)] bg-[var(--glass-05)]">
-              <h2 className="text-sm font-bold text-white">{isNew ? 'New Post' : 'Edit Post'}</h2>
-              <button onClick={() => setEditing(null)} className="p-1.5 rounded-lg hover:bg-white/5 text-[var(--on-glass-muted)] transition-colors">
-                <X size={16} />
-              </button>
+      <Modal
+        isOpen={editing !== null}
+        onClose={() => setEditing(null)}
+        title={isNew ? 'New Post' : 'Edit Post'}
+        size="lg"
+        footer={
+          <div className="flex gap-3 w-full">
+            <Button variant="outline" className="flex-1" onClick={() => setEditing(null)}>Cancel</Button>
+            <Button className="flex-1" loading={saving} onClick={handleSave}>{isNew ? 'Create Post' : 'Save Changes'}</Button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-[var(--on-glass-muted)] mb-1.5">Title</label>
+            <input type="text" value={editing?.title || ''} onChange={e => setEditing(p => p ? ({ ...p, title: e.target.value }) : null)}
+              placeholder="Post title" className="w-full px-3 py-2 border border-[var(--glass-border)] bg-[var(--glass-05)] rounded-lg text-sm text-white focus:outline-none focus:border-[var(--primary-600)]/50" />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-[var(--on-glass-muted)] mb-1.5">Slug</label>
+            <input type="text" value={editing?.slug || ''} onChange={e => setEditing(p => p ? ({ ...p, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') }) : null)}
+              placeholder="post-url-slug" className="w-full px-3 py-2 border border-[var(--glass-border)] bg-[var(--glass-05)] rounded-lg text-sm font-mono text-white focus:outline-none focus:border-[var(--primary-600)]/50" />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-[var(--on-glass-muted)] mb-1.5">Excerpt</label>
+            <textarea rows={2} value={editing?.excerpt || ''} onChange={e => setEditing(p => p ? ({ ...p, excerpt: e.target.value }) : null)}
+              placeholder="Brief summary for listings and SEO..." className="w-full px-3 py-2 border border-[var(--glass-border)] bg-[var(--glass-05)] rounded-lg text-sm text-white focus:outline-none focus:border-[var(--primary-600)]/50 resize-none" />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-[var(--on-glass-muted)] mb-1.5">Content (Markdown)</label>
+            <textarea rows={10} value={editing?.content || ''} onChange={e => setEditing(p => p ? ({ ...p, content: e.target.value }) : null)}
+              placeholder="# Heading&#10;&#10;Your content here..." className="w-full px-3 py-2 border border-[var(--glass-border)] bg-[var(--glass-05)] rounded-lg text-sm font-mono text-white focus:outline-none focus:border-[var(--primary-600)]/50 resize-y" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-[var(--on-glass-muted)] mb-1.5">Author Name</label>
+              <input type="text" value={editing?.author_name || ''} onChange={e => setEditing(p => p ? ({ ...p, author_name: e.target.value }) : null)}
+                className="w-full px-3 py-2 border border-[var(--glass-border)] bg-[var(--glass-05)] rounded-lg text-sm text-white focus:outline-none focus:border-[var(--primary-600)]/50" />
             </div>
-            <div className="flex-1 overflow-y-auto p-5 space-y-4 custom-scrollbar">
-              {/* Tabs: Content / SEO */}
-              <div>
-                <label className="block text-xs font-semibold text-[var(--on-glass-muted)] mb-1.5">Title</label>
-                <input type="text" value={editing.title || ''} onChange={e => setEditing(p => ({ ...p, title: e.target.value }))}
-                  placeholder="Post title" className="w-full px-3 py-2 border border-[var(--glass-border)] bg-[var(--glass-05)] rounded-lg text-sm text-white focus:outline-none focus:border-[var(--primary-600)]/50" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-[var(--on-glass-muted)] mb-1.5">Slug</label>
-                <input type="text" value={editing.slug || ''} onChange={e => setEditing(p => ({ ...p, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') }))}
-                  placeholder="post-url-slug" className="w-full px-3 py-2 border border-[var(--glass-border)] bg-[var(--glass-05)] rounded-lg text-sm font-mono text-white focus:outline-none focus:border-[var(--primary-600)]/50" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-[var(--on-glass-muted)] mb-1.5">Excerpt</label>
-                <textarea rows={2} value={editing.excerpt || ''} onChange={e => setEditing(p => ({ ...p, excerpt: e.target.value }))}
-                  placeholder="Brief summary for listings and SEO..." className="w-full px-3 py-2 border border-[var(--glass-border)] bg-[var(--glass-05)] rounded-lg text-sm text-white focus:outline-none focus:border-[var(--primary-600)]/50 resize-none" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-[var(--on-glass-muted)] mb-1.5">Content (Markdown)</label>
-                <textarea rows={12} value={editing.content || ''} onChange={e => setEditing(p => ({ ...p, content: e.target.value }))}
-                  placeholder="# Heading&#10;&#10;Your content here..." className="w-full px-3 py-2 border border-[var(--glass-border)] bg-[var(--glass-05)] rounded-lg text-sm font-mono text-white focus:outline-none focus:border-[var(--primary-600)]/50 resize-y" />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--on-glass-muted)] mb-1.5">Author Name</label>
-                  <input type="text" value={editing.author_name || ''} onChange={e => setEditing(p => ({ ...p, author_name: e.target.value }))}
-                    className="w-full px-3 py-2 border border-[var(--glass-border)] bg-[var(--glass-05)] rounded-lg text-sm text-white focus:outline-none focus:border-[var(--primary-600)]/50" />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--on-glass-muted)] mb-1.5">Read Time (mins)</label>
-                  <input type="number" min="1" value={editing.read_time_mins ?? ''} onChange={e => setEditing(p => ({ ...p, read_time_mins: e.target.value ? Number(e.target.value) : null }))}
-                    className="w-full px-3 py-2 border border-[var(--glass-border)] bg-[var(--glass-05)] rounded-lg text-sm text-white focus:outline-none focus:border-[var(--primary-600)]/50" />
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-[var(--on-glass-muted)] mb-1.5">Cover Image URL</label>
-                <input type="url" value={editing.cover_image || ''} onChange={e => setEditing(p => ({ ...p, cover_image: e.target.value }))}
-                  placeholder="https://..." className="w-full px-3 py-2 border border-[var(--glass-border)] bg-[var(--glass-05)] rounded-lg text-sm text-white focus:outline-none focus:border-[var(--primary-600)]/50" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-[var(--on-glass-muted)] mb-1.5">Tags (comma-separated)</label>
-                <input type="text" value={tagsInput} onChange={e => setTagsInput(e.target.value)}
-                  placeholder="HR, attendance, workforce management" className="w-full px-3 py-2 border border-[var(--glass-border)] bg-[var(--glass-05)] rounded-lg text-sm text-white focus:outline-none focus:border-[var(--primary-600)]/50" />
-              </div>
-
-              <hr className="border-[var(--glass-border)]" />
-              <p className="text-xs font-bold text-[var(--on-glass-muted)] uppercase tracking-wide">SEO & Social</p>
-
-              <div>
-                <label className="block text-xs font-semibold text-[var(--on-glass-muted)] mb-1.5">Meta Title</label>
-                <input type="text" value={editing.meta_title || ''} onChange={e => setEditing(p => ({ ...p, meta_title: e.target.value }))}
-                  placeholder="Page title for search engines (50–60 chars)" className="w-full px-3 py-2 border border-[var(--glass-border)] bg-[var(--glass-05)] rounded-lg text-sm text-white focus:outline-none focus:border-[var(--primary-600)]/50" />
-                <p className="text-xs text-[var(--on-glass-dim)] mt-1">{(editing.meta_title || '').length}/60 chars</p>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-[var(--on-glass-muted)] mb-1.5">Meta Description</label>
-                <textarea rows={2} value={editing.meta_description || ''} onChange={e => setEditing(p => ({ ...p, meta_description: e.target.value }))}
-                  placeholder="Brief description for search result snippets (120–160 chars)" className="w-full px-3 py-2 border border-[var(--glass-border)] bg-[var(--glass-05)] rounded-lg text-sm text-white focus:outline-none focus:border-[var(--primary-600)]/50 resize-none" />
-                <p className="text-xs text-[var(--on-glass-dim)] mt-1">{(editing.meta_description || '').length}/160 chars</p>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-[var(--on-glass-muted)] mb-1.5">OG / Social Share Image URL</label>
-                <input type="url" value={editing.og_image || ''} onChange={e => setEditing(p => ({ ...p, og_image: e.target.value }))}
-                  placeholder="https://... (1200×630 recommended)" className="w-full px-3 py-2 border border-[var(--glass-border)] bg-[var(--glass-05)] rounded-lg text-sm text-white focus:outline-none focus:border-[var(--primary-600)]/50" />
-              </div>
-              <label className="flex items-center gap-2.5 cursor-pointer">
-                <input type="checkbox" checked={!!editing.is_published} onChange={e => setEditing(p => ({ ...p, is_published: e.target.checked }))}
-                  className="w-4 h-4 rounded bg-[var(--dark-800)] border-[var(--glass-border)] checked:bg-[var(--primary-600)] accent-[var(--primary-600)]" />
-                <span className="text-sm text-[var(--on-glass-sub)]">Publish immediately</span>
-              </label>
-            </div>
-            <div className="p-5 border-t border-[var(--glass-border)] flex gap-3 bg-[var(--glass-05)]">
-              <Button variant="outline" className="flex-1" onClick={() => setEditing(null)}>Cancel</Button>
-              <Button className="flex-1" loading={saving} onClick={handleSave}>{isNew ? 'Create Post' : 'Save Changes'}</Button>
+            <div>
+              <label className="block text-xs font-semibold text-[var(--on-glass-muted)] mb-1.5">Read Time (mins)</label>
+              <input type="number" min="1" value={editing?.read_time_mins ?? ''} onChange={e => setEditing(p => p ? ({ ...p, read_time_mins: e.target.value ? Number(e.target.value) : null }) : null)}
+                className="w-full px-3 py-2 border border-[var(--glass-border)] bg-[var(--glass-05)] rounded-lg text-sm text-white focus:outline-none focus:border-[var(--primary-600)]/50" />
             </div>
           </div>
+          <div>
+            <label className="block text-xs font-semibold text-[var(--on-glass-muted)] mb-1.5">Cover Image URL</label>
+            <input type="url" value={editing?.cover_image || ''} onChange={e => setEditing(p => p ? ({ ...p, cover_image: e.target.value }) : null)}
+              placeholder="https://..." className="w-full px-3 py-2 border border-[var(--glass-border)] bg-[var(--glass-05)] rounded-lg text-sm text-white focus:outline-none focus:border-[var(--primary-600)]/50" />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-[var(--on-glass-muted)] mb-1.5">Tags (comma-separated)</label>
+            <input type="text" value={tagsInput} onChange={e => setTagsInput(e.target.value)}
+              placeholder="HR, attendance, workforce management" className="w-full px-3 py-2 border border-[var(--glass-border)] bg-[var(--glass-05)] rounded-lg text-sm text-white focus:outline-none focus:border-[var(--primary-600)]/50" />
+          </div>
+
+          <hr className="border-[var(--glass-border)]" />
+          <p className="text-xs font-bold text-[var(--on-glass-muted)] uppercase tracking-wide">SEO & Social</p>
+
+          <div>
+            <label className="block text-xs font-semibold text-[var(--on-glass-muted)] mb-1.5">Meta Title</label>
+            <input type="text" value={editing?.meta_title || ''} onChange={e => setEditing(p => p ? ({ ...p, meta_title: e.target.value }) : null)}
+              placeholder="Page title for search engines (50–60 chars)" className="w-full px-3 py-2 border border-[var(--glass-border)] bg-[var(--glass-05)] rounded-lg text-sm text-white focus:outline-none focus:border-[var(--primary-600)]/50" />
+            <p className="text-xs text-[var(--on-glass-dim)] mt-1">{(editing?.meta_title || '').length}/60 chars</p>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-[var(--on-glass-muted)] mb-1.5">Meta Description</label>
+            <textarea rows={2} value={editing?.meta_description || ''} onChange={e => setEditing(p => p ? ({ ...p, meta_description: e.target.value }) : null)}
+              placeholder="Brief description for search result snippets (120–160 chars)" className="w-full px-3 py-2 border border-[var(--glass-border)] bg-[var(--glass-05)] rounded-lg text-sm text-white focus:outline-none focus:border-[var(--primary-600)]/50 resize-none" />
+            <p className="text-xs text-[var(--on-glass-dim)] mt-1">{(editing?.meta_description || '').length}/160 chars</p>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-[var(--on-glass-muted)] mb-1.5">OG / Social Share Image URL</label>
+            <input type="url" value={editing?.og_image || ''} onChange={e => setEditing(p => p ? ({ ...p, og_image: e.target.value }) : null)}
+              placeholder="https://... (1200×630 recommended)" className="w-full px-3 py-2 border border-[var(--glass-border)] bg-[var(--glass-05)] rounded-lg text-sm text-white focus:outline-none focus:border-[var(--primary-600)]/50" />
+          </div>
+          <label className="flex items-center gap-2.5 cursor-pointer">
+            <input type="checkbox" checked={!!editing?.is_published} onChange={e => setEditing(p => p ? ({ ...p, is_published: e.target.checked }) : null)}
+              className="w-4 h-4 rounded bg-[var(--dark-800)] border-[var(--glass-border)] checked:bg-[var(--primary-600)] accent-[var(--primary-600)]" />
+            <span className="text-sm text-[var(--on-glass-sub)]">Publish immediately</span>
+          </label>
         </div>
-      )}
+      </Modal>
     </>
   );
 }
