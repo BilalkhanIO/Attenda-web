@@ -39,14 +39,36 @@ interface OvertimeRequest {
   attendance?: { date: string; shift?: { name: string } };
 }
 
+interface BreakRecordLite {
+  break_type: string;
+  break_start: string;
+  break_end?: string | null;
+  duration_mins?: number | null;
+  is_paid?: boolean;
+}
+
 interface TodayStatus {
   active_break?: { break_type: string; break_start: string; break_end?: string } | null;
-  attendance?: { break_minutes?: number; break_records?: { break_type: string; break_start: string; break_end?: string; duration_mins?: number }[] } | null;
+  attendance?: { break_minutes?: number; break_records?: BreakRecordLite[] } | null;
   shift?: { breaks?: { id: string; name: string; break_kind?: string; break_minutes: number; allowed_count_per_shift?: number; is_paid?: boolean }[] } | null;
 }
 
 // ─── helpers ──────────────────────────────────────────
 const n = (v: unknown) => Number(v) || 0;
+
+function totalBreakMinutes(record?: { break_minutes?: number; break_records?: BreakRecordLite[] } | null) {
+  const breaks = record?.break_records ?? [];
+  if (breaks.length === 0) return n(record?.break_minutes);
+
+  return breaks.reduce((sum, b) => {
+    if (b.duration_mins != null) return sum + n(b.duration_mins);
+    if (!b.break_start) return sum;
+    const start = new Date(b.break_start).getTime();
+    const end = b.break_end ? new Date(b.break_end).getTime() : Date.now();
+    if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return sum;
+    return sum + Math.floor((end - start) / 60000);
+  }, 0);
+}
 
 const typeLabel: Record<string, string> = {
   auto_ip: 'Auto (WiFi)',
@@ -618,9 +640,9 @@ export default function AttendancePage() {
                  </div>
                  <div>
                     <h3 className="text-xs font-black text-white uppercase tracking-widest">Break Tracking</h3>
-                    {todayStatus?.attendance?.break_minutes != null && (
+                    {todayStatus?.attendance && totalBreakMinutes(todayStatus.attendance) > 0 && (
                       <p className="text-[10px] text-[var(--on-glass-muted)] mt-0.5">
-                        {todayStatus.attendance.break_minutes}m today
+                        {totalBreakMinutes(todayStatus.attendance)}m today
                       </p>
                     )}
                  </div>

@@ -64,6 +64,13 @@ export interface AttendanceRecord {
   auto_checked_out?: boolean;
   break_minutes?: number;
   paid_break_minutes?: number;
+  break_records?: {
+    break_type: string;
+    break_start: string;
+    break_end?: string | null;
+    duration_mins?: number | null;
+    is_paid?: boolean;
+  }[];
   is_overridden: boolean;
   override_reason?: string;
   late_notice_id?: string;

@@ -11,6 +11,20 @@ import { Users, Clock, Wifi, Calendar, AlertTriangle, RefreshCw, LogIn, LogOut }
 
 const n = (v: unknown) => Number(v) || 0;
 
+function totalBreakMinutes(record?: Pick<AttendanceRecord, 'break_minutes' | 'break_records'> | null) {
+  const breaks = record?.break_records ?? [];
+  if (breaks.length === 0) return n(record?.break_minutes);
+
+  return breaks.reduce((sum, b) => {
+    if (b.duration_mins != null) return sum + n(b.duration_mins);
+    if (!b.break_start) return sum;
+    const start = new Date(b.break_start).getTime();
+    const end = b.break_end ? new Date(b.break_end).getTime() : Date.now();
+    if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return sum;
+    return sum + Math.floor((end - start) / 60000);
+  }, 0);
+}
+
 function fmtHours(hours: number): string {
   const m = Math.round(hours * 60);
   const h = Math.floor(m / 60);
@@ -89,6 +103,7 @@ export default function DashboardPage() {
 
   if (!canViewTeam) {
     const att = myStatus?.attendance;
+    const breakMins = totalBreakMinutes(att);
     const cfg = att ? statusConfig[att.status as keyof typeof statusConfig] : null;
     const preLate = myStatus?.pre_checkin_late_minutes ?? 0;
     return (
@@ -118,7 +133,7 @@ export default function DashboardPage() {
                 icon={<LogOut size={16} />} color="var(--on-glass-muted)" bg="#94a3b8" />
               <KPICard title="Hours" value={att?.net_hours_worked != null ? fmtHours(n(att.net_hours_worked)) : '—'}
                 icon={<Clock size={16} />} color="var(--primary-500)" bg="#00C896"
-                delta={(att?.break_minutes ?? 0) > 0 ? `${att!.break_minutes}m breaks` : undefined} />
+                delta={breakMins > 0 ? `${breakMins}m breaks` : undefined} />
             </div>
             <Card className="p-5">
               <div className="flex items-center gap-2 mb-3">
@@ -336,6 +351,7 @@ export default function DashboardPage() {
       >
         {selectedEmployee && (() => {
           const cfg = statusConfig[selectedEmployee.status];
+          const breakMins = totalBreakMinutes(selectedEmployee);
           const typeLabels: Record<string, string> = {
             auto_ip: 'Auto (WiFi)',
             qr:      'QR Scan',
@@ -414,10 +430,10 @@ export default function DashboardPage() {
                     ) : null}
                   </div>
                 )}
-                {(selectedEmployee.break_minutes ?? 0) > 0 && (
+                {breakMins > 0 && (
                   <div className="flex-1 flex items-center justify-between p-3 rounded-xl bg-[var(--glass-05)] border border-[var(--glass-border)]">
                     <p className="text-[10px] font-bold text-[var(--on-glass-dim)] uppercase tracking-widest">Break</p>
-                    <p className="text-sm font-black text-white">{selectedEmployee.break_minutes}m</p>
+                    <p className="text-sm font-black text-white">{breakMins}m</p>
                   </div>
                 )}
                 {(selectedEmployee.overtime_hours ?? 0) > 0 && (
