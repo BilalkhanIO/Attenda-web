@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { adminApi } from '@/lib/api';
 import { getApiError } from '@/lib/utils';
-import { PageHeader, Card, Button, Skeleton, Badge, ConfirmDialog } from '@/components/ui';
+import { PageHeader, Card, Button, Skeleton, Badge, ConfirmDialog, Modal } from '@/components/ui';
 import { Plus, Pencil, Trash2, Check, X, Star, Tag } from 'lucide-react';
 import { FEATURE_LABELS } from '@/lib/admin-shared';
 import type { PlanDefinition } from '@/types';
@@ -85,7 +85,7 @@ export default function AdminPlansPage() {
         setPlans(prev => [...prev, res.data.data].sort((a, b) => a.sort_order - b.sort_order));
       } else {
         const res = await adminApi.updatePlanDef(form.id, form as Record<string, unknown>);
-        setPlans(prev => prev.map(p => p.id === form.id ? res.data.data : p));
+        setPlans(prev => prev.map(p => p.id === form.id ? res.data.data : p).sort((a, b) => a.sort_order - b.sort_order));
       }
       toast.success(isNew ? 'Plan created' : 'Plan updated');
       setEditing(null);
@@ -196,101 +196,93 @@ export default function AdminPlansPage() {
         variant="danger"
       />
 
-      {editing !== null && (
-        <div className="fixed inset-0 z-50 flex">
-          <div className="flex-1 bg-black/60 backdrop-blur-sm" onClick={() => setEditing(null)} />
-          <div className="w-full max-w-lg bg-[var(--dark-950)] h-full shadow-2xl flex flex-col overflow-hidden slide-in-right border-l border-[var(--glass-border)]">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--glass-border)] bg-[var(--glass-05)]">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-[var(--primary-600)]/10 flex items-center justify-center border border-[var(--primary-600)]/20">
-                  <Tag size={15} className="text-[var(--primary-600)]" />
-                </div>
-                <h2 className="text-sm font-bold text-white">{isNew ? 'New Plan' : `Edit ${form.display_name}`}</h2>
-              </div>
-              <button onClick={() => setEditing(null)} className="p-1.5 rounded-lg hover:bg-white/5 text-[var(--on-glass-muted)] transition-colors"><X size={16} /></button>
+      <Modal
+        isOpen={editing !== null}
+        onClose={() => setEditing(null)}
+        title={isNew ? 'New Plan' : `Edit ${form.display_name}`}
+        footer={
+          <div className="flex gap-3 w-full">
+            <Button variant="outline" className="flex-1" onClick={() => setEditing(null)}>Cancel</Button>
+            <Button className="flex-1" loading={saving} onClick={handleSave}>{isNew ? 'Create Plan' : 'Save Changes'}</Button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          {isNew && (
+            <div>
+              <label className="block text-xs font-semibold text-[var(--on-glass-muted)] mb-1.5">Plan ID (slug, no spaces)</label>
+              <input type="text" value={form.id} onChange={e => setForm(f => ({ ...f, id: e.target.value.toLowerCase().replace(/\s+/g, '-') }))}
+                placeholder="e.g. growth-pro"
+                className="w-full px-3 py-2 border border-[var(--glass-border)] bg-[var(--glass-05)] rounded-lg text-sm text-white focus:outline-none focus:border-[var(--primary-600)]/50" />
             </div>
-            <div className="flex-1 overflow-y-auto p-5 space-y-4 custom-scrollbar">
-              {isNew && (
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--on-glass-muted)] mb-1.5">Plan ID (slug, no spaces)</label>
-                  <input type="text" value={form.id} onChange={e => setForm(f => ({ ...f, id: e.target.value.toLowerCase().replace(/\s/g, '-') }))}
-                    placeholder="e.g. growth-pro"
-                    className="w-full px-3 py-2 border border-[var(--glass-border)] bg-[var(--glass-05)] rounded-lg text-sm text-white focus:outline-none focus:border-[var(--primary-600)]/50" />
-                </div>
-              )}
-              <div>
-                <label className="block text-xs font-semibold text-[var(--on-glass-muted)] mb-1.5">Display Name</label>
-                <input type="text" value={form.display_name} onChange={e => setForm(f => ({ ...f, display_name: e.target.value }))}
-                  placeholder="Growth Pro"
-                  className="w-full px-3 py-2 border border-[var(--glass-border)] bg-[var(--glass-05)] rounded-lg text-sm text-white focus:outline-none focus:border-[var(--primary-600)]/50" />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--on-glass-muted)] mb-1.5">Monthly Price ($)</label>
-                  <input type="number" min="0" value={form.price_monthly} onChange={e => setForm(f => ({ ...f, price_monthly: Number(e.target.value) }))}
-                    className="w-full px-3 py-2 border border-[var(--glass-border)] bg-[var(--glass-05)] rounded-lg text-sm text-white focus:outline-none focus:border-[var(--primary-600)]/50" />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--on-glass-muted)] mb-1.5">Annual Price ($)</label>
-                  <input type="number" min="0" value={form.price_annual} onChange={e => setForm(f => ({ ...f, price_annual: Number(e.target.value) }))}
-                    className="w-full px-3 py-2 border border-[var(--glass-border)] bg-[var(--glass-05)] rounded-lg text-sm text-white focus:outline-none focus:border-[var(--primary-600)]/50" />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--on-glass-muted)] mb-1.5">Max Employees (0 = unlimited)</label>
-                  <input type="number" min="0" value={form.max_employees} onChange={e => setForm(f => ({ ...f, max_employees: Number(e.target.value) }))}
-                    className="w-full px-3 py-2 border border-[var(--glass-border)] bg-[var(--glass-05)] rounded-lg text-sm text-white focus:outline-none focus:border-[var(--primary-600)]/50" />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--on-glass-muted)] mb-1.5">Trial Days</label>
-                  <input type="number" min="0" max="365" value={form.trial_days} onChange={e => setForm(f => ({ ...f, trial_days: Number(e.target.value) }))}
-                    className="w-full px-3 py-2 border border-[var(--glass-border)] bg-[var(--glass-05)] rounded-lg text-sm text-white focus:outline-none focus:border-[var(--primary-600)]/50" />
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-[var(--on-glass-muted)] mb-1.5">Description</label>
-                <textarea rows={2} value={form.description || ''} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                  className="w-full px-3 py-2 border border-[var(--glass-border)] bg-[var(--glass-05)] rounded-lg text-sm text-white focus:outline-none focus:border-[var(--primary-600)]/50 resize-none" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-[var(--on-glass-muted)] mb-1.5">Sort Order</label>
-                <input type="number" value={form.sort_order} onChange={e => setForm(f => ({ ...f, sort_order: Number(e.target.value) }))}
-                  className="w-full px-3 py-2 border border-[var(--glass-border)] bg-[var(--glass-05)] rounded-lg text-sm text-white focus:outline-none focus:border-[var(--primary-600)]/50" />
-              </div>
-              <div className="flex gap-4">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" checked={form.highlight} onChange={e => setForm(f => ({ ...f, highlight: e.target.checked }))}
-                    className="w-4 h-4 rounded bg-[var(--dark-800)] border-[var(--glass-border)] checked:bg-[var(--primary-600)] accent-[var(--primary-600)]" />
-                  <span className="text-sm text-[var(--on-glass-sub)]">Highlight (Popular)</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" checked={form.is_active} onChange={e => setForm(f => ({ ...f, is_active: e.target.checked }))}
-                    className="w-4 h-4 rounded bg-[var(--dark-800)] border-[var(--glass-border)] checked:bg-[var(--primary-600)] accent-[var(--primary-600)]" />
-                  <span className="text-sm text-[var(--on-glass-sub)]">Active</span>
-                </label>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-[var(--on-glass-muted)] mb-2">Features</label>
-                <div className="space-y-2">
-                  {Object.entries(FEATURE_LABELS).map(([key, label]) => (
-                    <label key={key} className="flex items-center gap-2.5 p-2.5 rounded-lg border border-[var(--glass-border)] bg-[var(--glass-05)] cursor-pointer hover:bg-white/5 transition-colors">
-                      <input type="checkbox" checked={!!(form.features as any)[key]}
-                        onChange={e => setForm(f => ({ ...f, features: { ...f.features as any, [key]: e.target.checked } }))}
-                        className="w-4 h-4 rounded bg-[var(--dark-800)] border-[var(--glass-border)] checked:bg-[var(--primary-600)] accent-[var(--primary-600)]" />
-                      <span className="text-sm text-[var(--on-glass-sub)]">{label}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
+          )}
+          <div>
+            <label className="block text-xs font-semibold text-[var(--on-glass-muted)] mb-1.5">Display Name</label>
+            <input type="text" value={form.display_name} onChange={e => setForm(f => ({ ...f, display_name: e.target.value }))}
+              placeholder="Growth Pro"
+              className="w-full px-3 py-2 border border-[var(--glass-border)] bg-[var(--glass-05)] rounded-lg text-sm text-white focus:outline-none focus:border-[var(--primary-600)]/50" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-[var(--on-glass-muted)] mb-1.5">Monthly Price ($)</label>
+              <input type="number" min="0" value={form.price_monthly} onChange={e => setForm(f => ({ ...f, price_monthly: Number(e.target.value) }))}
+                className="w-full px-3 py-2 border border-[var(--glass-border)] bg-[var(--glass-05)] rounded-lg text-sm text-white focus:outline-none focus:border-[var(--primary-600)]/50" />
             </div>
-            <div className="p-5 border-t border-[var(--glass-border)] flex gap-3 bg-[var(--glass-05)]">
-              <Button variant="outline" className="flex-1" onClick={() => setEditing(null)}>Cancel</Button>
-              <Button className="flex-1" loading={saving} onClick={handleSave}>{isNew ? 'Create Plan' : 'Save Changes'}</Button>
+            <div>
+              <label className="block text-xs font-semibold text-[var(--on-glass-muted)] mb-1.5">Annual Price ($)</label>
+              <input type="number" min="0" value={form.price_annual} onChange={e => setForm(f => ({ ...f, price_annual: Number(e.target.value) }))}
+                className="w-full px-3 py-2 border border-[var(--glass-border)] bg-[var(--glass-05)] rounded-lg text-sm text-white focus:outline-none focus:border-[var(--primary-600)]/50" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-[var(--on-glass-muted)] mb-1.5">Max Employees (0 = unlimited)</label>
+              <input type="number" min="0" value={form.max_employees} onChange={e => setForm(f => ({ ...f, max_employees: Number(e.target.value) }))}
+                className="w-full px-3 py-2 border border-[var(--glass-border)] bg-[var(--glass-05)] rounded-lg text-sm text-white focus:outline-none focus:border-[var(--primary-600)]/50" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-[var(--on-glass-muted)] mb-1.5">Trial Days</label>
+              <input type="number" min="0" max="365" value={form.trial_days} onChange={e => setForm(f => ({ ...f, trial_days: Number(e.target.value) }))}
+                className="w-full px-3 py-2 border border-[var(--glass-border)] bg-[var(--glass-05)] rounded-lg text-sm text-white focus:outline-none focus:border-[var(--primary-600)]/50" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-[var(--on-glass-muted)] mb-1.5">Description</label>
+            <textarea rows={2} value={form.description || ''} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+              className="w-full px-3 py-2 border border-[var(--glass-border)] bg-[var(--glass-05)] rounded-lg text-sm text-white focus:outline-none focus:border-[var(--primary-600)]/50 resize-none" />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-[var(--on-glass-muted)] mb-1.5">Sort Order</label>
+            <input type="number" value={form.sort_order} onChange={e => setForm(f => ({ ...f, sort_order: Number(e.target.value) }))}
+              className="w-full px-3 py-2 border border-[var(--glass-border)] bg-[var(--glass-05)] rounded-lg text-sm text-white focus:outline-none focus:border-[var(--primary-600)]/50" />
+          </div>
+          <div className="flex gap-4">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={form.highlight} onChange={e => setForm(f => ({ ...f, highlight: e.target.checked }))}
+                className="w-4 h-4 rounded bg-[var(--dark-800)] border-[var(--glass-border)] checked:bg-[var(--primary-600)] accent-[var(--primary-600)]" />
+              <span className="text-sm text-[var(--on-glass-sub)]">Highlight (Popular)</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={form.is_active} onChange={e => setForm(f => ({ ...f, is_active: e.target.checked }))}
+                className="w-4 h-4 rounded bg-[var(--dark-800)] border-[var(--glass-border)] checked:bg-[var(--primary-600)] accent-[var(--primary-600)]" />
+              <span className="text-sm text-[var(--on-glass-sub)]">Active</span>
+            </label>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-[var(--on-glass-muted)] mb-2">Features</label>
+            <div className="space-y-2">
+              {Object.entries(FEATURE_LABELS).map(([key, label]) => (
+                <label key={key} className="flex items-center gap-2.5 p-2.5 rounded-lg border border-[var(--glass-border)] bg-[var(--glass-05)] cursor-pointer hover:bg-white/5 transition-colors">
+                  <input type="checkbox" checked={!!(form.features as any)[key]}
+                    onChange={e => setForm(f => ({ ...f, features: { ...f.features as any, [key]: e.target.checked } }))}
+                    className="w-4 h-4 rounded bg-[var(--dark-800)] border-[var(--glass-border)] checked:bg-[var(--primary-600)] accent-[var(--primary-600)]" />
+                  <span className="text-sm text-[var(--on-glass-sub)]">{label}</span>
+                </label>
+              ))}
             </div>
           </div>
         </div>
-      )}
+      </Modal>
     </>
   );
 }

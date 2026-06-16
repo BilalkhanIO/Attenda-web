@@ -18,7 +18,7 @@ import {
 } from '@/lib/admin-shared';
 import {
   ChevronLeft, Ban, CheckCircle, Calendar, Pencil, Save, Users,
-  Activity, RefreshCw, Building2,
+  RefreshCw, Building2,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -121,7 +121,7 @@ export default function AdminOrgDetailPage() {
     loadUsers();
   }, [loadOrg, loadUsers]);
 
-  const saveOverview = async () => {
+  const saveOverview = async (): Promise<boolean> => {
     setSaving(true);
     try {
       const res = await adminApi.updateOrg(orgId, {
@@ -133,14 +133,16 @@ export default function AdminOrgDetailPage() {
       });
       setOrg(res.data.data);
       toast.success('Organisation updated');
+      return true;
     } catch (err) {
       toast.error(getApiError(err));
+      return false;
     } finally {
       setSaving(false);
     }
   };
 
-  const saveSubscription = async () => {
+  const saveSubscription = async (): Promise<boolean> => {
     setSaving(true);
     try {
       const res = await adminApi.updateSubscription(orgId, {
@@ -154,8 +156,10 @@ export default function AdminOrgDetailPage() {
       });
       setOrg(res.data.data);
       toast.success('Subscription updated');
+      return true;
     } catch (err) {
       toast.error(getApiError(err));
+      return false;
     } finally {
       setSaving(false);
     }
@@ -440,7 +444,19 @@ export default function AdminOrgDetailPage() {
       </div>
 
       {/* Edit Overview Modal */}
-      <Modal isOpen={showEditOverview} onClose={() => setShowEditOverview(false)} title="Edit Organisation Details">
+      <Modal 
+        isOpen={showEditOverview} 
+        onClose={() => setShowEditOverview(false)} 
+        title="Edit Organisation Details"
+        footer={
+          <div className="flex gap-2 w-full">
+            <Button variant="ghost" className="flex-1" onClick={() => setShowEditOverview(false)}>Cancel</Button>
+            <Button className="flex-1" loading={saving} onClick={async () => { const ok = await saveOverview(); if (ok) setShowEditOverview(false); }} icon={<Save size={14} />}>
+              Save Changes
+            </Button>
+          </div>
+        }
+      >
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="sm:col-span-2">
@@ -464,17 +480,23 @@ export default function AdminOrgDetailPage() {
               <input type="email" value={contactEmail} onChange={e => setContactEmail(e.target.value)} className={inputCls} />
             </div>
           </div>
-          <div className="pt-4 flex justify-end gap-2">
-            <Button variant="ghost" onClick={() => setShowEditOverview(false)}>Cancel</Button>
-            <Button loading={saving} onClick={async () => { await saveOverview(); setShowEditOverview(false); }} icon={<Save size={14} />}>
-              Save Changes
-            </Button>
-          </div>
         </div>
       </Modal>
 
       {/* Manage Subscription Modal */}
-      <Modal isOpen={showEditSubscription} onClose={() => setShowEditSubscription(false)} title="Manage Subscription">
+      <Modal 
+        isOpen={showEditSubscription} 
+        onClose={() => setShowEditSubscription(false)} 
+        title="Manage Subscription"
+        footer={
+          <div className="flex gap-2 w-full">
+            <Button variant="ghost" className="flex-1" onClick={() => setShowEditSubscription(false)}>Cancel</Button>
+            <Button className="flex-1" loading={saving} onClick={async () => { const ok = await saveSubscription(); if (ok) setShowEditSubscription(false); }} icon={<Save size={14} />}>
+              Save Config
+            </Button>
+          </div>
+        }
+      >
         <div className="space-y-5">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -540,18 +562,24 @@ export default function AdminOrgDetailPage() {
               Activate organisation
             </Button>
           )}
-
-          <div className="pt-4 flex justify-end gap-2">
-            <Button variant="ghost" onClick={() => setShowEditSubscription(false)}>Cancel</Button>
-            <Button loading={saving} onClick={async () => { await saveSubscription(); setShowEditSubscription(false); }} icon={<Save size={14} />}>
-              Save Config
-            </Button>
-          </div>
         </div>
       </Modal>
 
       {/* Feature Overrides Modal */}
-      <Modal isOpen={showEditFeatures} onClose={() => setShowEditFeatures(false)} title="Feature Overrides" size="lg">
+      <Modal 
+        isOpen={showEditFeatures} 
+        onClose={() => setShowEditFeatures(false)} 
+        title="Feature Overrides" 
+        size="lg"
+        footer={
+          <div className="flex gap-2 w-full">
+            <Button variant="ghost" className="flex-1" onClick={() => setShowEditFeatures(false)}>Cancel</Button>
+            <Button className="flex-1" loading={saving} onClick={async () => { const ok = await saveSubscription(); if (ok) setShowEditFeatures(false); }} icon={<Save size={14} />}>
+              Save Overrides
+            </Button>
+          </div>
+        }
+      >
         <div className="space-y-6">
           <p className="text-[11px] font-black text-[var(--on-glass-muted)] uppercase tracking-wider leading-relaxed">
             Force enable or disable specific features regardless of plan defaults.
@@ -590,12 +618,6 @@ export default function AdminOrgDetailPage() {
                 </div>
               );
             })}
-          </div>
-          <div className="pt-4 flex justify-end gap-2">
-            <Button variant="ghost" onClick={() => setShowEditFeatures(false)}>Cancel</Button>
-            <Button loading={saving} onClick={async () => { await saveSubscription(); setShowEditFeatures(false); }} icon={<Save size={14} />}>
-              Save Overrides
-            </Button>
           </div>
         </div>
       </Modal>
