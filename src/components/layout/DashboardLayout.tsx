@@ -21,7 +21,6 @@ interface NavItem {
   label: string;
   href: string;
   icon: ReactNode;
-  roles?: string[];
   permission?: string;
   permissionsAlt?: string[];
   feature?: string;
@@ -60,6 +59,7 @@ const navItems: NavItem[] = [
   { section: 'Admin',
     label: 'WhatsApp',    href: '/settings/whatsapp',    icon: <MessageSquare size={15} />, feature: 'whatsapp',          permission: 'org.whatsapp.update' },
   { label: 'Settings',    href: '/settings',             icon: <Settings size={15} />,                                    permission: 'org.settings.view' },
+];
 
 function navItemVisible(
   item: NavItem,
@@ -101,14 +101,13 @@ const NOTIF_ICONS: Record<string, string> = {
 };
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
-  const { user, logout, capabilities, capabilitiesLoading, hasFeature, hasPermission, hasRole } = useAuth();
+  const { user, logout, capabilities, hasFeature, hasPermission } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [dateStr, setDateStr] = useState('');
 
-  // Notification bell state
   const [bellOpen, setBellOpen]           = useState(false);
   const [notifs, setNotifs]               = useState<InAppNotification[]>([]);
   const [unreadCount, setUnreadCount]     = useState(0);
@@ -122,7 +121,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     }
   }, [user, router]);
 
-  // SSE: subscribe to live unread count.
   useEffect(() => {
     if (!user) return;
 
@@ -149,7 +147,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         try {
           const msg = JSON.parse(e.data);
           if (msg.type === 'count') setUnreadCount(msg.count);
-        } catch { /* ignore malformed */ }
+        } catch { /* ignore */ }
       },
       onerror: () => {
         const delay = retryMs;
@@ -177,7 +175,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     }
   }, [bellOpen, loadNotifs]);
 
-  // Handle outside clicks
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       const target = e.target as Node;
@@ -233,12 +230,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   const sidebarContent = (
     <div className="flex flex-col h-full">
-      {/* Logo */}
       <div className="h-11 flex items-center px-4 border-b border-white/10 shrink-0">
         <AttendaLogo iconSize={24} variant="dark" />
       </div>
 
-      {/* Nav */}
       <nav className="flex-1 px-2 py-3 overflow-y-auto custom-scrollbar space-y-0.5">
         {filteredNav.map((item) => {
           const isActive = item.sub
@@ -266,18 +261,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                   {item.icon}
                 </span>
                 {item.label}
-                {item.badge != null && (
-                  <span className="ml-auto bg-[var(--accent)] text-white text-[10px] font-bold rounded-full px-1.5 py-0.5 min-w-[18px] text-center">
-                    {item.badge}
-                  </span>
-                )}
               </Link>
             </div>
           );
         })}
       </nav>
 
-      {/* User at bottom (simplified for mobile drawer) */}
       {user && (
         <div className="p-3 border-t border-[var(--glass-border)] shrink-0 lg:hidden">
           <div className="flex items-center gap-2.5 px-2 py-2 rounded-lg bg-[var(--glass-05)]">
@@ -297,12 +286,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex h-screen overflow-hidden bg-[var(--dark-950)]">
-      {/* Desktop Sidebar */}
       <aside className="hidden lg:flex w-48 flex-col shrink-0 bg-[var(--dark-800)] border-r border-[var(--glass-border)]">
         {sidebarContent}
       </aside>
 
-      {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
         <div className="lg:hidden fixed inset-0 z-50 flex">
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
@@ -312,11 +299,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         </div>
       )}
 
-      {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[var(--dark-950)] relative">
         <div className="absolute inset-0 pointer-events-none opacity-20" style={{ background: 'radial-gradient(circle at 10% 20%, var(--primary-600) 0%, transparent 40%), radial-gradient(circle at 90% 80%, var(--secondary) 0%, transparent 40%)' }} />
 
-        {/* Top Header - HIGH Z-INDEX TO STAY ON TOP */}
         <header className="h-11 bg-[var(--dark-950)]/50 backdrop-blur-md border-b border-[var(--glass-border)] flex items-center justify-between px-4 shrink-0 z-30">
           <div className="flex items-center gap-4">
             <button
@@ -334,7 +319,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           </div>
 
           <div className="flex items-center gap-4">
-            {/* Notification bell */}
             <div ref={bellRef} className="relative">
               <button
                 onClick={() => setBellOpen(o => !o)}
@@ -350,7 +334,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
               {bellOpen && (
                 <div className="absolute right-0 top-11 z-50 w-80 bg-[var(--dark-800)] rounded-2xl shadow-2xl border border-[var(--glass-border)] flex flex-col max-h-100 fade-in-up overflow-hidden">
-                  {/* Header */}
                   <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--glass-border)] bg-[var(--glass-05)]">
                     <span className="text-xs font-bold text-white uppercase tracking-wide">
                       Notifications {unreadCount > 0 && <span className="ml-1 text-[var(--primary-600)]">({unreadCount})</span>}
@@ -365,7 +348,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     )}
                   </div>
 
-                  {/* List */}
                   <div className="overflow-y-auto flex-1 custom-scrollbar">
                     {notifsLoading ? (
                       <div className="flex items-center justify-center py-12 text-[var(--on-glass-muted)] text-sm">Loading…</div>
@@ -430,7 +412,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               )}
             </div>
 
-            {/* Profile dropdown */}
             {user && (
               <div ref={profileRef} className="relative">
                 <button
@@ -468,7 +449,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           </div>
         </header>
 
-        {/* Page content */}
         <main className="flex-1 overflow-y-auto flex flex-col custom-scrollbar z-10 relative">
           <TrialBanner />
           <div className="flex-1 p-4 page-fade-in" key={pathname}>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { api } from '@/lib/api'; // Assuming api.ts exports the same apiClient
+import { adminApi as api } from '@/lib/api';
 import { getApiError } from '@/lib/utils';
 import { PageHeader, Card, Button, Input, Textarea } from '@/components/ui';
 import { Send, Megaphone, CheckCircle2 } from 'lucide-react';
