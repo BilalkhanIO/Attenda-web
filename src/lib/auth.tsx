@@ -1,10 +1,10 @@
 'use client';
-import { createContext, useContext, useEffect, useState, useCallback, useMemo, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useMemo, useSyncExternalStore, ReactNode } from 'react';
 import { jwtDecode } from 'jwt-decode';
 import { useRouter } from 'next/navigation';
 import { authApi, usersApi, onAccessTokenRefreshed, getAccessToken, storeTokens, clearTokens } from './api';
 import { setDisplayTimezone } from './utils';
-import type { AuthRole, PlanFeatures, UserCapabilities } from '@/types';
+import type { AuthRole, UserCapabilities } from '@/types';
 
 export type UserRole = AuthRole;
 
@@ -35,11 +35,66 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+// ─── Stored-session external store ─────────────────────────────────
+// The token cookie is an external system, so the session restore is a
+// useSyncExternalStore read instead of a setState-in-effect. The server
+// snapshot (null) is also used for the hydration render, so server and
+// client markup stay identical; React then re-renders with the real
+// cookie value right after hydration.
+const noopSubscribe = () => () => {};
+const getServerSnapshot = () => null;
+
+// Identity key a capabilities payload belongs to.
+const capsKey = (u: AuthUser) => `${u.sub}|${u.org_id}|${u.role}`;
+
+async function fetchCapabilities(authUser: AuthUser): Promise<UserCapabilities> {
+  const { data } = await usersApi.getMyCapabilities();
+  const caps = data.data as UserCapabilities;
+  // Platform staff aren't bound to a tenant org — don't let the SYSTEM
+  // org override the browser timezone for them.
+  if (authUser.role !== 'platform_admin') {
+    // Drive all org-local time rendering from the org's timezone.
+    setDisplayTimezone(caps.timezone);
+  }
+  return caps;
+}
+
+function decodeValidUser(token: string | null): AuthUser | null {
+  if (!token) return null;
+  try {
+    const decoded = jwtDecode<AuthUser>(token);
+    if (decoded.exp * 1000 > Date.now()) return decoded;
+  } catch { /* malformed token */ }
+  return null;
+}
+
+// getSnapshot must return a referentially-stable value, so cache the
+// decoded user per token string.
+let cachedToken: string | null = null;
+let cachedUser: AuthUser | null = null;
+function readStoredUser(): AuthUser | null {
+  const token = getAccessToken();
+  if (token !== cachedToken) {
+    cachedToken = token;
+    cachedUser = decodeValidUser(token);
+  }
+  return cachedUser;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [capabilities, setCapabilities] = useState<UserCapabilities | null>(null);
-  const [capabilitiesLoading, setCapabilitiesLoading] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  // Session restored from the cookie store (null until hydration completes).
+  const restoredUser = useSyncExternalStore(noopSubscribe, readStoredUser, getServerSnapshot);
+  // True only after hydration — mirrors the old "restore effect has run" flag.
+  const hydrated = useSyncExternalStore(noopSubscribe, () => true, () => false);
+  // Explicit login/logout events override the restored session for this page load.
+  const [sessionUser, setSessionUser] = useState<AuthUser | null | undefined>(undefined);
+  const user = sessionUser !== undefined ? sessionUser : restoredUser;
+  const isLoading = !hydrated;
+  // Capabilities are stored with the session key they were loaded for, so
+  // "loading" is derived (key mismatch) rather than a second state flag.
+  const [capsState, setCapsState] = useState<{ key: string | null; caps: UserCapabilities | null }>({ key: null, caps: null });
+  const capabilities = capsState.caps;
+  const capabilitiesLoading = !!user && capsState.key !== capsKey(user);
   const router = useRouter();
 
   const permissionSet = useMemo(
@@ -48,26 +103,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const loadCapabilities = useCallback(async (authUser: AuthUser | null) => {
-    if (!authUser) {
-      setCapabilities(null);
-      setCapabilitiesLoading(false);
-      return;
-    }
-    setCapabilitiesLoading(true);
+    if (!authUser) return;
+    const key = capsKey(authUser);
     try {
-      const { data } = await usersApi.getMyCapabilities();
-      const caps = data.data as UserCapabilities;
-      setCapabilities(caps);
-      // Platform staff aren't bound to a tenant org — don't let the SYSTEM
-      // org override the browser timezone for them.
-      if (authUser.role !== 'platform_admin') {
-        // Drive all org-local time rendering from the org's timezone.
-        setDisplayTimezone(caps.timezone);
-      }
+      const caps = await fetchCapabilities(authUser);
+      setCapsState({ key, caps });
     } catch {
-      setCapabilities(null);
-    } finally {
-      setCapabilitiesLoading(false);
+      setCapsState({ key, caps: null });
     }
   }, []);
 
@@ -76,31 +118,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [loadCapabilities, user]);
 
   useEffect(() => {
-    const token = getAccessToken();
-    if (token) {
-      try {
-        const decoded = jwtDecode<AuthUser>(token);
-        if (decoded.exp * 1000 > Date.now()) {
-          setUser(decoded);
-        } else {
-          clearTokens();
-        }
-      } catch {
-        clearTokens();
-      }
-    }
-    setIsLoading(false);
-  }, []);
+    // Purge an expired/malformed stored token so the optimistic proxy.ts
+    // redirects stop trusting it. (Capabilities need no clearing here:
+    // they start null and logout clears them in its event handler.)
+    if (hydrated && !restoredUser && getAccessToken()) clearTokens();
+  }, [hydrated, restoredUser]);
 
   useEffect(() => {
-    if (!user) {
-      setCapabilities(null);
-      return;
-    }
+    if (!user) return;
     // Platform users need capabilities too — platform_permissions drives the
     // admin console nav (platform_admin vs platform_assistant).
-    loadCapabilities(user);
-  }, [user?.sub, user?.org_id, user?.role, loadCapabilities]);
+    const key = capsKey(user);
+    let stale = false;
+    fetchCapabilities(user)
+      .then(caps => { if (!stale) setCapsState({ key, caps }); })
+      .catch(() => { if (!stale) setCapsState({ key, caps: null }); });
+    return () => { stale = true; };
+  }, [user]);
 
   useEffect(() => {
     return onAccessTokenRefreshed(() => {
@@ -111,7 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const applyTokens = useCallback(async (accessToken: string, refreshToken: string, rememberMe = false) => {
     storeTokens(accessToken, refreshToken, rememberMe);
     const decoded = jwtDecode<AuthUser>(accessToken);
-    setUser(decoded);
+    setSessionUser(decoded);
     await loadCapabilities(decoded);
     if (decoded.role === 'platform_admin') {
       router.push('/admin');
@@ -131,8 +165,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = async () => {
     try { await authApi.logout(); } catch { /* ignore */ }
     clearTokens();
-    setUser(null);
-    setCapabilities(null);
+    setSessionUser(null);
+    setCapsState({ key: null, caps: null });
     window.location.href = '/login';
   };
 
@@ -145,7 +179,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!user) return false;
     if (!capabilities?.features) return true;
     return capabilities.features[key] === true;
-  }, [user, capabilities?.features]);
+  }, [user, capabilities]);
 
   const hasRole = useCallback((...roles: UserRole[]): boolean => {
     if (!user) return false;

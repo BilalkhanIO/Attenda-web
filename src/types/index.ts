@@ -391,7 +391,7 @@ export interface BlogPost {
   updated_at: string;
 }
 
-export interface BlogListItem extends Omit<BlogPost, 'content'> {}
+export type BlogListItem = Omit<BlogPost, 'content'>;
 
 export interface BlogListResponse {
   posts: BlogListItem[];

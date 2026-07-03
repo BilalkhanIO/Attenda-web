@@ -20,15 +20,25 @@ const userSchema = z.object({
 
 type UserForm = z.infer<typeof userSchema>;
 
+interface PlatformRole { slug: string; name: string }
+
+interface PlatformUser {
+  id: string;
+  name: string;
+  email: string;
+  roles: PlatformRole[];
+  last_active?: string | null;
+}
+
 export default function AdminPlatformUsersPage() {
   const { capabilities } = useAuth();
-  const [users, setUsers] = useState<any[]>([]);
+  const [users, setUsers] = useState<PlatformUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   
   const [addOpen, setAddOpen] = useState(false);
-  const [editUser, setEditUser] = useState<any | null>(null);
-  const [deleteUser, setDeleteUser] = useState<any | null>(null);
+  const [editUser, setEditUser] = useState<PlatformUser | null>(null);
+  const [deleteUser, setDeleteUser] = useState<PlatformUser | null>(null);
   const [deleting, setDeleting] = useState(false);
 
   const form = useForm<UserForm>({ resolver: zodResolver(userSchema) });
@@ -54,12 +64,12 @@ export default function AdminPlatformUsersPage() {
     setAddOpen(true);
   };
 
-  const openEdit = (user: any) => {
+  const openEdit = (user: PlatformUser) => {
     form.reset({
       name: user.name,
       email: user.email,
       password: '',
-      roles: user.roles.map((r: any) => r.slug),
+      roles: user.roles.map(r => r.slug),
     });
     setEditUser(user);
   };
@@ -67,7 +77,7 @@ export default function AdminPlatformUsersPage() {
   const onSubmit = async (data: UserForm) => {
     try {
       if (editUser) {
-        const payload: any = { name: data.name, email: data.email, roles: data.roles };
+        const payload: Partial<UserForm> = { name: data.name, email: data.email, roles: data.roles };
         if (data.password) payload.password = data.password;
         await adminApi.updatePlatformUser(editUser.id, payload);
         toast.success('Platform user updated');
@@ -180,7 +190,7 @@ export default function AdminPlatformUsersPage() {
               </td>
               <td className="py-4 px-6">
                 <div className="flex gap-2 flex-wrap">
-                  {user.roles.map((role: any) => (
+                  {user.roles.map((role) => (
                     <Badge 
                       key={role.slug} 
                       label={role.name} 

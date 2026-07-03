@@ -69,7 +69,7 @@ export default function AIInsightsPage() {
           </div>
           <div>
             <p className="text-sm font-semibold text-white mb-1">AI Anomaly Scanner</p>
-            <p className="text-xs text-slate-400 mb-4">Click "Run Analysis" to scan attendance and payroll data for irregularities.</p>
+            <p className="text-xs text-slate-400 mb-4">Click &quot;Run Analysis&quot; to scan attendance and payroll data for irregularities.</p>
           </div>
           <Button icon={<RefreshCw size={13} />} onClick={load} loading={loading}>Run Analysis</Button>
         </Card>

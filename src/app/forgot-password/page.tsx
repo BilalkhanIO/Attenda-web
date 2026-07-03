@@ -53,7 +53,7 @@ export default function ForgotPasswordPage() {
               </div>
               <h1 className="text-2xl font-black text-white mb-4 tracking-tight">Check your email</h1>
               <p className="text-sm font-medium text-[var(--on-glass-muted)] leading-relaxed mb-10">
-                If <strong className="text-white">{sentEmail}</strong> is registered, you'll receive a reset link within a few minutes. It expires in 15 minutes.
+                If <strong className="text-white">{sentEmail}</strong> is registered, you&apos;ll receive a reset link within a few minutes. It expires in 15 minutes.
               </p>
               <Button className="w-full py-4 text-[11px] font-black uppercase tracking-[0.2em]" onClick={() => router.push('/login')}>
                 Back to Login

@@ -979,7 +979,7 @@ export default function AttendancePage() {
       >
         <div className="space-y-4">
           <p className="text-xs text-[var(--on-glass-muted)]">
-            Your manager will be notified and won't receive a late alert until your expected arrival time passes.
+            Your manager will be notified and won&apos;t receive a late alert until your expected arrival time passes.
           </p>
           <Input
             label="Expected Arrival Time"

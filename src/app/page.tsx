@@ -309,7 +309,7 @@ export default function LandingPage() {
                       <div className="flex gap-1 mb-6">
                         {[1,2,3,4,5].map(star => <Star key={star} size={14} className="text-yellow-500" fill="currentColor" />)}
                       </div>
-                      <p className="text-lg font-medium text-white leading-relaxed italic">"{t.content}"</p>
+                      <p className="text-lg font-medium text-white leading-relaxed italic">&ldquo;{t.content}&rdquo;</p>
                    </div>
                    <div className="flex items-center gap-4">
                     <Image src={t.avatar} alt={t.name} width={48} height={48} className="w-12 h-12 rounded-full object-cover border-2 border-[var(--glass-border)]" />
