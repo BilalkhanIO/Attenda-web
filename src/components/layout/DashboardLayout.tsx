@@ -12,6 +12,8 @@ import {
 import { Avatar } from '@/components/ui';
 import AttendaLogo from '@/components/ui/AttendaLogo';
 import { fetchEventSource } from '@microsoft/fetch-event-source';
+import { useQueryClient } from '@tanstack/react-query';
+import { keys } from '@/lib/queries';
 import { notificationApi, getAccessToken } from '@/lib/api';
 import type { AuthRole, InAppNotification } from '@/types';
 import TrialBanner from '@/components/TrialBanner';
@@ -100,8 +102,19 @@ const NOTIF_ICONS: Record<string, string> = {
   shift_reminder:   '🔔',
 };
 
+// Server-pushed invalidation hints → TanStack Query key roots. Unknown
+// scopes are ignored, so client and server halves can deploy independently.
+const INVALIDATE_SCOPES: Record<string, readonly (readonly string[])[]> = {
+  attendance_changed: [keys.attendance.all],
+  leave_changed:      [keys.leave.all, ['approvals', 'leave']],
+  overtime_changed:   [keys.overtime.all, ['approvals', 'overtime']],
+  remote_changed:     [keys.remote.all, ['approvals', 'remote']],
+  swap_changed:       [keys.swaps.all, ['approvals', 'swap']],
+};
+
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const { user, logout, capabilities, hasFeature, hasPermission } = useAuth();
+  const queryClient = useQueryClient();
   const pathname = usePathname();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -147,6 +160,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         try {
           const msg = JSON.parse(e.data);
           if (msg.type === 'count') setUnreadCount(msg.count);
+          if (msg.type === 'invalidate') {
+            for (const key of INVALIDATE_SCOPES[msg.scope as string] ?? []) {
+              queryClient.invalidateQueries({ queryKey: key });
+            }
+          }
         } catch { /* ignore */ }
       },
       onerror: () => {
@@ -157,7 +175,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     }).catch(() => {});
 
     return () => ctrl.abort();
-  }, [user]);
+  }, [user, queryClient]);
 
   const loadNotifs = useCallback(async () => {
     setNotifsLoading(true);
