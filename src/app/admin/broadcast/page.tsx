@@ -74,7 +74,7 @@ export default function AdminBroadcastPage() {
                 <Select 
                   label="Target Audience"
                   value={target}
-                  onChange={e => setTarget(e.target.value as any)}
+                  onChange={e => setTarget(e.target.value as 'all' | 'super_admins')}
                   options={[
                     { value: 'all', label: 'All Active Users' },
                     { value: 'super_admins', label: 'Super Admins Only' }

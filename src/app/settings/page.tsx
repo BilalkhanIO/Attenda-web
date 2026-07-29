@@ -165,7 +165,7 @@ export default function SettingsPage() {
   const qrQuery = useQuery({ queryKey: ['attendance-qr'], queryFn: async () => (await attendanceApi.getQRCode()).data.data });
 
   useEffect(() => {
-    if (settingsQuery.data) setOrgData(settingsQuery.data as any);
+    if (settingsQuery.data) setOrgData(settingsQuery.data);
   }, [settingsQuery.data]);
 
   useEffect(() => {
@@ -174,7 +174,7 @@ export default function SettingsPage() {
 
   // ── Mutations ──
   const saveOrgMutation = useMutation({
-    mutationFn: (data: any) => orgApi.updateSettings(data),
+    mutationFn: (data: Record<string, unknown>) => orgApi.updateSettings(data),
     onSuccess: () => toast.success('Settings saved'),
     onError: (err) => toast.error(getApiError(err)),
   });
@@ -218,9 +218,9 @@ export default function SettingsPage() {
   };
 
   const menuItems = [
-    { id: 'access', label: 'Access Control', sub: 'Roles & Overrides', icon: Shield, color: 'var(--secondary)' },
-    { id: 'overtime', label: 'Overtime Rules', sub: 'Rate Calculations', icon: Clock, color: 'var(--warning-500)' },
-    { id: 'whatsapp', label: 'WhatsApp Bot', sub: 'Alert Integrations', icon: MessageSquare, color: 'var(--success-500)' },
+    { id: 'access' as const, label: 'Access Control', sub: 'Roles & Overrides', icon: Shield, color: 'var(--secondary)' },
+    { id: 'overtime' as const, label: 'Overtime Rules', sub: 'Rate Calculations', icon: Clock, color: 'var(--warning-500)' },
+    { id: 'whatsapp' as const, label: 'WhatsApp Bot', sub: 'Alert Integrations', icon: MessageSquare, color: 'var(--success-500)' },
   ];
 
   return (
@@ -260,7 +260,7 @@ export default function SettingsPage() {
             {menuItems.map(item => (
               <button
                 key={item.id}
-                onClick={() => setActiveModal(item.id as any)}
+                onClick={() => setActiveModal(item.id)}
                 className="group flex items-center gap-4 p-4 rounded-2xl bg-[var(--glass-10)] border border-[var(--glass-border)] hover:bg-[var(--glass-15)] hover:border-[var(--primary-600)]/30 transition-all text-left relative overflow-hidden"
               >
                 <div className="w-10 h-10 rounded-xl bg-[var(--glass-10)] border border-[var(--glass-border)] flex items-center justify-center group-hover:scale-110 transition-transform" style={{ color: item.color }}>

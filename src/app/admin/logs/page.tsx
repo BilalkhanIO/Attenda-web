@@ -7,8 +7,19 @@ import { PageHeader, Card, Table, Button, Skeleton, Badge } from '@/components/u
 import { History, RefreshCw, Search, Filter } from 'lucide-react';
 import toast from 'react-hot-toast';
 
+interface AuditLog {
+  id: string;
+  created_at: string;
+  org_id: string;
+  actor_id: string;
+  action: string;
+  entity_type: string;
+  entity_id: string;
+  reason: string | null;
+}
+
 export default function AdminLogsPage() {
-  const [logs, setLogs] = useState<any[]>([]);
+  const [logs, setLogs] = useState<AuditLog[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);

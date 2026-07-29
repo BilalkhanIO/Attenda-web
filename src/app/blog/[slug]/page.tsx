@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { MarketingNav, MarketingFooter } from '@/app/page';
+import type { BlogPost } from '@/types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://attenda.app';
@@ -14,7 +15,7 @@ async function getPost(slug: string) {
     });
     if (!res.ok) return null;
     const json = await res.json();
-    return json.data as any;
+    return json.data as BlogPost;
   } catch {
     return null;
   }

@@ -5,10 +5,10 @@ import { getApiError } from '@/lib/utils';
 import { PageHeader, Card, Button, Skeleton, Badge, ConfirmDialog, Modal } from '@/components/ui';
 import { Plus, Pencil, Trash2, Check, X, Star, Tag } from 'lucide-react';
 import { FEATURE_LABELS } from '@/lib/admin-shared';
-import type { PlanDefinition } from '@/types';
+import type { PlanDefinition, PlanFeatures } from '@/types';
 import toast from 'react-hot-toast';
 
-const DEFAULT_FEATURES = Object.fromEntries(Object.keys(FEATURE_LABELS).map(k => [k, false]));
+const DEFAULT_FEATURES = Object.fromEntries(Object.keys(FEATURE_LABELS).map(k => [k, false])) as PlanFeatures;
 
 const EMPTY_PLAN: Omit<PlanDefinition, 'updated_at'> = {
   id:            '',
@@ -17,7 +17,7 @@ const EMPTY_PLAN: Omit<PlanDefinition, 'updated_at'> = {
   price_annual:  0,
   max_employees: 0,
   trial_days:    14,
-  features:      DEFAULT_FEATURES as any,
+  features:      DEFAULT_FEATURES,
   description:   '',
   highlight:     false,
   is_active:     true,
@@ -60,7 +60,7 @@ export default function AdminPlansPage() {
       price_annual:  plan.price_annual,
       max_employees: plan.max_employees,
       trial_days:    plan.trial_days,
-      features:      { ...DEFAULT_FEATURES, ...plan.features } as any,
+      features:      { ...DEFAULT_FEATURES, ...plan.features },
       description:   plan.description || '',
       highlight:     plan.highlight,
       is_active:     plan.is_active,
@@ -71,7 +71,7 @@ export default function AdminPlansPage() {
 
   const openNew = () => {
     setIsNew(true);
-    setForm({ ...EMPTY_PLAN, features: { ...DEFAULT_FEATURES } as any });
+    setForm({ ...EMPTY_PLAN, features: { ...DEFAULT_FEATURES } });
     setEditing({ ...EMPTY_PLAN, updated_at: '' } as PlanDefinition);
   };
 
@@ -163,7 +163,7 @@ export default function AdminPlansPage() {
                   {plan.description && <p className="text-xs text-[var(--on-glass-muted)] mb-4 leading-relaxed line-clamp-2">{plan.description}</p>}
                   <div className="space-y-1.5 mb-4 border-t border-[var(--glass-border)] pt-4">
                     {Object.entries(FEATURE_LABELS).map(([key, label]) => {
-                      const enabled = (plan.features as any)[key];
+                      const enabled = plan.features[key];
                       return (
                         <div key={key} className="flex items-center gap-2">
                           {enabled
@@ -273,8 +273,8 @@ export default function AdminPlansPage() {
             <div className="space-y-2">
               {Object.entries(FEATURE_LABELS).map(([key, label]) => (
                 <label key={key} className="flex items-center gap-2.5 p-2.5 rounded-lg border border-[var(--glass-border)] bg-[var(--glass-05)] cursor-pointer hover:bg-white/5 transition-colors">
-                  <input type="checkbox" checked={!!(form.features as any)[key]}
-                    onChange={e => setForm(f => ({ ...f, features: { ...f.features as any, [key]: e.target.checked } }))}
+                  <input type="checkbox" checked={!!form.features[key]}
+                    onChange={e => setForm(f => ({ ...f, features: { ...f.features, [key]: e.target.checked } }))}
                     className="w-4 h-4 rounded bg-[var(--dark-800)] border-[var(--glass-border)] checked:bg-[var(--primary-600)] accent-[var(--primary-600)]" />
                   <span className="text-sm text-[var(--on-glass-sub)]">{label}</span>
                 </label>

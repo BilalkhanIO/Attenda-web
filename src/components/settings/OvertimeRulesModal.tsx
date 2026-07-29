@@ -24,13 +24,13 @@ const RULE_TYPE_OPTIONS = [
   { value: 'seventh_day', label: '7th Day — all hours on 7th consecutive day' },
 ];
 
-interface RuleForm {
+type RuleForm = {
   name: string;
   rule_type: 'daily' | 'weekly' | 'seventh_day';
   threshold_hours: number;
   multiplier: number;
   priority: number;
-}
+};
 
 const emptyForm: RuleForm = {
   name: '',
@@ -109,7 +109,7 @@ export default function OvertimeRulesModal({ isOpen, onClose }: OvertimeRulesMod
 
   const handleSave = () => {
     if (!form.name.trim()) return toast.error('Rule name is required');
-    saveMutation.mutate({ id: editRule?.id, data: form as any });
+    saveMutation.mutate({ id: editRule?.id, data: form });
   };
 
   return (
@@ -207,7 +207,7 @@ export default function OvertimeRulesModal({ isOpen, onClose }: OvertimeRulesMod
       >
         <div className="space-y-4">
           <Input label="Rule Name" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} required placeholder="e.g. Daily OT" />
-          <Select label="Type" options={RULE_TYPE_OPTIONS} value={form.rule_type} onChange={e => setForm(f => ({ ...f, rule_type: e.target.value as any }))} />
+          <Select label="Type" options={RULE_TYPE_OPTIONS} value={form.rule_type} onChange={e => setForm(f => ({ ...f, rule_type: e.target.value as RuleForm['rule_type'] }))} />
           <div className="grid grid-cols-2 gap-3">
             <Input label="Threshold (hrs)" type="number" step="0.5" value={form.threshold_hours} onChange={e => setForm(f => ({ ...f, threshold_hours: +e.target.value }))} />
             <Input label="Multiplier" type="number" step="0.1" value={form.multiplier} onChange={e => setForm(f => ({ ...f, multiplier: +e.target.value }))} />

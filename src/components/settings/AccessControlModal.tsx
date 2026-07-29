@@ -86,7 +86,7 @@ export default function AccessControlModal({ isOpen, onClose, users }: AccessCon
 
   // ── Mutations ────────────────────────────────────────
   const createRoleMutation = useMutation({
-    mutationFn: (data: any) => orgRbacApi.createRole(data),
+    mutationFn: (data: Record<string, unknown>) => orgRbacApi.createRole(data),
     onSuccess: () => {
       toast.success('Role created');
       setRoleModal(null);
@@ -96,7 +96,7 @@ export default function AccessControlModal({ isOpen, onClose, users }: AccessCon
   });
 
   const updateRoleMutation = useMutation({
-    mutationFn: (vars: { id: string; data: any }) => orgRbacApi.updateRole(vars.id, vars.data),
+    mutationFn: (vars: { id: string; data: Record<string, unknown> }) => orgRbacApi.updateRole(vars.id, vars.data),
     onSuccess: () => {
       toast.success('Role updated');
       setRoleModal(null);

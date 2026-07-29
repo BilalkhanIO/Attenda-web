@@ -246,7 +246,7 @@ export function KPICard({ title, value, icon, color, bg, delta, deltaPositive }:
         {isValidElement(icon) ? (
           <div style={{ color: bg }}>
             {/* Clone icon with larger size if it's a lucide icon */}
-            {cloneElement(icon as React.ReactElement<any>, { size: 80 })}
+            {cloneElement(icon as React.ReactElement<{ size?: number }>, { size: 80 })}
           </div>
         ) : icon}
       </div>
@@ -405,7 +405,7 @@ export function EmptyState({ icon, title, description, action }: EmptyStateProps
     <div className="flex flex-col items-center justify-center py-16 text-center">
       <div className="w-14 h-14 rounded-2xl bg-[var(--glass-05)] border border-[var(--glass-border)] flex items-center justify-center text-[var(--on-glass-dim)] mb-5 shadow-inner">
         {isValidElement(icon)
-          ? cloneElement(icon as React.ReactElement<any>, { size: 28 })
+          ? cloneElement(icon as React.ReactElement<{ size?: number }>, { size: 28 })
           : icon
         }
       </div>

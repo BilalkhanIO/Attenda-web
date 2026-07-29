@@ -11,13 +11,13 @@ import { MessageSquare, Save, Plus, Trash2, TestTube2, AlertCircle } from 'lucid
 import toast from 'react-hot-toast';
 import { cn } from '@/lib/utils';
 
-interface WASettings {
+type WASettings = {
   enabled: boolean;
   phone_number_id: string;
   access_token: string;
   groups: { id: string; name: string; phone: string }[];
   events: Record<string, boolean>;
-}
+};
 
 const EVENT_LABELS: Record<string, string> = {
   check_in:     '✅ Check-in',
@@ -64,7 +64,7 @@ export default function WhatsAppSettingsModal({ isOpen, onClose }: WhatsAppSetti
   }, [data]);
 
   const saveMutation = useMutation({
-    mutationFn: (vars: Record<string, any>) => orgApi.updateWhatsAppSettings(vars),
+    mutationFn: (vars: Record<string, unknown>) => orgApi.updateWhatsAppSettings(vars),
     onSuccess: () => {
       toast.success('WhatsApp settings saved');
       queryClient.invalidateQueries({ queryKey: ['whatsapp-settings'] });
@@ -109,7 +109,7 @@ export default function WhatsAppSettingsModal({ isOpen, onClose }: WhatsAppSetti
             </Button>
             <div className="flex gap-2">
               <Button variant="ghost" onClick={onClose}>Cancel</Button>
-              <Button icon={<Save size={14} />} loading={saveMutation.isPending} onClick={() => saveMutation.mutate(settings as any)}>
+              <Button icon={<Save size={14} />} loading={saveMutation.isPending} onClick={() => saveMutation.mutate(settings)}>
                 Save Settings
               </Button>
             </div>

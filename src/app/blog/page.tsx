@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
 import { MarketingNav, MarketingFooter } from '@/app/page';
+import type { BlogPost } from '@/types';
 
 export const metadata: Metadata = {
   title: 'Blog — Attenda | Workforce Management Insights',
@@ -27,7 +28,7 @@ async function getPosts(page = 1) {
     });
     if (!res.ok) return { posts: [], total: 0, pages: 1 };
     const json = await res.json();
-    return json.data as { posts: any[]; total: number; pages: number };
+    return json.data as { posts: BlogPost[]; total: number; pages: number };
   } catch {
     return { posts: [], total: 0, pages: 1 };
   }
@@ -77,7 +78,7 @@ export default async function BlogPage({
             ) : (
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
-                  {posts.map((post: any) => (
+                  {posts.map((post) => (
                     <Link key={post.id} href={`/blog/${post.slug}`}
                       className="group bg-[var(--glass-05)] rounded-[2.5rem] overflow-hidden border border-[var(--glass-border)] hover:bg-[var(--glass-10)] hover:border-[var(--glass-high)] transition-all duration-500 hover:-translate-y-1">
                       {post.cover_image ? (

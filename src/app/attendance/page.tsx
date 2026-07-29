@@ -167,7 +167,7 @@ export default function AttendancePage() {
   const form = useForm<OverrideForm>({ resolver: zodResolver(overrideSchema) });
 
   // Late arrival notice + leave check
-  interface LateNoticeInfo { id: string; expected_time: string; reason: string; status: string; }
+  interface LateNoticeInfo { id: string; expected_time: string; reason: string; status: string; date?: string; }
   interface LeaveInfo { id: string; leave_type: string; start_date: string; end_date: string; }
   const [leaveToday, setLeaveToday]   = useState<LeaveInfo | null>(null);
   const [myLateNotice, setMyLateNotice] = useState<LateNoticeInfo | null>(null);
@@ -765,7 +765,7 @@ export default function AttendancePage() {
                     {teamNotices.map(n => {
                        const isEarly = n.reason.startsWith('[Early Departure]');
                        const cleanReason = isEarly ? n.reason.replace('[Early Departure]', '').trim() : n.reason;
-                       const nDate = (n as any).date ? format(new Date((n as any).date), 'MMM d') : 'Today';
+                       const nDate = n.date ? format(new Date(n.date), 'MMM d') : 'Today';
                        return (
                          <RequestItem key={n.id}
                            name={n.user?.name || ''}
