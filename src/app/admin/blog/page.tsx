@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
 import { adminApi } from '@/lib/api';
-import { getApiError, timeAgo } from '@/lib/utils';
+import { getApiError, timeAgo, runDeferred } from '@/lib/utils';
 import { PageHeader, Card, Button, Badge, Skeleton, Modal, ConfirmDialog } from '@/components/ui';
 import {
   Plus, Pencil, Trash2, Eye, EyeOff, RefreshCw,
@@ -53,9 +53,7 @@ export default function AdminBlogPage() {
     }
   }, []);
 
-  useEffect(() => {
-    loadPosts();
-  }, [loadPosts]);
+  useEffect(() => runDeferred(loadPosts), [loadPosts]);
 
   const openNew = () => {
     setIsNew(true);

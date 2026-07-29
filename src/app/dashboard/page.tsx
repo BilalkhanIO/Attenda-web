@@ -76,9 +76,7 @@ export default function DashboardPage() {
   const myStatus = myQuery.data ?? null;
   const loading = canViewTeam ? teamQuery.isPending : myQuery.isPending;
   const fetchLive = canViewTeam ? teamQuery.refetch : myQuery.refetch;
-  const lastUpdated = new Date(
-    (canViewTeam ? teamQuery.dataUpdatedAt : myQuery.dataUpdatedAt) || Date.now(),
-  );
+  const updatedAt = canViewTeam ? teamQuery.dataUpdatedAt : myQuery.dataUpdatedAt;
 
   // Counts
   const counts = {
@@ -99,7 +97,11 @@ export default function DashboardPage() {
   );
   const filtered = filter === 'all' ? live : live.filter(e => e.status === filter);
 
-  const secondsAgo = Math.round((new Date().getTime() - lastUpdated.getTime()) / 1000);
+  // "Seconds since last refresh" inherently reads the wall clock at render
+  // time — memoising or caching it would display stale data. Display-only,
+  // so the render-purity rule is inapplicable here.
+  // eslint-disable-next-line react-hooks/purity
+  const secondsAgo = updatedAt ? Math.round((Date.now() - updatedAt) / 1000) : 0;
 
   if (!canViewTeam) {
     const att = myStatus?.attendance;

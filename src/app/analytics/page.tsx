@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { PageHeader, Card, Button, KPICard, Skeleton } from '@/components/ui';
 import { analyticsApi } from '@/lib/api';
-import { formatCurrency, getApiError } from '@/lib/utils';
+import { formatCurrency, getApiError, runDeferred } from '@/lib/utils';
 import type { AnalyticsOverview, AttendanceTrendPoint } from '@/types';
 import {
   AreaChart, Area, BarChart, Bar,
@@ -55,7 +55,7 @@ export default function AnalyticsPage() {
     }
   }, []);
 
-  useEffect(() => { fetchAnalytics(); }, [fetchAnalytics]);
+  useEffect(() => runDeferred(fetchAnalytics), [fetchAnalytics]);
 
   // Pie data from overview
   const pieData = overview ? [

@@ -164,13 +164,19 @@ export default function SettingsPage() {
   const networksQuery = useQuery({ queryKey: ['org-networks'], queryFn: async () => (await orgApi.getOfficeNetworks()).data.data });
   const qrQuery = useQuery({ queryKey: ['attendance-qr'], queryFn: async () => (await attendanceApi.getQRCode()).data.data });
 
-  useEffect(() => {
+  // Seed the editable form state whenever fresh server data arrives
+  // ("adjusting state when props change" pattern — no effect needed).
+  const [seededSettings, setSeededSettings] = useState(settingsQuery.data);
+  if (settingsQuery.data !== seededSettings) {
+    setSeededSettings(settingsQuery.data);
     if (settingsQuery.data) setOrgData(settingsQuery.data);
-  }, [settingsQuery.data]);
+  }
 
-  useEffect(() => {
+  const [seededNetworks, setSeededNetworks] = useState(networksQuery.data);
+  if (networksQuery.data !== seededNetworks) {
+    setSeededNetworks(networksQuery.data);
     if (networksQuery.data) setNetworks({ ips: networksQuery.data.ips || [], ssids: networksQuery.data.ssids || [] });
-  }, [networksQuery.data]);
+  }
 
   // ── Mutations ──
   const saveOrgMutation = useMutation({

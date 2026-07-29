@@ -9,7 +9,7 @@ import {
   type DropdownOption,
 } from '@/components/ui';
 import { payrollApi } from '@/lib/api';
-import { formatCurrency, formatHours, getApiError } from '@/lib/utils';
+import { formatCurrency, formatHours, getApiError, runDeferred } from '@/lib/utils';
 import type { Payroll, PayrollRecord } from '@/types';
 import { Wallet, Download, Play, AlertTriangle, Lock, ChevronDown } from 'lucide-react';
 import { useForm, Controller } from 'react-hook-form';
@@ -65,7 +65,7 @@ export default function PayrollPage() {
     }
   }, [selectedMonth]);
 
-  useEffect(() => { fetchPayroll(); }, [fetchPayroll]);
+  useEffect(() => runDeferred(fetchPayroll), [fetchPayroll]);
 
   const onAdjust = async (data: AdjustForm) => {
     if (!adjustRow) return;

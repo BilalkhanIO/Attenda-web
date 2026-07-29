@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
 import { adminApi } from '@/lib/api';
-import { getApiError } from '@/lib/utils';
+import { getApiError, runDeferred } from '@/lib/utils';
 import { PageHeader, Card, Button, Skeleton, Badge, ConfirmDialog, Modal } from '@/components/ui';
 import { Plus, Pencil, Trash2, Check, X, Star, Tag } from 'lucide-react';
 import { FEATURE_LABELS } from '@/lib/admin-shared';
@@ -47,9 +47,7 @@ export default function AdminPlansPage() {
     }
   }, []);
 
-  useEffect(() => {
-    loadPlans();
-  }, [loadPlans]);
+  useEffect(() => runDeferred(loadPlans), [loadPlans]);
 
   const openEdit = (plan: PlanDefinition) => {
     setIsNew(false);

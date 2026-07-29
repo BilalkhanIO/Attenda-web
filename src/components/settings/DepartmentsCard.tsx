@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Card, Button, Input, Modal, ConfirmDialog } from '@/components/ui';
 import { departmentsApi, type DepartmentNode } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
-import { getApiError } from '@/lib/utils';
+import { getApiError, runDeferred } from '@/lib/utils';
 import { Building2, Plus, Edit2, Trash2, CornerDownRight, Users } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -34,7 +34,7 @@ export default function DepartmentsCard() {
     finally { setLoading(false); }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => runDeferred(load), [load]);
 
   const onSave = async () => {
     if (!editor) return;

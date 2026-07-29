@@ -7,7 +7,7 @@ import {
   Badge, EmptyState, TimePicker
 } from '@/components/ui';
 import { shiftsApi } from '@/lib/api';
-import { getApiError } from '@/lib/utils';
+import { getApiError, runDeferred } from '@/lib/utils';
 import type { Shift, ShiftBreak } from '@/types';
 import { Plus, Clock, Edit2, Trash2, Coffee, Globe, AlertTriangle, ChevronDown, ChevronUp, TrendingUp } from 'lucide-react';
 import { useForm, UseFormReturn, Controller } from 'react-hook-form';
@@ -280,7 +280,7 @@ function BreaksPanel({ shiftId }: { shiftId: string }) {
     finally { setLoading(false); }
   }, [shiftId]);
 
-  useEffect(() => { loadBreaks(); }, [loadBreaks]);
+  useEffect(() => runDeferred(loadBreaks), [loadBreaks]);
 
   const handleAdd = async () => {
     if (!form.name) return toast.error('Name required');
@@ -426,7 +426,7 @@ export default function ShiftTemplatesPage() {
     finally { setLoading(false); }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => runDeferred(load), [load]);
 
   const openAdd = () => { form.reset(defaultShiftForm); setEditShift(null); setModalOpen(true); };
   const openEdit = (s: Shift) => {

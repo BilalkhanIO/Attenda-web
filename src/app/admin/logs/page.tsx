@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { adminApi } from '@/lib/api';
-import { getApiError } from '@/lib/utils';
+import { getApiError, runDeferred } from '@/lib/utils';
 import { PageHeader, Card, Table, Button, Skeleton, Badge } from '@/components/ui';
 import { History, RefreshCw, Search, Filter } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -45,9 +45,7 @@ export default function AdminLogsPage() {
     }
   }, [orgId, action]);
 
-  useEffect(() => {
-    fetchLogs();
-  }, [fetchLogs]);
+  useEffect(() => runDeferred(fetchLogs), [fetchLogs]);
 
   return (
     <>

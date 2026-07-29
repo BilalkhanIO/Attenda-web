@@ -96,6 +96,23 @@ export function getInitials(name: string) {
   return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 }
 
+// ─── Effect-safe loader invocation ────────────────────
+/**
+ * Kick off a state-setting loader from inside a `useEffect` without
+ * setting state synchronously during the effect flush
+ * (react-hooks/set-state-in-effect): the task is deferred to a
+ * microtask, which is imperceptible next to the network round-trip the
+ * loader performs. Returns a canceller suitable as the effect cleanup,
+ * so a re-run scheduled by an already-stale effect never fires.
+ *
+ *   useEffect(() => runDeferred(load), [load]);
+ */
+export function runDeferred(task: () => unknown): () => void {
+  let cancelled = false;
+  void Promise.resolve().then(() => { if (!cancelled) task(); });
+  return () => { cancelled = true; };
+}
+
 // ─── API error message ────────────────────────────────
 export function getApiError(error: unknown): string {
   if (error && typeof error === 'object' && 'response' in error) {

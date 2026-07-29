@@ -10,7 +10,7 @@ import {
 import Link from 'next/link';
 import type { DropdownOption } from '@/components/ui';
 import { shiftsApi, usersApi } from '@/lib/api';
-import { getApiError } from '@/lib/utils';
+import { getApiError, runDeferred } from '@/lib/utils';
 import type { Shift, ShiftAssignment } from '@/types';
 
 interface UserOption { id: string; name: string; }
@@ -452,7 +452,10 @@ function BreaksPanel({ shift }: { shift: Shift }) {
     finally { setLoading(false); }
   }, [shift.id]);
 
-  useEffect(() => { if (open) loadBreaks(); }, [open, loadBreaks]);
+  useEffect(() => {
+    if (!open) return;
+    return runDeferred(loadBreaks);
+  }, [open, loadBreaks]);
 
   const setField = useCallback(
     <K extends keyof BreakFormState>(k: K, v: BreakFormState[K]) =>
@@ -666,7 +669,7 @@ export default function ShiftsPage() {
     }
   };
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  useEffect(() => runDeferred(fetchAll), [fetchAll]);
 
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { adminApi } from '@/lib/api';
-import { getApiError } from '@/lib/utils';
+import { getApiError, runDeferred } from '@/lib/utils';
 import {
   PageHeader, Card, Button, Badge, Skeleton, Table, EmptyState,
   Select, ConfirmDialog, Modal,
@@ -116,10 +116,10 @@ export default function AdminOrgDetailPage() {
     }
   }, [orgId]);
 
-  useEffect(() => {
+  useEffect(() => runDeferred(() => {
     loadOrg();
     loadUsers();
-  }, [loadOrg, loadUsers]);
+  }), [loadOrg, loadUsers]);
 
   const saveOverview = async (): Promise<boolean> => {
     setSaving(true);

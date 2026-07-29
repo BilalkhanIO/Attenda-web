@@ -187,11 +187,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     finally { setNotifsLoading(false); }
   }, []);
 
-  useEffect(() => {
-    if (bellOpen) {
-      loadNotifs();
-    }
-  }, [bellOpen, loadNotifs]);
+  const toggleBell = () => {
+    setBellOpen(o => !o);
+    if (!bellOpen) loadNotifs(); // fetch fresh notifications on open
+  };
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -339,7 +338,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           <div className="flex items-center gap-4">
             <div ref={bellRef} className="relative">
               <button
-                onClick={() => setBellOpen(o => !o)}
+                onClick={toggleBell}
                 className="relative w-9 h-9 flex items-center justify-center rounded-xl bg-[var(--glass-05)] border border-[var(--glass-border)] hover:bg-[var(--glass-10)] text-white transition-all active:scale-90"
               >
                 <Bell size={18} />

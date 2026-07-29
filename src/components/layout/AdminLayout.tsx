@@ -130,9 +130,10 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     finally { setNotifsLoading(false); }
   }, []);
 
-  useEffect(() => {
-    if (bellOpen) loadNotifs();
-  }, [bellOpen, loadNotifs]);
+  const toggleBell = () => {
+    setBellOpen(o => !o);
+    if (!bellOpen) loadNotifs(); // fetch fresh notifications on open
+  };
 
   // Click outside handlers
   useEffect(() => {
@@ -263,7 +264,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             {/* Notifications */}
             <div ref={bellRef} className="relative">
               <button
-                onClick={() => setBellOpen(!bellOpen)}
+                onClick={toggleBell}
                 className="relative w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--glass-05)] border border-[var(--glass-border)] hover:bg-[var(--glass-10)] text-white transition-all active:scale-95"
               >
                 <Bell size={16} />

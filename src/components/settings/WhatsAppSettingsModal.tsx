@@ -51,7 +51,11 @@ export default function WhatsAppSettingsModal({ isOpen, onClose }: WhatsAppSetti
     queryFn: async () => (await orgApi.getWhatsAppSettings()).data.data,
   });
 
-  useEffect(() => {
+  // Seed the editable form state whenever fresh server data arrives
+  // ("adjusting state when props change" pattern — no effect needed).
+  const [seededData, setSeededData] = useState(data);
+  if (data !== seededData) {
+    setSeededData(data);
     if (data) {
       setSettings({
         enabled:         data.enabled ?? false,
@@ -61,7 +65,7 @@ export default function WhatsAppSettingsModal({ isOpen, onClose }: WhatsAppSetti
         events:          (data.events && typeof data.events === 'object') ? data.events : settings.events,
       });
     }
-  }, [data]);
+  }
 
   const saveMutation = useMutation({
     mutationFn: (vars: Record<string, unknown>) => orgApi.updateWhatsAppSettings(vars),

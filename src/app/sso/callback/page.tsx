@@ -11,20 +11,26 @@ function SSOCallbackContent() {
   const router       = useRouter();
   const searchParams = useSearchParams();
   const { loginWithTokens } = useAuth();
-  const [error, setError] = useState('');
+  const [exchangeError, setExchangeError] = useState('');
+
+  const code         = searchParams.get('code');
+  const accessToken  = searchParams.get('access_token');
+  const refreshToken = searchParams.get('refresh_token');
+  const errParam     = searchParams.get('error');
+
+  // Errors that depend only on the query string are derived during render;
+  // only the async exchange outcome lives in state.
+  const paramError = errParam
+    ? (errParam === 'no_account'
+        ? 'No Attenda account found for this Google account. Please contact your HR administrator.'
+        : 'Google sign-in failed. Please try again or use email and password.')
+    : (!code && !(accessToken && refreshToken))
+      ? 'Sign-in response was incomplete. Please try again.'
+      : '';
+  const error = paramError || exchangeError;
 
   useEffect(() => {
-    const code         = searchParams.get('code');
-    const accessToken  = searchParams.get('access_token');
-    const refreshToken = searchParams.get('refresh_token');
-    const err          = searchParams.get('error');
-
-    if (err) {
-      setError(err === 'no_account'
-        ? 'No Attenda account found for this Google account. Please contact your HR administrator.'
-        : 'Google sign-in failed. Please try again or use email and password.');
-      return;
-    }
+    if (errParam || (!code && !(accessToken && refreshToken))) return;
 
     void (async () => {
       try {
@@ -36,16 +42,13 @@ function SSOCallbackContent() {
         } else if (accessToken && refreshToken) {
           // Fallback: tokens in query string (Redis unavailable during callback)
           await loginWithTokens(accessToken, refreshToken);
-        } else {
-          setError('Sign-in response was incomplete. Please try again.');
-          return;
         }
         router.replace('/dashboard');
       } catch {
-        setError('Failed to complete sign-in. Please try again.');
+        setExchangeError('Failed to complete sign-in. Please try again.');
       }
     })();
-  }, [searchParams, loginWithTokens, router]);
+  }, [errParam, code, accessToken, refreshToken, loginWithTokens, router]);
 
   if (error) {
     return (

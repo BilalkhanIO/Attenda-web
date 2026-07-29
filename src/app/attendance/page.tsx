@@ -7,7 +7,7 @@ import {
 } from '@/components/ui';
 import type { DropdownOption } from '@/components/ui';
 import { attendanceApi, remoteApi, overtimeApi } from '@/lib/api';
-import { statusConfig, formatTime, formatDate, getApiError } from '@/lib/utils';
+import { statusConfig, formatTime, formatDate, getApiError, runDeferred } from '@/lib/utils';
 import type { AttendanceRecord } from '@/types';
 import {
   Clock, Edit2, Download, Calendar, Coffee, PlayCircle, StopCircle,
@@ -119,7 +119,7 @@ function LiveDuration({ checkInAt }: { checkInAt: string }) {
 function useElapsed(checkInAt: string | undefined, checkOutAt: string | undefined) {
   const [elapsed, setElapsed] = useState('');
   useEffect(() => {
-    if (!checkInAt || checkOutAt) { setElapsed(''); return; }
+    if (!checkInAt || checkOutAt) return;
     const tick = () => {
       const dur = intervalToDuration({ start: new Date(checkInAt), end: new Date() });
       const h = dur.hours ?? 0;
@@ -127,11 +127,13 @@ function useElapsed(checkInAt: string | undefined, checkOutAt: string | undefine
       const s = dur.seconds ?? 0;
       setElapsed(h > 0 ? `${h}h ${m}m` : m > 0 ? `${m}m ${s}s` : `${s}s`);
     };
-    tick();
+    const cancelFirstTick = runDeferred(tick);
     const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
+    return () => { cancelFirstTick(); clearInterval(id); };
   }, [checkInAt, checkOutAt]);
-  return elapsed;
+  // Without an active session the timer is blank, regardless of what the
+  // interval last wrote — no state reset needed.
+  return (!checkInAt || checkOutAt) ? '' : elapsed;
 }
 
 export default function AttendancePage() {
@@ -241,15 +243,15 @@ export default function AttendancePage() {
     } catch { /* ignore */ }
   }, [hasPermission]);
 
-  useEffect(() => {
+  useEffect(() => runDeferred(() => {
     loadMyRecord();
     loadTodayStatus();
     loadRemoteSessions();
     loadOvertimeRequests();
     loadTeamNotices();
-  }, [loadMyRecord, loadTodayStatus, loadRemoteSessions, loadOvertimeRequests, loadTeamNotices]);
+  }), [loadMyRecord, loadTodayStatus, loadRemoteSessions, loadOvertimeRequests, loadTeamNotices]);
 
-  useEffect(() => { fetchOrgAttendance(); }, [fetchOrgAttendance]);
+  useEffect(() => runDeferred(fetchOrgAttendance), [fetchOrgAttendance]);
 
   // ─── Check-in / Check-out ─────────────────────────────
   const handleCheckIn = async () => {
