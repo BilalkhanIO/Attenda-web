@@ -250,17 +250,17 @@ export default function AccessControlModal({ isOpen, onClose, users }: AccessCon
                           </div>
                         </div>
                         <div className="flex items-center gap-1.5">
-                          <button onClick={() => openRolePermissions(role)} title="Permissions"
+                          <button onClick={() => openRolePermissions(role)} title="Permissions" aria-label="Edit role permissions"
                             className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--glass-10)] text-[var(--on-glass-dim)] hover:text-white transition-all">
                             <KeyRound size={14} />
                           </button>
                           {!role.is_system && (
                             <>
-                              <button onClick={() => openEditRole(role)} title="Edit"
+                              <button onClick={() => openEditRole(role)} title="Edit" aria-label="Edit role"
                                 className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--glass-10)] text-[var(--on-glass-dim)] hover:text-white transition-all">
                                 <Edit2 size={14} />
                               </button>
-                              <button onClick={() => setDeleteRole(role)} title="Delete" disabled={role.user_count > 0}
+                              <button onClick={() => setDeleteRole(role)} title="Delete" aria-label="Delete role" disabled={role.user_count > 0}
                                 className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--glass-10)] text-[var(--on-glass-dim)] hover:text-[var(--danger-500)] disabled:opacity-20 transition-all">
                                 <Trash2 size={14} />
                               </button>

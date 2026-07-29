@@ -460,24 +460,24 @@ export default function AdminOrgDetailPage() {
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="sm:col-span-2">
-              <label className={labelCls}>Organisation name</label>
-              <input value={name} onChange={e => setName(e.target.value)} className={inputCls} />
+              <label htmlFor="id-organisation-name" className={labelCls}>Organisation name</label>
+              <input id="id-organisation-name" value={name} onChange={e => setName(e.target.value)} className={inputCls} />
             </div>
             <div>
-              <label className={labelCls}>Timezone</label>
-              <input value={timezone} onChange={e => setTimezone(e.target.value)} className={inputCls} />
+              <label htmlFor="id-timezone" className={labelCls}>Timezone</label>
+              <input id="id-timezone" value={timezone} onChange={e => setTimezone(e.target.value)} className={inputCls} />
             </div>
             <div>
-              <label className={labelCls}>Company size</label>
-              <input value={companySize} onChange={e => setCompanySize(e.target.value)} className={inputCls} />
+              <label htmlFor="id-company-size" className={labelCls}>Company size</label>
+              <input id="id-company-size" value={companySize} onChange={e => setCompanySize(e.target.value)} className={inputCls} />
             </div>
             <div>
-              <label className={labelCls}>Contact name</label>
-              <input value={contactName} onChange={e => setContactName(e.target.value)} className={inputCls} />
+              <label htmlFor="id-contact-name" className={labelCls}>Contact name</label>
+              <input id="id-contact-name" value={contactName} onChange={e => setContactName(e.target.value)} className={inputCls} />
             </div>
             <div>
-              <label className={labelCls}>Contact email</label>
-              <input type="email" value={contactEmail} onChange={e => setContactEmail(e.target.value)} className={inputCls} />
+              <label htmlFor="id-contact-email" className={labelCls}>Contact email</label>
+              <input id="id-contact-email" type="email" value={contactEmail} onChange={e => setContactEmail(e.target.value)} className={inputCls} />
             </div>
           </div>
         </div>
@@ -500,28 +500,28 @@ export default function AdminOrgDetailPage() {
         <div className="space-y-5">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className={labelCls}>Subscription status</label>
-              <select value={subStatus} onChange={e => setSubStatus(e.target.value)} className={inputCls}>
+              <label htmlFor="id-subscription-status" className={labelCls}>Subscription status</label>
+              <select id="id-subscription-status" value={subStatus} onChange={e => setSubStatus(e.target.value)} className={inputCls}>
                 {Object.entries(SUB_STATUS_STYLES).map(([k, v]) => (
                   <option key={k} value={k} className="bg-[var(--dark-950)]">{v.label}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className={labelCls}>Plan</label>
+              <label htmlFor="id-plan" className={labelCls}>Plan</label>
               {planOptions.length > 0 ? (
-                <Select options={planOptions} value={subPlan} onChange={e => setSubPlan(e.target.value)} />
+                <Select id="id-plan" options={planOptions} value={subPlan} onChange={e => setSubPlan(e.target.value)} />
               ) : (
                 <input value={subPlan} onChange={e => setSubPlan(e.target.value)} className={inputCls} />
               )}
             </div>
             <div>
-              <label className={labelCls}>Trial ends</label>
-              <input type="date" value={trialEndsAt} onChange={e => setTrialEndsAt(e.target.value)} className={inputCls} />
+              <label htmlFor="id-trial-ends" className={labelCls}>Trial ends</label>
+              <input id="id-trial-ends" type="date" value={trialEndsAt} onChange={e => setTrialEndsAt(e.target.value)} className={inputCls} />
             </div>
             <div>
-              <label className={labelCls}>Seats limit</label>
-              <input
+              <label htmlFor="id-seats-limit" className={labelCls}>Seats limit</label>
+              <input id="id-seats-limit"
                 type="number"
                 min={0}
                 value={seatsLimit}
@@ -531,12 +531,12 @@ export default function AdminOrgDetailPage() {
               />
             </div>
             <div className="sm:col-span-2">
-              <label className={labelCls}>Billing email</label>
-              <input type="email" value={billingEmail} onChange={e => setBillingEmail(e.target.value)} className={inputCls} />
+              <label htmlFor="id-billing-email" className={labelCls}>Billing email</label>
+              <input id="id-billing-email" type="email" value={billingEmail} onChange={e => setBillingEmail(e.target.value)} className={inputCls} />
             </div>
             <div className="sm:col-span-2">
-              <label className={labelCls}>Admin notes</label>
-              <textarea rows={3} value={adminNotes} onChange={e => setAdminNotes(e.target.value)} className={`${inputCls} resize-none`} />
+              <label htmlFor="id-admin-notes" className={labelCls}>Admin notes</label>
+              <textarea id="id-admin-notes" rows={3} value={adminNotes} onChange={e => setAdminNotes(e.target.value)} className={`${inputCls} resize-none`} />
             </div>
           </div>
 

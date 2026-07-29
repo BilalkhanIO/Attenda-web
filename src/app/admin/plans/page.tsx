@@ -140,10 +140,10 @@ export default function AdminPlansPage() {
                       <p className="text-[10px] font-mono text-[var(--on-glass-muted)]">ID: {plan.id}</p>
                     </div>
                     <div className="flex gap-1">
-                      <button onClick={() => openEdit(plan)} className="p-1.5 rounded-lg hover:bg-white/10 text-[var(--on-glass-muted)] hover:text-[var(--primary-600)] transition-colors">
+                      <button onClick={() => openEdit(plan)} aria-label="Edit plan" title="Edit plan" className="p-1.5 rounded-lg hover:bg-white/10 text-[var(--on-glass-muted)] hover:text-[var(--primary-600)] transition-colors">
                         <Pencil size={13} />
                       </button>
-                      <button onClick={() => setDeleteTarget(plan.id)} disabled={deleting === plan.id}
+                      <button onClick={() => setDeleteTarget(plan.id)} disabled={deleting === plan.id} aria-label="Delete plan" title="Delete plan"
                         className="p-1.5 rounded-lg hover:bg-[var(--danger-500)]/10 text-[var(--on-glass-muted)] hover:text-[var(--danger-500)] transition-colors">
                         <Trash2 size={13} />
                       </button>
@@ -208,50 +208,50 @@ export default function AdminPlansPage() {
         <div className="space-y-4">
           {isNew && (
             <div>
-              <label className="block text-xs font-semibold text-[var(--on-glass-muted)] mb-1.5">Plan ID (slug, no spaces)</label>
-              <input type="text" value={form.id} onChange={e => setForm(f => ({ ...f, id: e.target.value.toLowerCase().replace(/\s+/g, '-') }))}
+              <label htmlFor="plans-plan-id-slug-no-spaces" className="block text-xs font-semibold text-[var(--on-glass-muted)] mb-1.5">Plan ID (slug, no spaces)</label>
+              <input id="plans-plan-id-slug-no-spaces" type="text" value={form.id} onChange={e => setForm(f => ({ ...f, id: e.target.value.toLowerCase().replace(/\s+/g, '-') }))}
                 placeholder="e.g. growth-pro"
                 className="w-full px-3 py-2 border border-[var(--glass-border)] bg-[var(--glass-05)] rounded-lg text-sm text-white focus:outline-none focus:border-[var(--primary-600)]/50" />
             </div>
           )}
           <div>
-            <label className="block text-xs font-semibold text-[var(--on-glass-muted)] mb-1.5">Display Name</label>
-            <input type="text" value={form.display_name} onChange={e => setForm(f => ({ ...f, display_name: e.target.value }))}
+            <label htmlFor="plans-display-name" className="block text-xs font-semibold text-[var(--on-glass-muted)] mb-1.5">Display Name</label>
+            <input id="plans-display-name" type="text" value={form.display_name} onChange={e => setForm(f => ({ ...f, display_name: e.target.value }))}
               placeholder="Growth Pro"
               className="w-full px-3 py-2 border border-[var(--glass-border)] bg-[var(--glass-05)] rounded-lg text-sm text-white focus:outline-none focus:border-[var(--primary-600)]/50" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-[var(--on-glass-muted)] mb-1.5">Monthly Price ($)</label>
-              <input type="number" min="0" value={form.price_monthly} onChange={e => setForm(f => ({ ...f, price_monthly: Number(e.target.value) }))}
+              <label htmlFor="plans-monthly-price" className="block text-xs font-semibold text-[var(--on-glass-muted)] mb-1.5">Monthly Price ($)</label>
+              <input id="plans-monthly-price" type="number" min="0" value={form.price_monthly} onChange={e => setForm(f => ({ ...f, price_monthly: Number(e.target.value) }))}
                 className="w-full px-3 py-2 border border-[var(--glass-border)] bg-[var(--glass-05)] rounded-lg text-sm text-white focus:outline-none focus:border-[var(--primary-600)]/50" />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-[var(--on-glass-muted)] mb-1.5">Annual Price ($)</label>
-              <input type="number" min="0" value={form.price_annual} onChange={e => setForm(f => ({ ...f, price_annual: Number(e.target.value) }))}
+              <label htmlFor="plans-annual-price" className="block text-xs font-semibold text-[var(--on-glass-muted)] mb-1.5">Annual Price ($)</label>
+              <input id="plans-annual-price" type="number" min="0" value={form.price_annual} onChange={e => setForm(f => ({ ...f, price_annual: Number(e.target.value) }))}
                 className="w-full px-3 py-2 border border-[var(--glass-border)] bg-[var(--glass-05)] rounded-lg text-sm text-white focus:outline-none focus:border-[var(--primary-600)]/50" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-[var(--on-glass-muted)] mb-1.5">Max Employees (0 = unlimited)</label>
-              <input type="number" min="0" value={form.max_employees} onChange={e => setForm(f => ({ ...f, max_employees: Number(e.target.value) }))}
+              <label htmlFor="plans-max-employees-0-unlimited" className="block text-xs font-semibold text-[var(--on-glass-muted)] mb-1.5">Max Employees (0 = unlimited)</label>
+              <input id="plans-max-employees-0-unlimited" type="number" min="0" value={form.max_employees} onChange={e => setForm(f => ({ ...f, max_employees: Number(e.target.value) }))}
                 className="w-full px-3 py-2 border border-[var(--glass-border)] bg-[var(--glass-05)] rounded-lg text-sm text-white focus:outline-none focus:border-[var(--primary-600)]/50" />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-[var(--on-glass-muted)] mb-1.5">Trial Days</label>
-              <input type="number" min="0" max="365" value={form.trial_days} onChange={e => setForm(f => ({ ...f, trial_days: Number(e.target.value) }))}
+              <label htmlFor="plans-trial-days" className="block text-xs font-semibold text-[var(--on-glass-muted)] mb-1.5">Trial Days</label>
+              <input id="plans-trial-days" type="number" min="0" max="365" value={form.trial_days} onChange={e => setForm(f => ({ ...f, trial_days: Number(e.target.value) }))}
                 className="w-full px-3 py-2 border border-[var(--glass-border)] bg-[var(--glass-05)] rounded-lg text-sm text-white focus:outline-none focus:border-[var(--primary-600)]/50" />
             </div>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-[var(--on-glass-muted)] mb-1.5">Description</label>
-            <textarea rows={2} value={form.description || ''} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+            <label htmlFor="plans-description" className="block text-xs font-semibold text-[var(--on-glass-muted)] mb-1.5">Description</label>
+            <textarea id="plans-description" rows={2} value={form.description || ''} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
               className="w-full px-3 py-2 border border-[var(--glass-border)] bg-[var(--glass-05)] rounded-lg text-sm text-white focus:outline-none focus:border-[var(--primary-600)]/50 resize-none" />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-[var(--on-glass-muted)] mb-1.5">Sort Order</label>
-            <input type="number" value={form.sort_order} onChange={e => setForm(f => ({ ...f, sort_order: Number(e.target.value) }))}
+            <label htmlFor="plans-sort-order" className="block text-xs font-semibold text-[var(--on-glass-muted)] mb-1.5">Sort Order</label>
+            <input id="plans-sort-order" type="number" value={form.sort_order} onChange={e => setForm(f => ({ ...f, sort_order: Number(e.target.value) }))}
               className="w-full px-3 py-2 border border-[var(--glass-border)] bg-[var(--glass-05)] rounded-lg text-sm text-white focus:outline-none focus:border-[var(--primary-600)]/50" />
           </div>
           <div className="flex gap-4">
@@ -267,7 +267,7 @@ export default function AdminPlansPage() {
             </label>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-[var(--on-glass-muted)] mb-2">Features</label>
+            <span className="block text-xs font-semibold text-[var(--on-glass-muted)] mb-2">Features</span>
             <div className="space-y-2">
               {Object.entries(FEATURE_LABELS).map(([key, label]) => (
                 <label key={key} className="flex items-center gap-2.5 p-2.5 rounded-lg border border-[var(--glass-border)] bg-[var(--glass-05)] cursor-pointer hover:bg-white/5 transition-colors">

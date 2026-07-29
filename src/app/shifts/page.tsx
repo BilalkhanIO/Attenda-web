@@ -132,7 +132,7 @@ function ShiftFormFields({ form }: { form: UseFormReturn<ShiftForm> }) {
         />
       </div>
       <div>
-        <label className="text-[11px] font-black text-[var(--on-glass-sub)] uppercase tracking-wider block mb-3">Active Days</label>
+        <span className="text-[11px] font-black text-[var(--on-glass-sub)] uppercase tracking-wider block mb-3">Active Days</span>
         <div className="flex gap-2 flex-wrap">
           {DAYS.map((d, i) => (
             <button key={d} type="button"
@@ -151,7 +151,7 @@ function ShiftFormFields({ form }: { form: UseFormReturn<ShiftForm> }) {
         </div>
       </div>
       <div>
-        <label className="text-[11px] font-black text-[var(--on-glass-sub)] uppercase tracking-wider block mb-3">Colour Accent</label>
+        <span className="text-[11px] font-black text-[var(--on-glass-sub)] uppercase tracking-wider block mb-3">Colour Accent</span>
         <div className="flex gap-3">
           {SHIFT_COLORS.map(c => (
             <button key={c} type="button"
@@ -301,6 +301,8 @@ function BreakCard({ b, deleting, onDelete }: { b: ShiftBreak; deleting: boolean
           type="button"
           onClick={onDelete}
           disabled={deleting}
+          aria-label="Delete break"
+          title="Delete break"
           className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--on-glass-dim)] hover:text-[var(--danger-500)] hover:bg-[var(--danger-500)]/10 transition-colors disabled:opacity-50"
         >
           <Trash2 size={14} />
@@ -418,8 +420,8 @@ function BreakForm({
         <ToggleRow label="Auto-Start" checked={form.auto_start} onChange={() => setField('auto_start', !form.auto_start)} />
         <ToggleRow label="Deduct if skipped" checked={form.deduct_if_skipped} onChange={() => setField('deduct_if_skipped', !form.deduct_if_skipped)} />
         <div className="flex flex-col gap-1">
-          <label className="text-[10px] font-black text-[var(--on-glass-muted)] uppercase tracking-widest">Reminder (mins)</label>
-          <input type="number" className="bg-[var(--glass-10)] border border-[var(--glass-border)] rounded-lg px-2 py-1 text-xs text-white" value={form.reminder_after_mins} onChange={e => setField('reminder_after_mins', Number(e.target.value))} />
+          <label htmlFor="shifts-reminder-mins" className="text-[10px] font-black text-[var(--on-glass-muted)] uppercase tracking-widest">Reminder (mins)</label>
+          <input id="shifts-reminder-mins" type="number" className="bg-[var(--glass-10)] border border-[var(--glass-border)] rounded-lg px-2 py-1 text-xs text-white" value={form.reminder_after_mins} onChange={e => setField('reminder_after_mins', Number(e.target.value))} />
         </div>
       </div>
 
@@ -793,6 +795,7 @@ export default function ShiftsPage() {
           <div className="flex items-center justify-between px-6 py-5 bg-[var(--glass-05)] border-b border-[var(--glass-border)]">
             <button
               onClick={() => setWeekStart(w => subWeeks(w, 1))}
+              aria-label="Previous week"
               className="w-10 h-10 flex items-center justify-center rounded-xl bg-[var(--glass-10)] text-[var(--on-glass-dim)] hover:text-white transition-all active:scale-90"
             >
               <ChevronLeft size={20} />
@@ -805,6 +808,7 @@ export default function ShiftsPage() {
             </div>
             <button
               onClick={() => setWeekStart(w => addWeeks(w, 1))}
+              aria-label="Next week"
               className="w-10 h-10 flex items-center justify-center rounded-xl bg-[var(--glass-10)] text-[var(--on-glass-dim)] hover:text-white transition-all active:scale-90"
             >
               <ChevronRight size={20} />
@@ -857,6 +861,7 @@ export default function ShiftsPage() {
                           type="button"
                           onClick={() => onSetOrgWide(shift)}
                           title={shift.is_org_wide ? 'Clear org-wide' : 'Apply to whole organisation'}
+                          aria-label={shift.is_org_wide ? 'Clear org-wide' : 'Apply to whole organisation'}
                           className={cn(
                             'w-7 h-7 rounded-lg flex items-center justify-center transition-all',
                             shift.is_org_wide ? 'bg-[var(--primary-600)] text-white' : 'bg-[var(--glass-10)] text-[var(--on-glass-dim)] hover:text-white',
@@ -868,6 +873,7 @@ export default function ShiftsPage() {
                           type="button"
                           onClick={() => openEdit(shift)}
                           title="Edit shift"
+                          aria-label="Edit shift"
                           className="w-7 h-7 rounded-lg flex items-center justify-center bg-[var(--glass-10)] text-[var(--on-glass-dim)] hover:text-white transition-all"
                         >
                           <Edit2 size={13} />
@@ -1076,9 +1082,9 @@ export default function ShiftsPage() {
       >
         <div className="space-y-5">
           <div>
-            <label className="text-[10px] font-black text-[var(--on-glass-sub)] uppercase tracking-widest block mb-2">Describe your requirements</label>
+            <label htmlFor="shifts-describe-your-requirements" className="text-[10px] font-black text-[var(--on-glass-sub)] uppercase tracking-widest block mb-2">Describe your requirements</label>
             <div className="flex gap-3">
-              <textarea
+              <textarea id="shifts-describe-your-requirements"
                 rows={2}
                 value={aiPrompt}
                 onChange={e => setAiPrompt(e.target.value)}

@@ -167,7 +167,7 @@ export default function WhatsAppSettingsModal({ isOpen, onClose }: WhatsAppSetti
                         <p className="text-[11px] font-black text-white truncate">{g.name}</p>
                         <p className="text-[10px] font-mono text-[var(--on-glass-dim)]">{g.phone}</p>
                       </div>
-                      <button onClick={() => setSettings(s => ({ ...s, groups: s.groups.filter(x => x.id !== g.id) }))} className="text-[var(--on-glass-dim)] hover:text-[var(--danger-500)] transition-all">
+                      <button onClick={() => setSettings(s => ({ ...s, groups: s.groups.filter(x => x.id !== g.id) }))} aria-label={`Remove ${g.name}`} className="text-[var(--on-glass-dim)] hover:text-[var(--danger-500)] transition-all">
                         <Trash2 size={12} />
                       </button>
                     </div>

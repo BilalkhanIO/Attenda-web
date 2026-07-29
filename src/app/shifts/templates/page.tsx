@@ -106,7 +106,7 @@ function ShiftFormFields({ form }: { form: UseFormReturn<ShiftForm> }) {
         />
       </div>
       <div>
-        <label className="text-[11px] font-black text-[var(--on-glass-sub)] uppercase tracking-wider block mb-3">Active Days</label>
+        <span className="text-[11px] font-black text-[var(--on-glass-sub)] uppercase tracking-wider block mb-3">Active Days</span>
         <div className="flex gap-2 flex-wrap">
           {DAYS.map((d, i) => (
             <button key={d} type="button"
@@ -125,7 +125,7 @@ function ShiftFormFields({ form }: { form: UseFormReturn<ShiftForm> }) {
         </div>
       </div>
       <div>
-        <label className="text-[11px] font-black text-[var(--on-glass-sub)] uppercase tracking-wider block mb-3">Colour Accent</label>
+        <span className="text-[11px] font-black text-[var(--on-glass-sub)] uppercase tracking-wider block mb-3">Colour Accent</span>
         <div className="flex gap-3">
           {SHIFT_COLORS.map(c => (
             <button key={c} type="button"
@@ -347,7 +347,7 @@ function BreaksPanel({ shiftId }: { shiftId: string }) {
             </div>
             <div className="flex items-center gap-2">
               {b.is_paid && <Badge label="PAID" color="#10b981" bg="#10b981" size="sm" />}
-              <button onClick={() => handleDelete(b.id)} disabled={deletingId === b.id} className="p-1.5 text-[var(--on-glass-dim)] hover:text-[var(--danger-500)] transition-colors">
+              <button onClick={() => handleDelete(b.id)} disabled={deletingId === b.id} aria-label="Delete break" title="Delete break" className="p-1.5 text-[var(--on-glass-dim)] hover:text-[var(--danger-500)] transition-colors">
                 <Trash2 size={14} />
               </button>
             </div>
@@ -361,16 +361,16 @@ function BreaksPanel({ shiftId }: { shiftId: string }) {
           <Input label="Break Name" value={form.name} onChange={e => setForm({...form, name: e.target.value})} placeholder="Lunch, Tea, etc." />
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-2">
-               <label className="text-[11px] font-black text-[var(--on-glass-muted)] uppercase tracking-widest">Type</label>
-               <select className="bg-[var(--glass-10)] border border-[var(--glass-border)] rounded-xl px-3 py-2 text-sm text-white" value={form.break_kind} onChange={e => setForm({...form, break_kind: e.target.value as 'fixed' | 'flexible'})}>
+               <label htmlFor="templates-type" className="text-[11px] font-black text-[var(--on-glass-muted)] uppercase tracking-widest">Type</label>
+               <select id="templates-type" className="bg-[var(--glass-10)] border border-[var(--glass-border)] rounded-xl px-3 py-2 text-sm text-white" value={form.break_kind} onChange={e => setForm({...form, break_kind: e.target.value as 'fixed' | 'flexible'})}>
                   <option value="fixed">Fixed</option>
                   <option value="flexible">Flexible</option>
                </select>
             </div>
             {form.break_kind === 'fixed' ? (
               <div className="flex flex-col gap-2">
-                 <label className="text-[11px] font-black text-[var(--on-glass-muted)] uppercase tracking-widest">Start Time</label>
-                 <input type="time" className="bg-[var(--glass-10)] border border-[var(--glass-border)] rounded-xl px-3 py-2 text-sm text-white" value={form.start_time} onChange={e => setForm({...form, start_time: e.target.value})} />
+                 <label htmlFor="templates-start-time" className="text-[11px] font-black text-[var(--on-glass-muted)] uppercase tracking-widest">Start Time</label>
+                 <input id="templates-start-time" type="time" className="bg-[var(--glass-10)] border border-[var(--glass-border)] rounded-xl px-3 py-2 text-sm text-white" value={form.start_time} onChange={e => setForm({...form, start_time: e.target.value})} />
               </div>
             ) : (
               <Input label="Duration (min)" type="number" value={form.duration_minutes} onChange={e => setForm({...form, duration_minutes: Number(e.target.value)})} />
@@ -378,8 +378,8 @@ function BreaksPanel({ shiftId }: { shiftId: string }) {
           </div>
           {form.break_kind === 'fixed' && (
             <div className="flex flex-col gap-2">
-               <label className="text-[11px] font-black text-[var(--on-glass-muted)] uppercase tracking-widest">End Time</label>
-               <input type="time" className="bg-[var(--glass-10)] border border-[var(--glass-border)] rounded-xl px-3 py-2 text-sm text-white" value={form.end_time} onChange={e => setForm({...form, end_time: e.target.value})} />
+               <label htmlFor="templates-end-time" className="text-[11px] font-black text-[var(--on-glass-muted)] uppercase tracking-widest">End Time</label>
+               <input id="templates-end-time" type="time" className="bg-[var(--glass-10)] border border-[var(--glass-border)] rounded-xl px-3 py-2 text-sm text-white" value={form.end_time} onChange={e => setForm({...form, end_time: e.target.value})} />
             </div>
           )}
           <div className="grid grid-cols-2 gap-x-6 gap-y-3 p-4 rounded-xl bg-white/5 border border-white/5">
@@ -389,8 +389,8 @@ function BreaksPanel({ shiftId }: { shiftId: string }) {
             <ToggleRow label="Auto-Start" checked={form.auto_start} onChange={() => setForm({...form, auto_start: !form.auto_start})} />
             <ToggleRow label="Deduct if skipped" checked={form.deduct_if_skipped} onChange={() => setForm({...form, deduct_if_skipped: !form.deduct_if_skipped})} />
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-black text-[var(--on-glass-muted)] uppercase tracking-widest">Reminder (mins)</label>
-              <input type="number" className="bg-[var(--glass-10)] border border-[var(--glass-border)] rounded-lg px-2 py-1 text-xs text-white" value={form.reminder_after_mins} onChange={e => setForm({...form, reminder_after_mins: Number(e.target.value)})} />
+              <label htmlFor="templates-reminder-mins" className="text-[10px] font-black text-[var(--on-glass-muted)] uppercase tracking-widest">Reminder (mins)</label>
+              <input id="templates-reminder-mins" type="number" className="bg-[var(--glass-10)] border border-[var(--glass-border)] rounded-lg px-2 py-1 text-xs text-white" value={form.reminder_after_mins} onChange={e => setForm({...form, reminder_after_mins: Number(e.target.value)})} />
             </div>
           </div>
           <div className="flex gap-2 justify-end">
@@ -480,8 +480,8 @@ export default function ShiftTemplatesPage() {
           {shifts.map(shift => (
             <Card key={shift.id} className="group relative hover:border-[var(--primary-600)]/50 transition-all duration-300">
               <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 z-10">
-                <button onClick={() => openEdit(shift)} className="w-8 h-8 flex items-center justify-center rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all"><Edit2 size={14} /></button>
-                <button onClick={() => setDeleteShift(shift)} className="w-8 h-8 flex items-center justify-center rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-all"><Trash2 size={14} /></button>
+                <button onClick={() => openEdit(shift)} aria-label="Edit template" title="Edit template" className="w-8 h-8 flex items-center justify-center rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all"><Edit2 size={14} /></button>
+                <button onClick={() => setDeleteShift(shift)} aria-label="Delete template" title="Delete template" className="w-8 h-8 flex items-center justify-center rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-all"><Trash2 size={14} /></button>
               </div>
 
               <div className="p-5 flex flex-col h-full">

@@ -187,8 +187,8 @@ export default function ProfilePage() {
                 <Input label="Date of Birth" type="date"
                   {...profileForm.register('date_of_birth')} />
                 <div>
-                  <label className="text-sm font-semibold text-slate-300 block mb-1">Gender</label>
-                  <select
+                  <label htmlFor="profile-gender" className="text-sm font-semibold text-slate-300 block mb-1">Gender</label>
+                  <select id="profile-gender"
                     {...profileForm.register('gender')}
                     className="w-full px-3 py-2 text-sm bg-slate-800/50 border border-glass rounded-lg text-slate-100 outline-none focus:border-emerald-500/50"
                   >

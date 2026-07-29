@@ -100,6 +100,7 @@ function CalendarGrid({ year, month, selectedDate, minDate, maxDate, onSelect, o
         <button
           type="button"
           onClick={onPrev}
+          aria-label="Previous month"
           className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--on-glass-dim)] hover:text-white hover:bg-[var(--glass-10)] transition-all active:scale-90"
         >
           <ChevronLeft size={16} />
@@ -110,6 +111,7 @@ function CalendarGrid({ year, month, selectedDate, minDate, maxDate, onSelect, o
         <button
           type="button"
           onClick={onNext}
+          aria-label="Next month"
           className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--on-glass-dim)] hover:text-white hover:bg-[var(--glass-10)] transition-all active:scale-90"
         >
           <ChevronRight size={16} />

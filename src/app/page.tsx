@@ -29,7 +29,7 @@ export function MarketingNav() {
             Start Free Trial
           </Link>
         </div>
-        <button onClick={() => setOpen(v => !v)} className="lg:hidden w-10 h-10 flex items-center justify-center rounded-xl bg-[var(--glass-10)] text-white/70 hover:text-white transition-all">
+        <button onClick={() => setOpen(v => !v)} aria-label={open ? 'Close menu' : 'Open menu'} className="lg:hidden w-10 h-10 flex items-center justify-center rounded-xl bg-[var(--glass-10)] text-white/70 hover:text-white transition-all">
           {open ? <X size={20} /> : <Menu size={20} />}
         </button>
       </div>

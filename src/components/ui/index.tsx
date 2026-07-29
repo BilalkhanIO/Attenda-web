@@ -8,6 +8,7 @@ import {
   SelectHTMLAttributes,
   TextareaHTMLAttributes,
   useEffect,
+  useId,
   useRef,
   useState,
   isValidElement,
@@ -289,6 +290,8 @@ interface ModalProps {
 
 export function Modal({ isOpen, onClose, title, children, size = 'md', footer }: ModalProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const titleId = useId();
 
   useEffect(() => {
     if (isOpen) {
@@ -305,6 +308,14 @@ export function Modal({ isOpen, onClose, title, children, size = 'md', footer }:
     return () => window.removeEventListener('keydown', handleKey);
   }, [isOpen, onClose]);
 
+  // Move focus into the dialog on open; restore it to the opener on close.
+  useEffect(() => {
+    if (!isOpen) return;
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    panelRef.current?.focus();
+    return () => { previouslyFocused?.focus?.(); };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const sizes = { sm: 'max-w-sm', md: 'max-w-md', lg: 'max-w-lg', xl: 'max-w-2xl' };
@@ -312,16 +323,25 @@ export function Modal({ isOpen, onClose, title, children, size = 'md', footer }:
   return (
     <div
       ref={overlayRef}
+      role="presentation"
       className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md backdrop-animate"
       style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
       onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}
     >
-      <div className={cn('w-full bg-[var(--dark-950)]/80 backdrop-blur-xl rounded-2xl border border-[var(--glass-border)] shadow-2xl modal-animate flex flex-col max-h-[85vh] overflow-hidden', sizes[size])}>
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
+        className={cn('w-full bg-[var(--dark-950)]/80 backdrop-blur-xl rounded-2xl border border-[var(--glass-border)] shadow-2xl modal-animate flex flex-col max-h-[85vh] overflow-hidden outline-none', sizes[size])}
+      >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-[var(--glass-border)] flex-shrink-0">
-          <h2 className="text-base font-black text-white tracking-tight">{title}</h2>
+          <h2 id={titleId} className="text-base font-black text-white tracking-tight">{title}</h2>
           <button
             onClick={onClose}
+            aria-label="Close dialog"
             className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--on-glass-dim)] hover:bg-[var(--glass-10)] hover:text-white transition-all active:scale-90"
           >
             <X size={16} />
@@ -1023,8 +1043,8 @@ export function RequestItem({ name, avatarUrl, primary, primaryColor, secondary,
       </div>
       {actions ?? ((onApprove || onReject) && (
         <div className="flex gap-1.5 shrink-0">
-          {onApprove && <button onClick={onApprove} disabled={loading} className="action-btn action-btn-approve"><CheckIcon size={12} /></button>}
-          {onReject  && <button onClick={onReject}  disabled={loading} className="action-btn action-btn-reject"><X size={12} /></button>}
+          {onApprove && <button onClick={onApprove} disabled={loading} aria-label="Approve" title="Approve" className="action-btn action-btn-approve"><CheckIcon size={12} /></button>}
+          {onReject  && <button onClick={onReject}  disabled={loading} aria-label="Reject" title="Reject" className="action-btn action-btn-reject"><X size={12} /></button>}
         </div>
       ))}
     </div>

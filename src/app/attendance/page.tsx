@@ -620,7 +620,7 @@ export default function AttendancePage() {
               {myLateNotice && !myRecord?.check_in_at && (
                 <div className="flex items-center gap-2 px-3 py-1.5 bg-[var(--warning-500)]/10 border border-[var(--warning-500)]/20 rounded-xl text-[10px] font-black text-[var(--warning-500)] uppercase tracking-widest">
                    <Clock size={10} /> Late: {myLateNotice.expected_time}
-                   <button onClick={handleCancelMyNotice} className="ml-1 hover:text-white transition-colors">
+                   <button onClick={handleCancelMyNotice} aria-label="Cancel late notice" className="ml-1 hover:text-white transition-colors">
                      <X size={12} />
                    </button>
                 </div>
@@ -867,6 +867,8 @@ export default function AttendancePage() {
                     {hasPermission('attendance.override') && (
                       <button
                         onClick={() => openOverride(record)}
+                        aria-label="Override attendance record"
+                        title="Override"
                         className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--glass-10)] text-[var(--on-glass-dim)] hover:text-[var(--primary-600)] hover:bg-[var(--glass-15)] transition-all"
                       >
                         <Edit2 size={13} />

@@ -222,6 +222,8 @@ export default function RemoteMonitorPage() {
                         {/* View conversation */}
                         <button
                           onClick={() => setDetail(session)}
+                          aria-label="View conversation"
+                          title="View conversation"
                           className="w-8 h-8 flex items-center justify-center rounded-xl bg-[var(--glass-10)] text-[var(--on-glass-dim)] hover:text-white hover:bg-[var(--glass-15)] transition-all"
                         >
                           <MessageCircle size={16} />

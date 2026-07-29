@@ -212,12 +212,12 @@ export default function PerformancePage() {
                   <td className="py-3 px-4">
                     <div className="flex items-center gap-1.5">
                       {hasPermission('performance.manage') && (
-                        <button onClick={() => openReview(review)} title={isSubmitted ? 'View Review' : 'Create Review'}
+                        <button onClick={() => openReview(review)} title={isSubmitted ? 'View Review' : 'Create Review'} aria-label={isSubmitted ? 'View review' : 'Create review'}
                           className="w-7 h-7 flex items-center justify-center rounded-lg bg-[var(--glass-10)] text-[var(--on-glass-dim)] hover:text-white hover:bg-[var(--glass-15)] transition-all">
                           {isSubmitted ? <TrendingUp size={14} /> : <Star size={14} />}
                         </button>
                       )}
-                      <button onClick={() => openInsights(review)} title="AI Analysis"
+                      <button onClick={() => openInsights(review)} title="AI Analysis" aria-label="AI analysis"
                         className="w-7 h-7 flex items-center justify-center rounded-lg bg-[var(--glass-10)] text-[var(--on-glass-dim)] hover:text-[var(--secondary)] hover:bg-[var(--glass-15)] transition-all">
                         <Sparkles size={14} />
                       </button>

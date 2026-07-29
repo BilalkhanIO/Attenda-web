@@ -151,10 +151,10 @@ export default function OvertimeRulesModal({ isOpen, onClose }: OvertimeRulesMod
                     </div>
                     {isAdmin && (
                       <div className="flex gap-1">
-                        <button onClick={() => openEdit(rule)} className="p-1.5 rounded-lg hover:bg-[var(--glass-10)] text-[var(--on-glass-dim)] hover:text-white transition-all">
+                        <button onClick={() => openEdit(rule)} aria-label="Edit rule" title="Edit rule" className="p-1.5 rounded-lg hover:bg-[var(--glass-10)] text-[var(--on-glass-dim)] hover:text-white transition-all">
                           <Edit2 size={12} />
                         </button>
-                        <button onClick={() => setDeleteConfirm(rule)} className="p-1.5 rounded-lg hover:bg-[var(--glass-10)] text-[var(--on-glass-dim)] hover:text-[var(--danger-500)] transition-all">
+                        <button onClick={() => setDeleteConfirm(rule)} aria-label="Delete rule" title="Delete rule" className="p-1.5 rounded-lg hover:bg-[var(--glass-10)] text-[var(--on-glass-dim)] hover:text-[var(--danger-500)] transition-all">
                           <Trash2 size={12} />
                         </button>
                       </div>

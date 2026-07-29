@@ -240,7 +240,10 @@ export default function DashboardPage() {
                     return (
                       <div
                         key={entry.user!.id}
+                        role="button"
+                        tabIndex={0}
                         onClick={() => setSelectedEmployee(entry)}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedEmployee(entry); } }}
                         className="flex items-start gap-3 p-4 rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-05)] hover:bg-[var(--glass-10)] hover:shadow-xl transition-all group cursor-pointer"
                       >
                         <Avatar name={entry.user!.name} imageUrl={entry.user!.avatar_url} size="md" />

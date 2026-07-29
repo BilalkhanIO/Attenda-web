@@ -215,7 +215,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
               <p className="text-[13px] font-semibold text-white truncate">{user.name}</p>
               <p className="text-[10px] text-[var(--on-glass-muted)] uppercase tracking-wider truncate">Platform Admin</p>
             </div>
-            <button onClick={logout} className="text-[var(--on-glass-dim)] hover:text-[var(--danger-500)] transition-colors p-1 shrink-0">
+            <button onClick={logout} aria-label="Log out" title="Log out" className="text-[var(--on-glass-dim)] hover:text-[var(--danger-500)] transition-colors p-1 shrink-0">
               <LogOut size={14} />
             </button>
           </div>
@@ -234,7 +234,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
         <div className="lg:hidden fixed inset-0 z-50 flex">
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
+          <div role="presentation" className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
           <aside className="relative w-48 bg-[var(--dark-800)] border-r border-[var(--glass-border)] flex flex-col z-50 slide-in-left">
             {sidebarContent}
           </aside>
@@ -251,6 +251,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             <button
               className="lg:hidden text-[var(--on-glass-sub)] hover:text-white transition-colors"
               onClick={() => setSidebarOpen(true)}
+              aria-label="Open navigation"
             >
               <Menu size={20} />
             </button>
@@ -265,6 +266,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             <div ref={bellRef} className="relative">
               <button
                 onClick={toggleBell}
+                aria-label="Notifications"
                 className="relative w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--glass-05)] border border-[var(--glass-border)] hover:bg-[var(--glass-10)] text-white transition-all active:scale-95"
               >
                 <Bell size={16} />
@@ -304,7 +306,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                           <p className="text-[9px] text-[var(--on-glass-dim)] mt-1 uppercase font-bold">{timeAgo(n.created_at)}</p>
                         </div>
                         {!n.read_at && (
-                          <button onClick={() => handleMarkRead(n.id)} className="opacity-0 group-hover:opacity-100 p-1 text-[var(--primary-600)] hover:bg-[var(--primary-600)]/10 rounded transition-all">
+                          <button onClick={() => handleMarkRead(n.id)} aria-label="Mark as read" title="Mark as read" className="opacity-0 group-hover:opacity-100 p-1 text-[var(--primary-600)] hover:bg-[var(--primary-600)]/10 rounded transition-all">
                             <Check size={12} />
                           </button>
                         )}

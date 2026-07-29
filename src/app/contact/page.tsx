@@ -129,8 +129,8 @@ export default function ContactPage() {
 
                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                      <div className="space-y-2">
-                       <label className="text-xs font-bold text-[var(--on-glass-muted)] uppercase tracking-widest ml-1">Your name <span className="text-[var(--primary-600)]">*</span></label>
-                       <input
+                       <label htmlFor="contact-your-name" className="text-xs font-bold text-[var(--on-glass-muted)] uppercase tracking-widest ml-1">Your name <span className="text-[var(--primary-600)]">*</span></label>
+                       <input id="contact-your-name"
                          required
                          type="text"
                          placeholder="Jane Smith"
@@ -140,8 +140,8 @@ export default function ContactPage() {
                        />
                      </div>
                      <div className="space-y-2">
-                       <label className="text-xs font-bold text-[var(--on-glass-muted)] uppercase tracking-widest ml-1">Work email <span className="text-[var(--primary-600)]">*</span></label>
-                       <input
+                       <label htmlFor="contact-work-email" className="text-xs font-bold text-[var(--on-glass-muted)] uppercase tracking-widest ml-1">Work email <span className="text-[var(--primary-600)]">*</span></label>
+                       <input id="contact-work-email"
                          required
                          type="email"
                          placeholder="jane@company.com"
@@ -153,8 +153,8 @@ export default function ContactPage() {
                    </div>
 
                    <div className="space-y-2">
-                     <label className="text-xs font-bold text-[var(--on-glass-muted)] uppercase tracking-widest ml-1">Company name</label>
-                     <input
+                     <label htmlFor="contact-company-name" className="text-xs font-bold text-[var(--on-glass-muted)] uppercase tracking-widest ml-1">Company name</label>
+                     <input id="contact-company-name"
                        type="text"
                        placeholder="Acme Corp"
                        value={form.company}
@@ -164,8 +164,8 @@ export default function ContactPage() {
                    </div>
 
                    <div className="space-y-2">
-                     <label className="text-xs font-bold text-[var(--on-glass-muted)] uppercase tracking-widest ml-1">Message <span className="text-[var(--primary-600)]">*</span></label>
-                     <textarea
+                     <label htmlFor="contact-message" className="text-xs font-bold text-[var(--on-glass-muted)] uppercase tracking-widest ml-1">Message <span className="text-[var(--primary-600)]">*</span></label>
+                     <textarea id="contact-message"
                        required
                        rows={4}
                        placeholder="Tell us how we can help..."

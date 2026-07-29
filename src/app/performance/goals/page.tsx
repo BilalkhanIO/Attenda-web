@@ -124,8 +124,8 @@ export default function GoalsPage() {
           <Textarea label="Description" {...form.register('description')} />
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[11px] font-black text-[var(--on-glass-muted)] uppercase tracking-[0.1em] block mb-1.5">Weight (%)</label>
-              <input type="number" min={1} max={100} {...form.register('weight', { valueAsNumber: true })}
+              <label htmlFor="goals-weight" className="text-[11px] font-black text-[var(--on-glass-muted)] uppercase tracking-[0.1em] block mb-1.5">Weight (%)</label>
+              <input id="goals-weight" type="number" min={1} max={100} {...form.register('weight', { valueAsNumber: true })}
                 className="w-full rounded-xl border bg-[var(--glass-05)] px-4 py-3 text-sm text-white placeholder:text-[var(--on-glass-dim)] transition-all duration-200 border-[var(--glass-border)] focus:border-[var(--primary-600)] focus:ring-4 focus:ring-[var(--primary-600)]/10 outline-none" />
             </div>
             <Input label="Target Date" type="date" {...form.register('target_date')} />

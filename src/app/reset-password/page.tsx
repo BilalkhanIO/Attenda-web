@@ -103,7 +103,7 @@ function ResetPasswordContent() {
                   error={errors.password?.message}
                   className="bg-[var(--glass-10)]"
                   rightIcon={
-                    <button type="button" onClick={() => setShowPass(v => !v)} className="hover:text-white transition-colors">
+                    <button type="button" onClick={() => setShowPass(v => !v)} aria-label={showPass ? 'Hide password' : 'Show password'} className="hover:text-white transition-colors">
                       {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
                   }
@@ -116,7 +116,7 @@ function ResetPasswordContent() {
                   error={errors.confirm?.message}
                   className="bg-[var(--glass-10)]"
                   rightIcon={
-                    <button type="button" onClick={() => setShowConf(v => !v)} className="hover:text-white transition-colors">
+                    <button type="button" onClick={() => setShowConf(v => !v)} aria-label={showConf ? 'Hide password' : 'Show password'} className="hover:text-white transition-colors">
                       {showConf ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
                   }

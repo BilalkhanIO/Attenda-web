@@ -354,13 +354,14 @@ export default function EmployeesPage() {
                 <div className="relative flex justify-end">
                   <button
                     onClick={() => setActionMenuId(actionMenuId === user.id ? null : user.id)}
+                    aria-label="Employee actions"
                     className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-[var(--glass-10)] text-[var(--on-glass-dim)] hover:text-white transition-all active:scale-90"
                   >
                     <MoreHorizontal size={20} />
                   </button>
                   {actionMenuId === user.id && (
                     <>
-                      <div className="fixed inset-0 z-10" onClick={() => setActionMenuId(null)} />
+                      <div role="presentation" className="fixed inset-0 z-10" onClick={() => setActionMenuId(null)} />
                       <div className="absolute right-0 top-11 z-20 min-w-[200px] bg-[var(--dark-950)]/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-[var(--glass-border)] py-2 fade-in-up overflow-hidden">
                         <button onClick={() => { setViewUser(user); setActionMenuId(null); }}
                           className="w-full text-left px-5 py-3 text-[13px] font-bold flex items-center gap-3 hover:bg-[var(--glass-10)] text-white transition-all">

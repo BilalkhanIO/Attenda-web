@@ -292,7 +292,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               <p className="text-[13px] font-semibold text-white truncate">{user.name}</p>
               <p className="text-[10px] text-[var(--on-glass-muted)] uppercase tracking-wider truncate">{roleLabel}</p>
             </div>
-            <button onClick={logout} className="text-[var(--on-glass-dim)] hover:text-[var(--danger-500)] transition-colors p-1 shrink-0">
+            <button onClick={logout} aria-label="Log out" title="Log out" className="text-[var(--on-glass-dim)] hover:text-[var(--danger-500)] transition-colors p-1 shrink-0">
               <LogOut size={14} />
             </button>
           </div>
@@ -309,7 +309,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
       {sidebarOpen && (
         <div className="lg:hidden fixed inset-0 z-50 flex">
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
+          <div role="presentation" className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
           <aside className="relative w-48 bg-[var(--dark-800)] border-r border-[var(--glass-border)] flex flex-col z-50 slide-in-left">
             {sidebarContent}
           </aside>
@@ -324,6 +324,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             <button
               className="lg:hidden text-[var(--on-glass-sub)] hover:text-white transition-colors"
               onClick={() => setSidebarOpen(true)}
+              aria-label="Open navigation"
             >
               <Menu size={20} />
             </button>
@@ -339,6 +340,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             <div ref={bellRef} className="relative">
               <button
                 onClick={toggleBell}
+                aria-label="Notifications"
                 className="relative w-9 h-9 flex items-center justify-center rounded-xl bg-[var(--glass-05)] border border-[var(--glass-border)] hover:bg-[var(--glass-10)] text-white transition-all active:scale-90"
               >
                 <Bell size={18} />
@@ -399,6 +401,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                               onClick={() => handleMarkRead(n.id)}
                               className="p-1 rounded text-[var(--primary-600)] hover:bg-[var(--primary-600)]/10 transition-colors"
                               title="Mark as read"
+                              aria-label="Mark as read"
                             >
                               <Check size={12} />
                             </button>
@@ -407,6 +410,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                             onClick={() => handleDelete(n.id, !n.read_at)}
                             className="p-1 rounded text-[var(--danger-500)] hover:bg-[var(--danger-500)]/10 transition-colors"
                             title="Delete"
+                            aria-label="Delete notification"
                           >
                             <Trash2 size={12} />
                           </button>
@@ -433,6 +437,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               <div ref={profileRef} className="relative">
                 <button
                   onClick={() => setProfileOpen(!profileOpen)}
+                  aria-label="Account menu"
                   className="flex items-center gap-2.5 px-2 py-1.5 rounded-xl hover:bg-[var(--glass-05)] transition-all border border-transparent hover:border-[var(--glass-border)]"
                 >
                   <div className="relative">

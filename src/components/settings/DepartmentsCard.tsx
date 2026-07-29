@@ -86,6 +86,7 @@ export default function DepartmentsCard() {
             {!isChild && (
               <button
                 title="Add sub-department"
+                aria-label="Add sub-department"
                 onClick={() => setEditor({ mode: 'create', parentId: node.id, parentName: node.name, name: '' })}
                 className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-500 hover:text-emerald-400 hover:bg-white/5"
               >
@@ -94,6 +95,7 @@ export default function DepartmentsCard() {
             )}
             <button
               title="Rename"
+              aria-label="Rename department"
               onClick={() => setEditor({ mode: 'rename', id: node.id, name: node.name })}
               className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-500 hover:text-white hover:bg-white/5"
             >
@@ -101,6 +103,7 @@ export default function DepartmentsCard() {
             </button>
             <button
               title="Delete"
+              aria-label="Delete department"
               onClick={() => setDeleteTarget(node)}
               className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-500 hover:text-rose-400 hover:bg-white/5"
             >

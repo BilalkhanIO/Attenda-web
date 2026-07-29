@@ -229,7 +229,7 @@ export default function LoginPage() {
                         required
                         className="bg-[var(--glass-10)]"
                         rightIcon={
-                          <button type="button" onClick={() => setShowPassword(!showPassword)} className="hover:text-white transition-colors">
+                          <button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? 'Hide password' : 'Show password'} className="hover:text-white transition-colors">
                             {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                           </button>
                         }

@@ -210,6 +210,7 @@ export default function AdminPlatformUsersPage() {
                       onClick={() => openEdit(user)}
                       className="p-2 rounded-xl text-[var(--on-glass-dim)] hover:text-white hover:bg-[var(--glass-10)] transition-all"
                       title="Edit User"
+                      aria-label="Edit user"
                     >
                       <Edit size={16} />
                     </button>
@@ -217,6 +218,7 @@ export default function AdminPlatformUsersPage() {
                       onClick={() => setDeleteUser(user)}
                       className="p-2 rounded-xl text-[var(--on-glass-dim)] hover:text-[var(--danger-500)] hover:bg-[var(--danger-500)]/10 transition-all"
                       title="Delete User"
+                      aria-label="Delete user"
                     >
                       <Trash2 size={16} />
                     </button>

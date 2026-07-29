@@ -219,10 +219,10 @@ export default function LeavePage() {
                 <td className="py-3 px-4">
                   {req.status === 'pending' && hasPermission('leave.approve') && (
                     <div className="flex items-center gap-1.5">
-                      <button onClick={() => setApproveReq(req)} className="action-btn action-btn-approve">
+                      <button onClick={() => setApproveReq(req)} aria-label="Approve request" className="action-btn action-btn-approve">
                         <Check size={12} />
                       </button>
-                      <button onClick={() => { setRejectReq(req); rejectForm.reset(); }} className="action-btn action-btn-reject">
+                      <button onClick={() => { setRejectReq(req); rejectForm.reset(); }} aria-label="Reject request" className="action-btn action-btn-reject">
                         <X size={12} />
                       </button>
                     </div>

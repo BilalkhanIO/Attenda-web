@@ -280,7 +280,7 @@ export default function SettingsPage() {
               <p className="text-[11px] font-black uppercase text-[var(--secondary)] tracking-widest">Office Entrances</p>
               <div className="flex gap-2">
                 {networksChanged && <Button size="sm" variant="outline" icon={<Save size={12} />} onClick={() => saveNetworksMutation.mutate()} />}
-                <button onClick={() => setShowAddNetwork(true)} className="w-7 h-7 flex items-center justify-center rounded-lg bg-[var(--primary-600)] text-white hover:brightness-110 transition-all">
+                <button onClick={() => setShowAddNetwork(true)} aria-label="Add office network" title="Add office network" className="w-7 h-7 flex items-center justify-center rounded-lg bg-[var(--primary-600)] text-white hover:brightness-110 transition-all">
                   <Plus size={16} />
                 </button>
               </div>
@@ -293,7 +293,7 @@ export default function SettingsPage() {
                     {n.type === 'ssid' ? <Wifi size={12} className="text-[var(--success-500)]" /> : <Network size={12} className="text-[var(--secondary)]" />}
                     <span className="text-[11px] font-mono text-white truncate">{n.value}</span>
                   </div>
-                  <button onClick={() => setDeleteNetwork(n)} className="text-[var(--on-glass-dim)] hover:text-[var(--danger-500)] opacity-0 group-hover:opacity-100 transition-all">
+                  <button onClick={() => setDeleteNetwork(n)} aria-label={`Remove ${n.value}`} title="Remove network" className="text-[var(--on-glass-dim)] hover:text-[var(--danger-500)] opacity-0 group-hover:opacity-100 transition-all">
                     <Trash2 size={12} />
                   </button>
                 </div>
