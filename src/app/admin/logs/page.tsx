@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { adminApi } from '@/lib/api';
 import { getApiError, runDeferred } from '@/lib/utils';
-import { PageHeader, Card, Table, Button, Skeleton, Badge } from '@/components/ui';
+import { PageHeader, Card, Table, Button, Badge } from '@/components/ui';
 import { History, RefreshCw, Search, Filter } from 'lucide-react';
 import toast from 'react-hot-toast';
 

@@ -28,7 +28,7 @@ type ForgotForm = z.infer<typeof forgotSchema>;
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
 
 export default function LoginPage() {
-  const { login, loginWithTokens } = useAuth();
+  const { loginWithTokens } = useAuth();
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [forgotOpen, setForgotOpen] = useState(false);

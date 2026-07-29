@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  Modal, Button, Card, Input, EmptyState, Badge
+  Modal, Button, Card, Input
 } from '@/components/ui';
 import { orgApi } from '@/lib/api';
 import { getApiError } from '@/lib/utils';
@@ -46,7 +46,7 @@ export default function WhatsAppSettingsModal({ isOpen, onClose }: WhatsAppSetti
   const [addGroupOpen, setAddGroupOpen] = useState(false);
   const [newGroup, setNewGroup] = useState({ name: '', phone: '' });
 
-  const { data, isLoading } = useQuery({
+  const { data } = useQuery({
     queryKey: ['whatsapp-settings'],
     queryFn: async () => (await orgApi.getWhatsAppSettings()).data.data,
   });

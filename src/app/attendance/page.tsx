@@ -1,9 +1,9 @@
 'use client';
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import {
   PageHeader, Card, Table, Avatar, Badge, Button, Modal, Input, Textarea,
-  EmptyState, StatBox, SectionCard, RequestItem, Dropdown, DatePicker, DateTimePicker,
+  StatBox, SectionCard, RequestItem, Dropdown, DatePicker, DateTimePicker,
 } from '@/components/ui';
 import type { DropdownOption } from '@/components/ui';
 import { attendanceApi, remoteApi, overtimeApi } from '@/lib/api';
@@ -17,7 +17,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
-import { format, formatDuration, intervalToDuration } from 'date-fns';
+import { format, intervalToDuration } from 'date-fns';
 import { useAuth } from '@/lib/auth';
 import { cn } from '@/lib/utils';
 

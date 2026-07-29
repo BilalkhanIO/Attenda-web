@@ -9,7 +9,7 @@ import {
 import { shiftsApi } from '@/lib/api';
 import { getApiError, runDeferred } from '@/lib/utils';
 import type { Shift, ShiftBreak } from '@/types';
-import { Plus, Clock, Edit2, Trash2, Coffee, Globe, AlertTriangle, ChevronDown, ChevronUp, TrendingUp } from 'lucide-react';
+import { Plus, Clock, Edit2, Trash2, Coffee, TrendingUp } from 'lucide-react';
 import { useForm, UseFormReturn, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';

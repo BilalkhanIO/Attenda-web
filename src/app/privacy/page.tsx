@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { MarketingNav, MarketingFooter } from '../page';
 
 export const metadata = { title: 'Privacy Policy — Attenda', description: 'How Attenda collects, uses, and protects your data.' };

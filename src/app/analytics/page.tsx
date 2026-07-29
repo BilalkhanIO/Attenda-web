@@ -10,7 +10,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell
 } from 'recharts';
-import { Users, Clock, BarChart2, RefreshCw, CheckCircle, TrendingUp } from 'lucide-react';
+import { Users, Clock, BarChart2, RefreshCw, CheckCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';

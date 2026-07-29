@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { adminApi as api } from '@/lib/api';
 import { getApiError } from '@/lib/utils';
 import { PageHeader, Card, Button, Input, Textarea } from '@/components/ui';
-import { Send, Megaphone, CheckCircle2 } from 'lucide-react';
+import { Send, CheckCircle2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function OrgAnnouncementsPage() {

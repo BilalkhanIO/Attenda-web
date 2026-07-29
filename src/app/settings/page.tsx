@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import {
-  PageHeader, Card, Button, Input, Modal, ConfirmDialog, Skeleton, KPICard, Dropdown, type DropdownOption
+  PageHeader, Card, Button, Input, Modal, ConfirmDialog, Skeleton, Dropdown
 } from '@/components/ui';
 import DepartmentsCard from '@/components/settings/DepartmentsCard';
 import AuditLogCard from '@/components/settings/AuditLogCard';
@@ -15,12 +15,10 @@ import { orgApi, attendanceApi, usersApi } from '@/lib/api';
 import { getApiError } from '@/lib/utils';
 import { keys } from '@/lib/queries';
 import {
-  Wifi, Network, Plus, Trash2, Save, QrCode, RefreshCw, Download,
-  Clock, MessageSquare, Info, Search, ChevronDown, ChevronUp,
-  Monitor, Smartphone, Globe, CheckCircle2, AlertCircle, Shield, ExternalLink
+  Wifi, Network, Plus, Trash2, Save, RefreshCw, Download,
+  Clock, MessageSquare, Search, Shield, ExternalLink
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { useAuth } from '@/lib/auth';
 import { cn } from '@/lib/utils';
 
 // ─── Network detection helpers ────────────────────────
@@ -54,10 +52,6 @@ function isPrivateIp(ip: string): boolean {
   return ip.startsWith('192.168.') || ip.startsWith('10.') || /^172\.(1[6-9]|2[0-9]|3[01])\./.test(ip);
 }
 
-function toSubnet24(ip: string): string {
-  const p = ip.split('.');
-  return p.length === 4 ? `${p[0]}.${p[1]}.${p[2]}.0/24` : ip;
-}
 
 const TIMEZONES = [
   'UTC', 'Africa/Nairobi', 'Africa/Lagos', 'Africa/Cairo', 'America/New_York',
@@ -143,7 +137,6 @@ function AddNetworkModal({ isOpen, onClose, onAdd }: AddNetworkModalProps) {
 
 // ─── Main Page ────────────────────────────────────────
 export default function SettingsPage() {
-  const { hasPermission } = useAuth();
   const queryClient = useQueryClient();
 
   // ── States ──

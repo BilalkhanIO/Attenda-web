@@ -235,7 +235,7 @@ interface KPICardProps {
   deltaPositive?: boolean;
 }
 
-export function KPICard({ title, value, icon, color, bg, delta, deltaPositive }: KPICardProps) {
+export function KPICard({ title, value, icon, bg, delta, deltaPositive }: KPICardProps) {
   const isVar = bg.startsWith('var(');
   const iconBg = isVar ? `color-mix(in srgb, ${bg}, transparent 80%)` : `${bg}20`;
   const iconBorder = isVar ? `color-mix(in srgb, ${bg}, transparent 60%)` : `${bg}40`;

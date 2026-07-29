@@ -67,7 +67,9 @@ export default function ProfilePage() {
         emergency_contact_phone: ux.emergency_contact_phone || '',
       });
     }).catch(() => toast.error('Failed to load profile')).finally(() => setLoading(false));
-  }, []);
+    // react-hook-form's `useForm` returns a stable instance, so this still
+    // runs exactly once on mount.
+  }, [profileForm]);
 
   const onSaveProfile = async (data: ProfileForm) => {
     try {

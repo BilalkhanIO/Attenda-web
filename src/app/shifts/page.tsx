@@ -4,18 +4,16 @@ import { useAuth } from '@/lib/auth';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import {
   PageHeader, Card, Button, Modal, ConfirmDialog, Input,
-  Badge, Avatar, EmptyState, Table, Textarea,
-  StatBox, SectionCard, RequestItem, Dropdown, TimePicker,
+  Badge, TimePicker,
 } from '@/components/ui';
 import Link from 'next/link';
-import type { DropdownOption } from '@/components/ui';
 import { shiftsApi, usersApi } from '@/lib/api';
 import { getApiError, runDeferred } from '@/lib/utils';
 import type { Shift, ShiftAssignment } from '@/types';
 
 interface UserOption { id: string; name: string; }
 import {
-  Plus, ChevronLeft, ChevronRight, Send,
+  ChevronLeft, ChevronRight, Send,
   Check, X, Clock, Edit2, Trash2, Sparkles, ChevronDown, ChevronUp, Coffee, AlertTriangle, Globe
 } from 'lucide-react';
 import { useForm, UseFormReturn, Controller } from 'react-hook-form';
@@ -556,7 +554,7 @@ export default function ShiftsPage() {
   const { hasPermission } = useAuth();
   const [shifts, setShifts]         = useState<Shift[]>([]);
   const [assignments, setAssignments] = useState<ShiftAssignment[]>([]);
-  const [loading, setLoading]         = useState(true);
+  const [, setLoading]                = useState(true);
   const [weekStart, setWeekStart]     = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
 
   // Modals

@@ -79,7 +79,7 @@ export default function AboutPage() {
               { icon: Zap,    title: 'Automation',   desc: 'Zero manual check-ins for office workers.',     color: 'var(--secondary)' },
               { icon: Heart,  title: 'People-first', desc: 'Designed for employees, not just managers.',    color: 'var(--danger-500)' },
               { icon: Globe,  title: 'Global',       desc: 'Timezone-aware for distributed teams.',        color: 'var(--primary-100)' },
-            ].map((v, i) => (
+            ].map((v) => (
               <div key={v.title} className="p-8 rounded-[2rem] border border-[var(--glass-border)] bg-[var(--glass-05)] hover:bg-[var(--glass-10)] transition-all duration-500 group">
                 <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-6 bg-[var(--glass-10)] group-hover:scale-110 group-hover:rotate-6 transition-all duration-500" style={{ border: `1px solid ${v.color}30` }}>
                   <v.icon size={22} style={{ color: v.color }} />
@@ -128,7 +128,7 @@ export default function AboutPage() {
               { title: 'Simplicity over complexity',    desc: 'If a feature requires a training manual, it&apos;s not designed well enough. We obsess over making hard things simple.' },
               { title: 'Data you can trust',            desc: 'Every check-in timestamp, every absence alert — accurate, immutable, and auditable. No more spreadsheet disputes.' },
               { title: 'Privacy by design',             desc: 'Employee data stays in your organisation. We don&apos;t sell data, we don&apos;t mine it. You own what you put in.' },
-            ].map((v, i) => (
+            ].map((v) => (
               <div key={v.title} className="p-10 rounded-[2.5rem] bg-[var(--glass-05)] border border-[var(--glass-border)] hover:border-[var(--primary-600)]/30 transition-all duration-500">
                 <h3 className="text-xl font-black text-white mb-6 uppercase tracking-wide leading-tight">{v.title}</h3>
                 <p className="text-[15px] font-medium text-[var(--on-glass-muted)] leading-relaxed">{v.desc}</p>

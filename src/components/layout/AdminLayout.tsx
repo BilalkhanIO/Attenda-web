@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, Building2, Tag, FileText, Users,
-  LogOut, Menu, AlertCircle, Bell, Check, Trash2, ChevronDown, Settings, History, Megaphone,
+  LogOut, Menu, AlertCircle, Bell, Check, ChevronDown, History, Megaphone,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { cn } from '@/lib/utils';

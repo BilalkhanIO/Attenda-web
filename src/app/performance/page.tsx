@@ -19,7 +19,6 @@ import { z } from 'zod';
 import toast from 'react-hot-toast';
 import { format, subMonths } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { PerformanceProgress } from '@/components/performance/PerformanceProgress';
 
 // ─── Schemas ────────────────────────────────────────────
 const reviewSchema = z.object({

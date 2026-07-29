@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { PageHeader, Card, Button, Input, Badge } from '@/components/ui';
+import { PageHeader, Card, Button, Input } from '@/components/ui';
 import { analyticsApi } from '@/lib/api';
 import { getApiError } from '@/lib/utils';
 import { Clock, Users, BarChart2, FileText, Download, Sparkles, CheckCircle } from 'lucide-react';

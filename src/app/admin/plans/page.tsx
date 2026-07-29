@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { adminApi } from '@/lib/api';
 import { getApiError, runDeferred } from '@/lib/utils';
 import { PageHeader, Card, Button, Skeleton, Badge, ConfirmDialog, Modal } from '@/components/ui';
-import { Plus, Pencil, Trash2, Check, X, Star, Tag } from 'lucide-react';
+import { Plus, Pencil, Trash2, Check, X, Star } from 'lucide-react';
 import { FEATURE_LABELS } from '@/lib/admin-shared';
 import type { PlanDefinition, PlanFeatures } from '@/types';
 import toast from 'react-hot-toast';

@@ -15,7 +15,7 @@ import { fetchEventSource } from '@microsoft/fetch-event-source';
 import { useQueryClient } from '@tanstack/react-query';
 import { keys } from '@/lib/queries';
 import { notificationApi, getAccessToken } from '@/lib/api';
-import type { AuthRole, InAppNotification } from '@/types';
+import type { InAppNotification } from '@/types';
 import TrialBanner from '@/components/TrialBanner';
 import AIChatWidget from '@/components/AIChatWidget';
 

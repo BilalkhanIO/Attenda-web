@@ -3,11 +3,11 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  Modal, Button, Card, Badge, EmptyState, Input, Select, ConfirmDialog, Skeleton
+  Modal, Button, Card, EmptyState, Input, Select, ConfirmDialog, Skeleton
 } from '@/components/ui';
 import { overtimeApi } from '@/lib/api';
 import { keys, overtimeRulesQuery, type OvertimeRule } from '@/lib/queries';
-import { Clock, Plus, Edit2, Trash2, Save } from 'lucide-react';
+import { Clock, Plus, Edit2, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/lib/auth';
 import { cn, getApiError } from '@/lib/utils';

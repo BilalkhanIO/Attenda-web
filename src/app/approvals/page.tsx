@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { PageHeader, Card, Avatar, Badge, Button, Modal, Textarea, Skeleton } from '@/components/ui';
+import { PageHeader, Card, Avatar, Button, Modal, Textarea, Skeleton } from '@/components/ui';
 import { leaveApi, overtimeApi, remoteApi, shiftsApi, attendanceApi } from '@/lib/api';
 import { keys } from '@/lib/queries';
 import { useAuth } from '@/lib/auth';

@@ -14,7 +14,7 @@ import {
 } from '@/lib/queries';
 import type { User } from '@/types';
 import {
-  Shield, Plus, Trash2, Edit2, Users, KeyRound, Save, UserCheck, Search, ChevronRight
+  Shield, Plus, Trash2, Edit2, Users, KeyRound, Search, ChevronRight
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { cn } from '@/lib/utils';
@@ -49,7 +49,6 @@ export default function AccessControlModal({ isOpen, onClose, users }: AccessCon
   const queryClient = useQueryClient();
 
   const canManageRoles = hasPermission('org.roles.manage');
-  const canGrantPermissions = hasPermission('org.permissions.grant');
 
   const [activeTab, setActiveTab] = useState(canManageRoles ? 'roles' : 'users');
   const [search, setSearch] = useState('');
@@ -63,16 +62,16 @@ export default function AccessControlModal({ isOpen, onClose, users }: AccessCon
 
   const [selectedUserId, setSelectedUserId] = useState('');
   const [assignRoleId, setAssignRoleId] = useState('');
-  const [syncLegacy, setSyncLegacy] = useState(true);
+  const [syncLegacy] = useState(true);
   const [grantKey, setGrantKey] = useState('');
-  const [grantEffect, setGrantEffect] = useState<'allow' | 'deny'>('allow');
+  const [grantEffect] = useState<'allow' | 'deny'>('allow');
 
   // ── Queries ──────────────────────────────────────────
   const catalogQuery = useQuery(permissionCatalogQuery());
   const rolesQuery = useQuery(orgRolesQuery());
   const grantsQuery = useQuery(userPermissionsQuery(selectedUserId));
 
-  const catalog = catalogQuery.data ?? [];
+  const catalog = useMemo(() => catalogQuery.data ?? [], [catalogQuery.data]);
   const roles = rolesQuery.data ?? [];
   const grants = grantsQuery.data ?? [];
 

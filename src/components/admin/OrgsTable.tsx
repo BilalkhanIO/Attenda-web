@@ -4,11 +4,11 @@ import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { adminApi } from '@/lib/api';
 import { getApiError } from '@/lib/utils';
-import { Card, Button, Badge, Table, EmptyState, ConfirmDialog, Input, Select } from '@/components/ui';
+import { Card, Button, Badge, Table, EmptyState, ConfirmDialog } from '@/components/ui';
 import {
   AdminOrg, PLAN_STYLES, ORG_STATUS_STYLES, SUB_STATUS_STYLES, fmtDate, daysLeft,
 } from '@/lib/admin-shared';
-import { Building2, Eye, EyeOff, Ban, CheckCircle, Search, Filter } from 'lucide-react';
+import { Building2, Eye, EyeOff, Ban, CheckCircle, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface OrgsTableProps {

@@ -4,7 +4,6 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { MarketingNav, MarketingFooter } from '../page';
 import { Mail, MessageSquare, Building2, Clock, CheckCircle } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 export default function ContactPage() {
   const [form, setForm] = useState({ name: '', email: '', company: '', message: '' });

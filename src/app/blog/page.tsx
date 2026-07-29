@@ -46,7 +46,7 @@ export default async function BlogPage({
 }) {
   const sp   = await searchParams;
   const page = Math.max(1, Number(sp.page) || 1);
-  const { posts, total, pages } = await getPosts(page);
+  const { posts, pages } = await getPosts(page);
 
   return (
     <div className="bg-[var(--dark-950)] min-h-screen selection:bg-[var(--primary-600)] selection:text-white">

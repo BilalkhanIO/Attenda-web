@@ -224,7 +224,7 @@ export default function LandingPage() {
             <p className="text-lg text-[var(--on-glass-muted)] max-w-2xl mx-auto font-medium">Our comprehensive suite of tools covers every touchpoint of the employee experience, ensuring data integrity and operational excellence.</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {FEATURES.map((f, i) => (
+            {FEATURES.map((f) => (
               <div key={f.title} className="p-8 rounded-[2rem] border border-[var(--glass-border)] bg-[var(--glass-05)] hover:bg-[var(--glass-10)] hover:border-[var(--glass-high)] transition-all duration-500 group relative overflow-hidden">
                 <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-[var(--primary-600)]/5 rounded-full blur-3xl group-hover:bg-[var(--primary-600)]/10 transition-all" />
                 <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-8 bg-[var(--glass-10)] group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 shadow-xl" style={{ border: `1px solid ${f.color}30` }}>
@@ -303,7 +303,7 @@ export default function LandingPage() {
              <h2 className="text-4xl md:text-5xl font-black text-white tracking-tight">Loved by teams everywhere</h2>
            </div>
            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {TESTIMONIALS.map((t, i) => (
+              {TESTIMONIALS.map((t) => (
                 <div key={t.name} className="p-10 rounded-[3rem] bg-[var(--glass-05)] border border-[var(--glass-border)] flex flex-col justify-between hover:bg-[var(--glass-10)] transition-all">
                    <div className="mb-10">
                       <div className="flex gap-1 mb-6">
