@@ -14,8 +14,7 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      # Lint debt is being burned down — fail only on NEW errors via warnings cap
-      # once clean, tighten to --max-warnings 0
-      - run: npx eslint src --max-warnings 200 || true
+      # Lint is at zero errors — any error fails the build.
+      - run: npx eslint .
       - run: npm test
       - run: npm run build
