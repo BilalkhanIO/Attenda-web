@@ -18,6 +18,7 @@ import { notificationApi, getAccessToken } from '@/lib/api';
 import type { InAppNotification } from '@/types';
 import TrialBanner from '@/components/TrialBanner';
 import AIChatWidget from '@/components/AIChatWidget';
+import { navItemVisible } from '@/lib/nav';
 
 interface NavItem {
   label: string;
@@ -62,19 +63,6 @@ const navItems: NavItem[] = [
     label: 'WhatsApp',    href: '/settings/whatsapp',    icon: <MessageSquare size={15} />, feature: 'whatsapp',          permission: 'org.whatsapp.update' },
   { label: 'Settings',    href: '/settings',             icon: <Settings size={15} />,                                    permission: 'org.settings.view' },
 ];
-
-function navItemVisible(
-  item: NavItem,
-  hasFeature: (key: string) => boolean,
-  hasPermission: (key: string) => boolean,
-): boolean {
-  if (item.feature && !hasFeature(item.feature)) return false;
-  if (item.permission) {
-    const permKeys = [item.permission, ...(item.permissionsAlt ?? [])];
-    return permKeys.some(k => hasPermission(k));
-  }
-  return true;
-}
 
 function timeAgo(isoStr: string): string {
   const diff = Date.now() - new Date(isoStr).getTime();
