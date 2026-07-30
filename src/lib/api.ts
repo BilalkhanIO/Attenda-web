@@ -392,6 +392,8 @@ export const orgApi = {
     apiClient.post('/org/holidays', data),
   deleteHoliday: (id: string) =>
     apiClient.delete(`/org/holidays/${id}`),
+  getWhosOut: (params?: { from?: string; to?: string }) =>
+    apiClient.get('/org/whos-out', { params }),
 };
 
 // ─── DEPARTMENTS ──────────────────────────────────────

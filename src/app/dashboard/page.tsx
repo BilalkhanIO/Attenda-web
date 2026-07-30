@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import WhosOutCard from '@/components/dashboard/WhosOutCard';
 import { KPICard, Card, Avatar, Badge, Skeleton, PageHeader, Button, Modal } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { todayAttendanceQuery, myTodayStatusQuery } from '@/lib/queries';
@@ -137,7 +138,7 @@ export default function DashboardPage() {
                 icon={<Clock size={16} />} color="var(--primary-500)" bg="#00C896"
                 delta={breakMins > 0 ? `${breakMins}m breaks` : undefined} />
             </div>
-            <Card className="p-5">
+            <Card className="p-5 mb-4">
               <div className="flex items-center gap-2 mb-3">
                 <Calendar size={16} className="text-[var(--primary-600)]" />
                 <h3 className="text-xs font-black text-white uppercase tracking-widest">Today&apos;s Shift</h3>
@@ -153,6 +154,7 @@ export default function DashboardPage() {
                 <p className="text-sm text-[var(--on-glass-muted)]">No shift scheduled for today.</p>
               )}
             </Card>
+            <WhosOutCard />
           </>
         )}
       </DashboardLayout>
@@ -290,9 +292,9 @@ export default function DashboardPage() {
           </Card>
         </div>
 
-        {/* Alerts panel */}
-        <div className="xl:col-span-1">
-          <Card className="h-full border border-[var(--danger-500)]/20 bg-[var(--danger-500)]/5 shadow-2xl shadow-[var(--danger-500)]/10">
+        {/* Alerts panel + who's out */}
+        <div className="xl:col-span-1 space-y-4">
+          <Card className="border border-[var(--danger-500)]/20 bg-[var(--danger-500)]/5 shadow-2xl shadow-[var(--danger-500)]/10">
             <div className="p-5 border-b border-[var(--glass-border)] bg-[var(--glass-05)]">
               <div className="flex items-center gap-2">
                 <AlertTriangle size={16} className="text-[var(--danger-500)]" />
@@ -345,6 +347,7 @@ export default function DashboardPage() {
               )}
             </div>
           </Card>
+          <WhosOutCard />
         </div>
       </div>
       {/* Employee Detail Modal */}

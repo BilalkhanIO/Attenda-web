@@ -3,6 +3,7 @@ import {
   attendanceApi, leaveApi, overtimeApi, remoteApi, shiftsApi,
   usersApi, orgApi, performanceApi, orgRbacApi
 } from './api';
+import { formatDate } from './utils';
 import type {
   AttendanceRecord, LeaveRequest, SwapRequest, User,
   PerformanceGoal, PerformanceReview
@@ -48,6 +49,7 @@ export const keys = {
   org: {
     all: ['org'] as const,
     departments: () => [...keys.org.all, 'departments'] as const,
+    whosOutToday: () => [...keys.org.all, 'whos-out', 'today'] as const,
   },
   rbac: {
     all: ['rbac'] as const,
@@ -305,6 +307,50 @@ export const departmentsQuery = () =>
     staleTime: 5 * 60_000,
     queryFn: async (): Promise<string[]> =>
       (await orgApi.getDepartments()).data.data ?? [],
+  });
+
+// ─── Who's out (today) ────────────────────────────────
+
+export interface WhosOutUser {
+  id: string;
+  name: string;
+  avatar_url?: string;
+  department?: string;
+}
+
+export interface WhosOutLeaveEntry {
+  id: string;
+  leave_type: string;
+  start_date: string;
+  end_date: string;
+  is_half_day?: boolean;
+  half_day_period?: string | null;
+  user: WhosOutUser;
+}
+
+export interface WhosOutRemoteEntry {
+  id: string;
+  user: WhosOutUser;
+  date: string | null;
+}
+
+export interface WhosOutData {
+  from: string;
+  to: string;
+  on_leave: WhosOutLeaveEntry[];
+  remote: WhosOutRemoteEntry[];
+  holidays: string[];
+}
+
+export const whosOutTodayQuery = () =>
+  queryOptions({
+    queryKey: keys.org.whosOutToday(),
+    staleTime: 5 * 60_000,
+    queryFn: async (): Promise<WhosOutData | null> => {
+      // "Today" in the ORG timezone (matches how attendance dates are keyed).
+      const today = formatDate(new Date(), 'yyyy-MM-dd');
+      return (await orgApi.getWhosOut({ from: today, to: today })).data.data ?? null;
+    },
   });
 
 export const orgSettingsQuery = () =>
