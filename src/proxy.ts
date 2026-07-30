@@ -73,42 +73,48 @@ function decodeRole(token: string): string | null {
   }
 }
 
-export function proxy(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-  const token = request.cookies.get('access_token')?.value;
-  const role = token ? decodeRole(token) : null;
+// ─── Pure routing decision (unit-tested in proxy.decision.test.ts) ──
+export type ProxyDecision = { action: 'next' } | { action: 'redirect'; to: string };
 
+export function decideRoute(pathname: string, hasToken: boolean, role: string | null): ProxyDecision {
   const isPublic = PUBLIC_PATHS.some(
     p => p === pathname || (p !== '/' && pathname.startsWith(p)),
   );
 
   if (isPublic) {
-    if (token && (pathname === '/login' || pathname === '/get-started')) {
-      const dest = role === 'platform_admin' ? '/admin' : '/dashboard';
-      return withCsp(NextResponse.redirect(new URL(dest, request.url)));
+    if (hasToken && (pathname === '/login' || pathname === '/get-started')) {
+      return { action: 'redirect', to: role === 'platform_admin' ? '/admin' : '/dashboard' };
     }
-    return withCsp(NextResponse.next());
+    return { action: 'next' };
   }
 
-  if (!token) {
-    const url = new URL('/login', request.url);
-    url.searchParams.set('redirect', pathname);
-    return withCsp(NextResponse.redirect(url));
+  if (!hasToken) {
+    return { action: 'redirect', to: `/login?redirect=${encodeURIComponent(pathname)}` };
   }
 
   if (pathname.startsWith('/admin')) {
-    if (role !== 'platform_admin') {
-      return withCsp(NextResponse.redirect(new URL('/dashboard', request.url)));
-    }
-    return withCsp(NextResponse.next());
+    if (role !== 'platform_admin') return { action: 'redirect', to: '/dashboard' };
+    return { action: 'next' };
   }
 
   if (role === 'platform_admin' && TENANT_APP_PREFIXES.some(
     p => pathname === p || pathname.startsWith(`${p}/`),
   )) {
-    return withCsp(NextResponse.redirect(new URL('/admin', request.url)));
+    return { action: 'redirect', to: '/admin' };
   }
 
+  return { action: 'next' };
+}
+
+export function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  const token = request.cookies.get('access_token')?.value;
+  const role = token ? decodeRole(token) : null;
+
+  const decision = decideRoute(pathname, !!token, role);
+  if (decision.action === 'redirect') {
+    return withCsp(NextResponse.redirect(new URL(decision.to, request.url)));
+  }
   return withCsp(NextResponse.next());
 }
 
