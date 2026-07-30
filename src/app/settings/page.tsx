@@ -8,6 +8,7 @@ import {
 } from '@/components/ui';
 import DepartmentsCard from '@/components/settings/DepartmentsCard';
 import AuditLogCard from '@/components/settings/AuditLogCard';
+import LeaveAccrualCard, { type LeaveAccrualPolicy } from '@/components/settings/LeaveAccrualCard';
 import AccessControlModal from '@/components/settings/AccessControlModal';
 import OvertimeRulesModal from '@/components/settings/OvertimeRulesModal';
 import WhatsAppSettingsModal from '@/components/settings/WhatsAppSettingsModal';
@@ -248,6 +249,11 @@ export default function SettingsPage() {
             </div>
           </Card>
 
+          <LeaveAccrualCard
+            policy={settingsQuery.data?.leave_accrual as LeaveAccrualPolicy | null | undefined}
+            loading={settingsQuery.isPending}
+            onSaved={() => queryClient.invalidateQueries({ queryKey: ['org-settings'] })}
+          />
           <DepartmentsCard />
           <AuditLogCard />
         </div>
