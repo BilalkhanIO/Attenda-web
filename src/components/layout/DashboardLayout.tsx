@@ -93,7 +93,7 @@ const NOTIF_ICONS: Record<string, string> = {
 // Server-pushed invalidation hints → TanStack Query key roots. Unknown
 // scopes are ignored, so client and server halves can deploy independently.
 const INVALIDATE_SCOPES: Record<string, readonly (readonly string[])[]> = {
-  attendance_changed: [keys.attendance.all],
+  attendance_changed: [keys.attendance.all, ['approvals', 'correction']],
   leave_changed:      [keys.leave.all, ['approvals', 'leave']],
   overtime_changed:   [keys.overtime.all, ['approvals', 'overtime']],
   remote_changed:     [keys.remote.all, ['approvals', 'remote']],

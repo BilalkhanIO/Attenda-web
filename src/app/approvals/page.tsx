@@ -6,12 +6,12 @@ import { PageHeader, Card, Avatar, Button, Modal, Textarea, Skeleton } from '@/c
 import { leaveApi, overtimeApi, remoteApi, shiftsApi, attendanceApi } from '@/lib/api';
 import { keys } from '@/lib/queries';
 import { useAuth } from '@/lib/auth';
-import { cn } from '@/lib/utils';
-import { Calendar, AlarmClock, Home, Repeat, Clock, Check, X, Inbox } from 'lucide-react';
+import { cn, formatTime } from '@/lib/utils';
+import { Calendar, AlarmClock, Home, Repeat, Clock, Check, X, Inbox, FilePenLine } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 
-type ApprovalType = 'leave' | 'overtime' | 'remote' | 'swap' | 'late_notice';
+type ApprovalType = 'leave' | 'overtime' | 'remote' | 'swap' | 'late_notice' | 'correction';
 
 /** Normalized row rendered in the unified queue. */
 interface ApprovalItem {
@@ -25,6 +25,8 @@ interface ApprovalItem {
   createdAt?: string;
   /** Whether reject needs a written reason. */
   rejectNeedsReason: boolean;
+  /** Reject opens the reason modal, but the note may be left blank. */
+  rejectNoteOptional?: boolean;
   /** Late notices are acknowledged, not approved/rejected. */
   acknowledgeOnly?: boolean;
 }
@@ -35,6 +37,7 @@ const TYPE_META: Record<ApprovalType, { label: string; icon: React.ReactNode; co
   remote:      { label: 'Remote',      icon: <Home size={13} />,       color: '#8b5cf6' },
   swap:        { label: 'Shift Swap',  icon: <Repeat size={13} />,     color: '#00E5FF' },
   late_notice: { label: 'Late Notice', icon: <Clock size={13} />,      color: '#94a3b8' },
+  correction:  { label: 'Correction',  icon: <FilePenLine size={13} />, color: '#38bdf8' },
 };
 
 // Loose row shape — each source endpoint nests differently; we normalize.
@@ -64,6 +67,7 @@ export default function ApprovalsPage() {
     remote: hasPermission('remote.approve'),
     swap: hasPermission('shifts.swaps.approve'),
     late_notice: hasPermission('attendance.late_notices.manage'),
+    correction: hasPermission('attendance.override'),
   };
 
   const leaveScope = hasPermission('leave.view_all') ? 'all' : 'team';
@@ -102,6 +106,12 @@ export default function ApprovalsPage() {
     queryFn: async (): Promise<Row[]> =>
       (await attendanceApi.getLateNotices({ status: 'pending' })).data.data ?? [],
   });
+  const correctionQ = useQuery({
+    queryKey: ['approvals', 'correction'],
+    enabled: can.correction,
+    queryFn: async (): Promise<Row[]> =>
+      (await attendanceApi.getCorrections({ status: 'pending' })).data.data ?? [],
+  });
 
   const items: ApprovalItem[] = [
     ...(leaveQ.data ?? []).map((r): ApprovalItem => ({
@@ -139,14 +149,28 @@ export default function ApprovalsPage() {
       detail: str(r.reason), createdAt: str(r.created_at),
       rejectNeedsReason: false, acknowledgeOnly: true,
     })),
+    ...(correctionQ.data ?? []).map((r): ApprovalItem => {
+      const times = [
+        str(r.requested_check_in) ? `in ${formatTime(str(r.requested_check_in)!)}` : null,
+        str(r.requested_check_out) ? `out ${formatTime(str(r.requested_check_out)!)}` : null,
+      ].filter(Boolean).join(' · ');
+      return {
+        type: 'correction', id: r.id,
+        requester: r.user?.name ?? 'Unknown', avatarUrl: r.user?.avatar_url, department: r.user?.department,
+        summary: `Correction for ${day(r.date)}${times ? ` · ${times}` : ''}`,
+        detail: str(r.reason), createdAt: str(r.created_at),
+        rejectNeedsReason: true, rejectNoteOptional: true,
+      };
+    }),
   ].sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''));
 
-  const loading = [leaveQ, overtimeQ, remoteQ, swapQ, noticeQ]
+  const loading = [leaveQ, overtimeQ, remoteQ, swapQ, noticeQ, correctionQ]
     .some(q => q.isLoading);
 
   const resync = (type: ApprovalType) => {
     queryClient.invalidateQueries({ queryKey: ['approvals', type] });
     if (type === 'leave') queryClient.invalidateQueries({ queryKey: keys.leave.all });
+    if (type === 'correction') queryClient.invalidateQueries({ queryKey: keys.attendance.all });
   };
 
   const act = useMutation({
@@ -163,6 +187,10 @@ export default function ApprovalsPage() {
           return action === 'approve' ? shiftsApi.approveSwap(item.id) : shiftsApi.rejectSwap(item.id, reason!);
         case 'late_notice':
           return attendanceApi.acknowledgeLateNotice(item.id);
+        case 'correction':
+          return action === 'approve'
+            ? attendanceApi.approveCorrection(item.id)
+            : attendanceApi.rejectCorrection(item.id, reason || undefined);
       }
     },
     onMutate: vars => setActingOn(vars.item.id),
@@ -292,7 +320,9 @@ export default function ApprovalsPage() {
             <Button variant="ghost" onClick={() => setRejectTarget(null)}>Cancel</Button>
             <Button loading={act.isPending}
               onClick={() => {
-                if (rejectReason.trim().length < 5) { toast.error('Please give a short reason'); return; }
+                if (!rejectTarget?.rejectNoteOptional && rejectReason.trim().length < 5) {
+                  toast.error('Please give a short reason'); return;
+                }
                 if (rejectTarget) act.mutate({ item: rejectTarget, action: 'reject', reason: rejectReason.trim() });
               }}>
               Reject Request
@@ -301,8 +331,8 @@ export default function ApprovalsPage() {
         }
       >
         <Textarea
-          label="Reason"
-          required
+          label={rejectTarget?.rejectNoteOptional ? 'Note (optional)' : 'Reason'}
+          required={!rejectTarget?.rejectNoteOptional}
           rows={3}
           placeholder="Shared with the requester"
           value={rejectReason}

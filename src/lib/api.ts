@@ -214,6 +214,12 @@ export const attendanceApi = {
     apiClient.put(`/attendance/late-notice/${id}/acknowledge`),
   cancelLateNotice: (id: string) =>
     apiClient.delete(`/attendance/late-notice/${id}`),
+  getCorrections: (params?: { status?: 'pending' | 'approved' | 'rejected' | 'all' }) =>
+    apiClient.get('/attendance/corrections', { params }),
+  approveCorrection: (id: string, note?: string) =>
+    apiClient.put(`/attendance/corrections/${id}/approve`, { note }),
+  rejectCorrection: (id: string, note?: string) =>
+    apiClient.put(`/attendance/corrections/${id}/reject`, { note }),
 };
 
 // ─── LEAVE ────────────────────────────────────────────
