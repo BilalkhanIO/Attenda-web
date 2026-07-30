@@ -380,6 +380,12 @@ export const orgApi = {
     apiClient.post('/org/whatsapp/test'),
   getAuditLogs: (params?: { page?: number; limit?: number; action?: string }) =>
     apiClient.get('/org/audit-logs', { params }),
+  getHolidays: () =>
+    apiClient.get('/org/holidays'),
+  createHoliday: (data: { date: string; name: string; recurring?: boolean }) =>
+    apiClient.post('/org/holidays', data),
+  deleteHoliday: (id: string) =>
+    apiClient.delete(`/org/holidays/${id}`),
 };
 
 // ─── DEPARTMENTS ──────────────────────────────────────
