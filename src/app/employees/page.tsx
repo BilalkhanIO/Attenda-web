@@ -7,6 +7,7 @@ import {
   Input, RoleBadge, Dropdown,
 } from '@/components/ui';
 import type { DataTableColumn, DropdownOption } from '@/components/ui';
+import EmployeeDocumentsSection from '@/components/documents/EmployeeDocumentsSection';
 import { usersApi } from '@/lib/api';
 import { keys, usersListQuery, managersQuery, departmentsQuery } from '@/lib/queries';
 import { useUrlListParams, parsePageParam } from '@/lib/url-list-params';
@@ -438,7 +439,7 @@ function EmployeesPageContent() {
 
       {/* View Profile Modal */}
       <Modal isOpen={!!viewUser} onClose={() => setViewUser(null)}
-        title="Employee Profile" size="sm"
+        title="Employee Profile" size={hasPermission('documents.view_team') ? 'md' : 'sm'}
         footer={<Button size="sm" onClick={() => setViewUser(null)}>Close</Button>}
       >
         {viewUser && (
@@ -472,6 +473,9 @@ function EmployeesPageContent() {
                 </div>
               ))}
             </div>
+            {hasPermission('documents.view_team') && (
+              <EmployeeDocumentsSection userId={viewUser.id} userName={viewUser.name} />
+            )}
           </div>
         )}
       </Modal>
