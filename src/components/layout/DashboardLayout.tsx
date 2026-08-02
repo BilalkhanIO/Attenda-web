@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import {
   LayoutDashboard, Clock, Calendar, CalendarClock, Wallet, Users, TrendingUp,
   BarChart2, Settings, LogOut, Bell, Menu, MessageSquare, ClipboardCheck,
-  ChevronDown, Home, Check, Trash2, AlarmClock, Megaphone
+  ChevronDown, Home, Check, Trash2, AlarmClock, Megaphone, Receipt
 } from 'lucide-react';
 import { Avatar } from '@/components/ui';
 import AttendaLogo from '@/components/ui/AttendaLogo';
@@ -41,6 +41,7 @@ const navItems: NavItem[] = [
   { label: 'Remote',      href: '/remote',               icon: <Home size={15} />,         feature: 'remote_work',        permission: 'remote.approve' },
   { label: 'Leave',       href: '/leave',                icon: <Calendar size={15} />,     feature: 'leave_management' },
   { label: 'Overtime',    href: '/overtime',             icon: <AlarmClock size={15} />,   feature: 'attendance' },
+  { label: 'Expenses',    href: '/expenses',             icon: <Receipt size={15} /> },
 
   { section: 'Scheduling',
     label: 'Shifts',      href: '/shifts',               icon: <CalendarClock size={15} />, feature: 'shifts',            permission: 'shifts.view' },
@@ -98,6 +99,7 @@ const INVALIDATE_SCOPES: Record<string, readonly (readonly string[])[]> = {
   overtime_changed:   [keys.overtime.all, ['approvals', 'overtime']],
   remote_changed:     [keys.remote.all, ['approvals', 'remote']],
   swap_changed:       [keys.swaps.all, ['approvals', 'swap']],
+  expense_changed:    [keys.expenses.all, ['approvals', 'expense']],
 };
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {

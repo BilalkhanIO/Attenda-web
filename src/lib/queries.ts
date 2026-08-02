@@ -1,7 +1,7 @@
 import { queryOptions } from '@tanstack/react-query';
 import {
-  adminApi, attendanceApi, leaveApi, overtimeApi, remoteApi, shiftsApi,
-  usersApi, orgApi, performanceApi, orgRbacApi
+  adminApi, attendanceApi, expensesApi, leaveApi, overtimeApi, remoteApi,
+  shiftsApi, usersApi, orgApi, performanceApi, orgRbacApi
 } from './api';
 import { formatDate } from './utils';
 import type { AdminOrg } from './admin-shared';
@@ -27,6 +27,10 @@ export const keys = {
     list: (params: LeaveListParams) => [...keys.leave.requests('all'), params] as const,
     pendingCount: () => [...keys.leave.all, 'pending-count'] as const,
     myBalance: () => [...keys.leave.all, 'balance', 'me'] as const,
+  },
+  expenses: {
+    all: ['expenses'] as const,
+    mine: () => [...keys.expenses.all, 'me'] as const,
   },
   overtime: {
     all: ['overtime'] as const,
@@ -178,6 +182,34 @@ export const myLeaveBalanceQuery = () =>
     meta: { silent: true },
     queryFn: async (): Promise<LeaveBalanceRow[]> =>
       (await leaveApi.getMyBalance()).data.data ?? [],
+  });
+
+// ─── Expenses ─────────────────────────────────────────
+
+export type ExpenseStatus = 'pending' | 'approved' | 'rejected' | 'reimbursed';
+
+export interface ExpenseClaim {
+  id: string;
+  /** Prisma Decimal — serialized as a string; render with Number(). */
+  amount: string | number;
+  currency: string;
+  category: string;
+  description: string;
+  expense_date: string;
+  receipt_url?: string | null;
+  status: ExpenseStatus;
+  review_note?: string | null;
+  reviewed_at?: string | null;
+  created_at: string;
+  user?: { id: string; name: string; avatar_url?: string; department?: string };
+  reviewer?: { id: string; name: string } | null;
+}
+
+export const myExpensesQuery = () =>
+  queryOptions({
+    queryKey: keys.expenses.mine(),
+    queryFn: async (): Promise<ExpenseClaim[]> =>
+      (await expensesApi.getMine()).data.data ?? [],
   });
 
 // ─── Overtime ─────────────────────────────────────────

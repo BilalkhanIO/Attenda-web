@@ -344,6 +344,23 @@ export const remoteApi = {
     apiClient.get('/attendance/remote/monitor'),
 };
 
+// ─── EXPENSES ─────────────────────────────────────────
+export const expensesApi = {
+  getMine: () =>
+    apiClient.get('/expenses/me'),
+  getAll: (params?: { status?: 'pending' | 'approved' | 'rejected' | 'reimbursed' | 'all' }) =>
+    apiClient.get('/expenses', { params }),
+  create: (data: { amount: number; category: string; description: string; expense_date: string; currency?: string; receipt_url?: string }) =>
+    apiClient.post('/expenses', data),
+  approve: (id: string, note?: string) =>
+    apiClient.put(`/expenses/${id}/approve`, { note }),
+  reject: (id: string, note?: string) =>
+    apiClient.put(`/expenses/${id}/reject`, { note }),
+  // Adds the approved amount to the claimant's payroll record for month/year.
+  reimburse: (id: string, month: number, year: number) =>
+    apiClient.post(`/expenses/${id}/reimburse`, { month, year }),
+};
+
 // ─── ANALYTICS ────────────────────────────────────────
 export const analyticsApi = {
   getOverview: () =>
