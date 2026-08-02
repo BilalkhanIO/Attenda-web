@@ -2,7 +2,7 @@ import { queryOptions } from '@tanstack/react-query';
 import {
   adminApi, announcementsApi, attendanceApi, documentsApi, expensesApi,
   leaveApi, overtimeApi, remoteApi, shiftsApi, usersApi, orgApi,
-  performanceApi, orgRbacApi, onboardingApi
+  performanceApi, orgRbacApi, onboardingApi, kudosApi
 } from './api';
 import { toISODate } from './i18n';
 import type { AdminOrg } from './admin-shared';
@@ -48,6 +48,11 @@ export const keys = {
     templates: () => [...keys.onboarding.all, 'templates'] as const,
     mine: () => [...keys.onboarding.all, 'me'] as const,
     user: (userId: string) => [...keys.onboarding.all, 'user', userId] as const,
+  },
+  kudos: {
+    all: ['kudos'] as const,
+    feed: () => [...keys.kudos.all, 'feed'] as const,
+    mine: () => [...keys.kudos.all, 'mine'] as const,
   },
   overtime: {
     all: ['overtime'] as const,
@@ -369,6 +374,45 @@ export const onboardingUserQuery = (userId: string) =>
     enabled: !!userId,
     queryFn: async (): Promise<OnboardingUserChecklist | null> =>
       (await onboardingApi.getForUser(userId)).data.data ?? null,
+  });
+
+// ─── Kudos ────────────────────────────────────────────
+
+export interface KudosUser {
+  id: string;
+  name: string;
+  avatar_url?: string;
+  department?: string;
+}
+
+export interface KudosEntry {
+  id: string;
+  message: string;
+  emoji: string | null;
+  created_at: string;
+  giver: KudosUser;
+  recipient: KudosUser;
+}
+
+export interface KudosMine {
+  received: number;
+  given: number;
+  recent_received: KudosEntry[];
+}
+
+// Org feed (any member), newest first — latest 100 without pagination.
+export const kudosFeedQuery = () =>
+  queryOptions({
+    queryKey: keys.kudos.feed(),
+    queryFn: async (): Promise<KudosEntry[]> =>
+      (await kudosApi.getFeed()).data.data ?? [],
+  });
+
+export const kudosMineQuery = () =>
+  queryOptions({
+    queryKey: keys.kudos.mine(),
+    queryFn: async (): Promise<KudosMine | null> =>
+      (await kudosApi.getMine()).data.data ?? null,
   });
 
 // ─── Overtime ─────────────────────────────────────────

@@ -446,6 +446,23 @@ export const announcementsApi = {
     apiClient.get(`/performance/announcements/${id}/receipts`),
 };
 
+// ─── KUDOS ────────────────────────────────────────────
+export const kudosApi = {
+  // Any org member. 429 RATE_LIMITED at 20/day, 422 for self-kudos.
+  give: (data: { to_user_id: string; message: string; emoji?: string }) =>
+    apiClient.post('/kudos', data),
+  // Org feed, newest first. Pagination is opt-in via page/limit; a plain
+  // call returns the latest 100.
+  getFeed: (params?: { page?: number; limit?: number }) =>
+    apiClient.get('/kudos', { params }),
+  // → { received, given, recent_received }
+  getMine: () =>
+    apiClient.get('/kudos/mine'),
+  // Author or org.settings.update
+  remove: (id: string) =>
+    apiClient.delete(`/kudos/${id}`),
+};
+
 // ─── ANALYTICS ────────────────────────────────────────
 export const analyticsApi = {
   getOverview: () =>
