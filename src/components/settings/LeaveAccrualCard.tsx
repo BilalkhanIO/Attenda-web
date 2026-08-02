@@ -4,6 +4,7 @@ import { Card, Button, Input, Modal, ConfirmDialog, Skeleton } from '@/component
 import { orgApi } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { getApiError } from '@/lib/utils';
+import { formatNumber } from '@/lib/i18n';
 import { CalendarPlus, Plus, Edit2, Trash2, CalendarOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -175,7 +176,7 @@ export default function LeaveAccrualCard({ policy, loading, onSaved }: LeaveAccr
               <span className="text-sm font-semibold text-slate-200 truncate capitalize">{type}</span>
               <span className="text-[11px] text-slate-500">
                 {rule.days_per_year} days/yr
-                <span className="text-slate-600"> · {(rule.days_per_year / 12).toFixed(2)}/mo</span>
+                <span className="text-slate-600"> · {formatNumber(rule.days_per_year / 12, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/mo</span>
                 <span className="text-slate-600"> · carry-over max {rule.carry_over_max ?? 0}</span>
               </span>
               {canManage && (
@@ -242,7 +243,7 @@ export default function LeaveAccrualCard({ policy, loading, onSaved }: LeaveAccr
             error={editor?.errors.daysPerYear}
             hint={(() => {
               const d = Number(editor?.daysPerYear);
-              return !Number.isNaN(d) && d > 0 ? `≈ ${(d / 12).toFixed(2)} days accrued per month` : 'Accrued monthly at days ÷ 12';
+              return !Number.isNaN(d) && d > 0 ? `≈ ${formatNumber(d / 12, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} days accrued per month` : 'Accrued monthly at days ÷ 12';
             })()}
           />
           <Input

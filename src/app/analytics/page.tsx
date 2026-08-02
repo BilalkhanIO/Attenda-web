@@ -12,7 +12,7 @@ import {
 } from 'recharts';
 import { Users, Clock, BarChart2, RefreshCw, CheckCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { format } from 'date-fns';
+import { formatCurrency as intlFormatCurrency, formatDate as intlFormatDate, LOCAL_TZ } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 const PIE_COLORS = ['#00C896', '#00E5FF', '#8B5CF6', '#F59E0B', '#EF4444'];
 
@@ -108,7 +108,7 @@ export default function AnalyticsPage() {
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                      <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'var(--on-glass-dim)', fontWeight: 700 }} tickFormatter={d => format(new Date(d), 'dd MMM').toUpperCase()} />
+                      <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'var(--on-glass-dim)', fontWeight: 700 }} tickFormatter={d => intlFormatDate(d, { day: '2-digit', month: 'short', locale: 'en-GB', timeZone: LOCAL_TZ }).toUpperCase()} />
                       <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'var(--on-glass-dim)', fontWeight: 700 }} domain={[0, 100]} tickFormatter={v => `${v}%`} />
                       <Tooltip
                         contentStyle={{ backgroundColor: 'var(--dark-950)', border: '1px solid var(--glass-border)', borderRadius: '16px', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}
@@ -186,7 +186,7 @@ export default function AnalyticsPage() {
                   <BarChart data={payrollData} margin={{ top: 10, right: 10, bottom: 0, left: -10 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
                     <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'var(--on-glass-dim)', fontWeight: 800 }} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'var(--on-glass-dim)', fontWeight: 800 }} tickFormatter={v => `$${(v/1000).toFixed(0)}k`} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'var(--on-glass-dim)', fontWeight: 800 }} tickFormatter={v => intlFormatCurrency(v, undefined, { notation: 'compact', maximumFractionDigits: 0 })} />
                     <Tooltip
                        contentStyle={{ backgroundColor: 'var(--dark-950)', border: '1px solid var(--glass-border)', borderRadius: '12px' }}
                        itemStyle={{ fontSize: '11px', fontWeight: 900 }}

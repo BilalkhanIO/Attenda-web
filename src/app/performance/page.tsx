@@ -18,6 +18,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
 import { format, subMonths } from 'date-fns';
+import { formatDate as intlFormatDate, LOCAL_TZ } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 
 // ─── Schemas ────────────────────────────────────────────
@@ -32,7 +33,7 @@ type ReviewForm = z.infer<typeof reviewSchema>;
 // ─── Helpers ────────────────────────────────────────────
 const MONTHS = Array.from({ length: 12 }, (_, i) => {
   const d = subMonths(new Date(), i);
-  return { value: format(d, 'yyyy-MM'), label: format(d, 'MMMM yyyy') };
+  return { value: format(d, 'yyyy-MM'), label: intlFormatDate(d, { month: 'long', year: 'numeric', timeZone: LOCAL_TZ }) };
 });
 
 function StarRating({ value, onChange, readonly }: { value: number; onChange?: (v: number) => void; readonly?: boolean }) {
@@ -255,7 +256,7 @@ export default function PerformancePage() {
                 <Avatar name={reviewUser.user.name} size="sm" />
                 <div className="flex-1">
                   <p className="text-sm font-black text-white tracking-tight">{reviewUser.user.name}</p>
-                  <p className="label-xs mt-0.5">Period: {format(new Date(selectedMonth + '-01'), 'MMMM yyyy').toUpperCase()}</p>
+                  <p className="label-xs mt-0.5">Period: {intlFormatDate(new Date(selectedMonth + '-01'), { month: 'long', year: 'numeric', timeZone: LOCAL_TZ }).toUpperCase()}</p>
                 </div>
               </div>
             )}
@@ -288,7 +289,7 @@ export default function PerformancePage() {
             />
             {reviewUser.submitted_at && (
               <p className="label-xs leading-relaxed">
-                Submitted on {format(new Date(reviewUser.submitted_at), 'MMM d, yyyy')} by {reviewUser.reviewer?.name}
+                Submitted on {intlFormatDate(reviewUser.submitted_at, { month: 'short', day: 'numeric', year: 'numeric', timeZone: LOCAL_TZ })} by {reviewUser.reviewer?.name}
               </p>
             )}
           </div>

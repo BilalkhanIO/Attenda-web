@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
 import { MarketingNav, MarketingFooter } from '@/app/page';
+import { formatDate as intlFormatDate, LOCAL_TZ } from '@/lib/i18n';
 import type { BlogPost } from '@/types';
 
 export const metadata: Metadata = {
@@ -36,7 +37,8 @@ async function getPosts(page = 1) {
 
 function formatDate(d: string | null) {
   if (!d) return '';
-  return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+  // Style-pinned day-first render ("2 August 2026") for marketing pages.
+  return intlFormatDate(d, { day: 'numeric', month: 'long', year: 'numeric', locale: 'en-GB', timeZone: LOCAL_TZ });
 }
 
 export default async function BlogPage({

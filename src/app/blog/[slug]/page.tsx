@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { MarketingNav, MarketingFooter } from '@/app/page';
+import { formatDate as intlFormatDate, formatNumber, LOCAL_TZ } from '@/lib/i18n';
 import type { BlogPost } from '@/types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
@@ -59,7 +60,8 @@ export async function generateMetadata({
 
 function formatDate(d: string | null) {
   if (!d) return '';
-  return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+  // Style-pinned day-first render ("2 August 2026") for marketing pages.
+  return intlFormatDate(d, { day: 'numeric', month: 'long', year: 'numeric', locale: 'en-GB', timeZone: LOCAL_TZ });
 }
 
 // Very lightweight markdown → HTML converter (headings, bold, lists, paragraphs)
@@ -175,7 +177,7 @@ export default async function BlogPostPage({
               {post.views > 0 && (
                 <div>
                    <p className="text-[10px] font-black text-[var(--on-glass-dim)] uppercase tracking-widest mb-0.5">Reach</p>
-                   <p className="text-[13px] font-bold text-white">{post.views.toLocaleString()} VIEWS</p>
+                   <p className="text-[13px] font-bold text-white">{formatNumber(post.views)} VIEWS</p>
                 </div>
               )}
             </div>

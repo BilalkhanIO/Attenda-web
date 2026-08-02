@@ -4,7 +4,7 @@ import {
   leaveApi, overtimeApi, remoteApi, shiftsApi, usersApi, orgApi,
   performanceApi, orgRbacApi
 } from './api';
-import { formatDate } from './utils';
+import { toISODate } from './i18n';
 import type { AdminOrg } from './admin-shared';
 import type {
   AttendanceRecord, LeaveRequest, SwapRequest, User,
@@ -525,7 +525,7 @@ export const whosOutTodayQuery = () =>
     staleTime: 5 * 60_000,
     queryFn: async (): Promise<WhosOutData | null> => {
       // "Today" in the ORG timezone (matches how attendance dates are keyed).
-      const today = formatDate(new Date(), 'yyyy-MM-dd');
+      const today = toISODate(new Date());
       return (await orgApi.getWhosOut({ from: today, to: today })).data.data ?? null;
     },
   });

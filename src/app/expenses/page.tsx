@@ -9,7 +9,8 @@ import {
 import { expensesApi } from '@/lib/api';
 import { keys, myExpensesQuery } from '@/lib/queries';
 import type { ExpenseClaim, ExpenseStatus } from '@/lib/queries';
-import { cn, formatDate, formatDateOnly, getApiError } from '@/lib/utils';
+import { cn, formatDateOnly, getApiError } from '@/lib/utils';
+import { formatCurrency, toISODate } from '@/lib/i18n';
 import { Receipt, Plus } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -35,7 +36,10 @@ interface ClaimForm {
 const EMPTY_FORM: ClaimForm = { amount: '', category: '', description: '', expense_date: '', errors: {} };
 
 function fmtAmount(claim: ExpenseClaim) {
-  return `${claim.currency} ${Number(claim.amount).toFixed(2)}`;
+  // Code display ("USD 25.00") — claims can be in any currency, so the code disambiguates.
+  return formatCurrency(Number(claim.amount), claim.currency, {
+    currencyDisplay: 'code', minimumFractionDigits: 2, maximumFractionDigits: 2,
+  });
 }
 
 export default function ExpensesPage() {
@@ -47,7 +51,7 @@ export default function ExpensesPage() {
   const claims = claimsQ.data ?? [];
 
   // "Today" in the org timezone — matches the server-side future-date check.
-  const today = formatDate(new Date(), 'yyyy-MM-dd');
+  const today = toISODate(new Date());
 
   const validate = (f: ClaimForm): ClaimForm['errors'] => {
     const errors: ClaimForm['errors'] = {};

@@ -16,7 +16,7 @@ import {
   CheckCircle, Loader, Sparkles,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { formatDistanceToNow, format } from 'date-fns';
+import { formatDate as intlFormatDate, formatRelative, formatTime as intlFormatTime, LOCAL_TZ } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 
 const SENTIMENT = {
@@ -158,14 +158,14 @@ export default function RemoteMonitorPage() {
 
       <SectionCard
         icon={<Home size={16} />}
-        title={`Active Remote Sessions · ${data?.date ? format(new Date(data.date), 'dd MMM yyyy').toUpperCase() : 'TODAY'}`}
+        title={`Active Remote Sessions · ${data?.date ? intlFormatDate(data.date, { day: '2-digit', month: 'short', year: 'numeric', locale: 'en-GB', timeZone: LOCAL_TZ }).toUpperCase() : 'TODAY'}`}
         className="overflow-hidden"
       >
         {lastUpdatedAt > 0 && (
           <div className="flex items-center gap-2 mb-3">
             <div className="w-1.5 h-1.5 rounded-full bg-[var(--success-500)] animate-pulse" />
             <span className="text-[10px] font-black text-[var(--on-glass-dim)] uppercase tracking-[0.2em]">
-              Updated {formatDistanceToNow(new Date(lastUpdatedAt), { addSuffix: true }).toUpperCase()}
+              Updated {formatRelative(new Date(lastUpdatedAt)).toUpperCase()}
             </span>
           </div>
         )}
@@ -196,7 +196,7 @@ export default function RemoteMonitorPage() {
                     avatarUrl={session.user?.avatar_url}
                     primary={session.user?.department || 'Operations'}
                     secondary={session.last_seen
-                      ? `${session.is_online ? 'Online' : 'Offline'} · last seen ${formatDistanceToNow(new Date(session.last_seen), { addSuffix: true })}`
+                      ? `${session.is_online ? 'Online' : 'Offline'} · last seen ${formatRelative(session.last_seen)}`
                       : undefined}
                     actions={
                       <div className="flex items-center gap-3 shrink-0">
@@ -288,7 +288,7 @@ export default function RemoteMonitorPage() {
                     <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--glass-border)] bg-[var(--glass-05)]">
                       <p className="text-[10px] font-black text-white uppercase tracking-[0.3em]">{heading}</p>
                       {sentAt
-                        ? <span className="text-[10px] font-bold text-[var(--on-glass-dim)] uppercase">Triggered @ {format(new Date(sentAt), 'HH:mm')}</span>
+                        ? <span className="text-[10px] font-bold text-[var(--on-glass-dim)] uppercase">Triggered @ {intlFormatTime(sentAt, { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: LOCAL_TZ })}</span>
                         : <span className="text-[10px] font-bold text-[var(--on-glass-dim)] uppercase tracking-widest italic">Pending</span>}
                     </div>
 
@@ -310,7 +310,7 @@ export default function RemoteMonitorPage() {
                             </div>
                             <div className="flex-1">
                               <p className="text-[10px] font-black text-[var(--on-glass-muted)] uppercase tracking-widest mb-2">
-                                Employee Reply &middot; {log.reply_at ? format(new Date(log.reply_at), 'HH:mm') : ''}
+                                Employee Reply &middot; {log.reply_at ? intlFormatTime(log.reply_at, { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: LOCAL_TZ }) : ''}
                               </p>
                               <div className="p-4 rounded-2xl bg-[var(--glass-05)] border border-[var(--glass-border)]">
                                  <p className="text-sm font-medium text-white italic leading-relaxed">&ldquo;{log.reply_text}&rdquo;</p>

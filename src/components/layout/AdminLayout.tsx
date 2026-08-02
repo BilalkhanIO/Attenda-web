@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { cn } from '@/lib/utils';
+import { formatDate, formatRelative, LOCAL_TZ } from '@/lib/i18n';
 import { Avatar } from '@/components/ui';
 import AttendaLogo from '@/components/ui/AttendaLogo';
 import { notificationApi, getAccessToken } from '@/lib/api';
@@ -50,14 +51,9 @@ const NOTIF_ICONS: Record<string, string> = {
   shift_reminder:   '🔔',
 };
 
+// Compact relative timestamp for the notification list ("5m ago").
 function timeAgo(isoStr: string): string {
-  const diff = Date.now() - new Date(isoStr).getTime();
-  const mins  = Math.floor(diff / 60_000);
-  if (mins < 1)  return 'just now';
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24)  return `${hrs}h ago`;
-  return `${Math.floor(hrs / 24)}d ago`;
+  return formatRelative(isoStr, { style: 'narrow' });
 }
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
@@ -76,7 +72,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   const profileRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const update = () => setDateStr(new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }));
+    const update = () => setDateStr(formatDate(new Date(), { weekday: 'long', month: 'short', day: 'numeric', timeZone: LOCAL_TZ }));
     update();
     const t = setInterval(update, 60_000);
     return () => clearInterval(t);

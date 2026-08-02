@@ -1,4 +1,5 @@
 import { MarketingNav, MarketingFooter } from '../page';
+import { formatDate, LOCAL_TZ } from '@/lib/i18n';
 
 export const metadata = { title: 'Privacy Policy — Attenda', description: 'How Attenda collects, uses, and protects your data.' };
 
@@ -22,7 +23,7 @@ export default function PrivacyPage() {
         <div className="max-w-4xl mx-auto">
           <p className="text-xs font-bold text-[var(--primary-600)] uppercase tracking-widest mb-6">Legal</p>
           <h1 className="text-5xl md:text-6xl font-black text-white mb-8 tracking-tighter">Privacy Policy</h1>
-          <p className="text-sm font-bold text-[var(--on-glass-dim)] uppercase tracking-widest">Last updated: {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+          <p className="text-sm font-bold text-[var(--on-glass-dim)] uppercase tracking-widest">Last updated: {formatDate(new Date(), { month: 'long', day: 'numeric', year: 'numeric', timeZone: LOCAL_TZ })}</p>
         </div>
       </section>
 

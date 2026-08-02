@@ -21,6 +21,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
 import { format, startOfWeek, addDays, addWeeks, subWeeks, isSameDay, parseISO } from 'date-fns';
+import { formatDate as intlFormatDate, LOCAL_TZ } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 
 // ─── Schemas ──────────────────────────────────────────
@@ -802,7 +803,7 @@ export default function ShiftsPage() {
             </button>
             <div className="text-center">
               <p className="text-[13px] font-black text-white uppercase tracking-widest">
-                {format(weekStart, 'dd MMM')} &mdash; {format(addDays(weekStart, 6), 'dd MMM yyyy').toUpperCase()}
+                {intlFormatDate(weekStart, { day: '2-digit', month: 'short', locale: 'en-GB', timeZone: LOCAL_TZ })} &mdash; {intlFormatDate(addDays(weekStart, 6), { day: '2-digit', month: 'short', year: 'numeric', locale: 'en-GB', timeZone: LOCAL_TZ }).toUpperCase()}
               </p>
               <p className="text-[10px] font-bold text-[var(--on-glass-dim)] uppercase tracking-[0.2em] mt-1">Calendar Week {format(weekStart, 'w')}</p>
             </div>
@@ -828,9 +829,9 @@ export default function ShiftsPage() {
                     "py-5 px-4 text-center border-r border-[var(--glass-border)] transition-colors",
                     isSameDay(day, new Date()) ? "bg-[var(--primary-600)]/10" : "bg-[var(--glass-05)]"
                   )}>
-                  <p className="text-[10px] font-black text-[var(--on-glass-muted)] uppercase tracking-widest">{format(day, 'EEE')}</p>
+                  <p className="text-[10px] font-black text-[var(--on-glass-muted)] uppercase tracking-widest">{intlFormatDate(day, { weekday: 'short', timeZone: LOCAL_TZ })}</p>
                   <p className={cn("text-2xl font-black mt-1 tracking-tight", isSameDay(day, new Date()) ? "text-[var(--primary-600)]" : "text-white")}>
-                    {format(day, 'd')}
+                    {intlFormatDate(day, { day: 'numeric', timeZone: LOCAL_TZ })}
                   </p>
                 </div>
               ))}
@@ -987,7 +988,7 @@ export default function ShiftsPage() {
         onConfirm={onPublish}
         loading={publishing}
         title="Publish Schedule"
-        message={`Publish the schedule for the week of ${format(weekStart, 'MMM d')}? All assigned employees will be notified via the app and WhatsApp.`}
+        message={`Publish the schedule for the week of ${intlFormatDate(weekStart, { month: 'short', day: 'numeric', timeZone: LOCAL_TZ })}? All assigned employees will be notified via the app and WhatsApp.`}
         confirmLabel="Publish & Notify"
         variant="primary"
       />
@@ -1013,7 +1014,7 @@ export default function ShiftsPage() {
                <div className="flex justify-between items-center">
                   <div>
                     <p className="text-[10px] font-black text-[var(--on-glass-dim)] uppercase tracking-widest">Date</p>
-                    <p className="text-xs font-black text-white uppercase">{format(assignModal.date, 'EEE, MMM d')}</p>
+                    <p className="text-xs font-black text-white uppercase">{intlFormatDate(assignModal.date, { weekday: 'short', month: 'short', day: 'numeric', timeZone: LOCAL_TZ })}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-[10px] font-black text-[var(--on-glass-dim)] uppercase tracking-widest">Shift</p>

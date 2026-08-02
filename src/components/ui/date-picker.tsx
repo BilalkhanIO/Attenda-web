@@ -1,14 +1,14 @@
 'use client';
 import React, { useState, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
+import { formatDate, LOCAL_TZ } from '@/lib/i18n';
 import { ChevronLeft, ChevronRight, Calendar, Clock, AlertTriangle } from 'lucide-react';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-const MONTH_NAMES = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
+const MONTH_NAMES = Array.from({ length: 12 }, (_, i) =>
+  formatDate(new Date(2000, i, 1), { month: 'long', timeZone: LOCAL_TZ }),
+);
 const DAY_LABELS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
 
 interface CalCell {
@@ -64,7 +64,8 @@ function formatDateLabel(str: string): string {
   if (!str) return '';
   const [y, m, d] = str.split('-').map(Number);
   const date = new Date(y, m - 1, d);
-  return date.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+  // Local calendar date — format in the browser timezone (LOCAL_TZ) so the day never shifts.
+  return formatDate(date, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: LOCAL_TZ });
 }
 
 function useOutsideClick(ref: React.RefObject<HTMLDivElement | null>, cb: () => void, active: boolean) {

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { adminApi } from '@/lib/api';
 import { getApiError } from '@/lib/utils';
+import { fmtDateTime } from '@/lib/admin-shared';
 import { PageHeader, Card, Table, Button, Modal, ConfirmDialog, Input, Select, Badge, Avatar } from '@/components/ui';
 import { UserPlus, Edit, Trash2, Shield, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -201,7 +202,7 @@ export default function AdminPlatformUsersPage() {
                 </div>
               </td>
               <td className="py-4 px-6 text-sm text-[var(--on-glass-dim)]">
-                {user.last_active ? new Date(user.last_active).toLocaleString() : 'Never'}
+                {user.last_active ? fmtDateTime(user.last_active) : 'Never'}
               </td>
               <td className="py-4 px-6">
                 {canManage && (

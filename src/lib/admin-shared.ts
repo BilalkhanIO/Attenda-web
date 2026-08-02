@@ -1,3 +1,4 @@
+import { formatDate, LOCAL_TZ } from '@/lib/i18n';
 import type { PlanFeatures } from '@/types';
 
 export interface PlatformStats {
@@ -102,7 +103,17 @@ export const ALL_FEATURE_KEYS = Object.keys(FEATURE_LABELS);
 
 export function fmtDate(d: string | null) {
   if (!d) return '—';
-  return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  // Style-pinned day-first render ("2 Aug 2026") in the viewer's timezone.
+  return formatDate(d, { day: 'numeric', month: 'short', year: 'numeric', locale: 'en-GB', timeZone: LOCAL_TZ });
+}
+
+/** Full timestamp with seconds ("8/2/2026, 5:04:56 PM") for admin logs. */
+export function fmtDateTime(d: string | Date) {
+  return formatDate(d, {
+    year: 'numeric', month: 'numeric', day: 'numeric',
+    hour: 'numeric', minute: 'numeric', second: 'numeric',
+    timeZone: LOCAL_TZ,
+  });
 }
 
 export function daysLeft(d: string | null) {

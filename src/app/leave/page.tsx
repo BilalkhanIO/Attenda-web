@@ -22,10 +22,14 @@ import { z } from 'zod';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/lib/auth';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
+import { formatDate, LOCAL_TZ } from '@/lib/i18n';
 
 const PAGE_SIZE = 20;
 const DEFAULT_SORT = 'created_at'; // server default for GET /leave/requests (desc)
+
+// Style-pinned day-first render ("02 Aug") in the viewer's timezone.
+const fmtLeaveDay = (d: string) =>
+  formatDate(d, { day: '2-digit', month: 'short', locale: 'en-GB', timeZone: LOCAL_TZ });
 
 const LEAVE_TYPES = [
   { value: 'annual',    label: 'Annual Leave (Paid)' },
@@ -233,8 +237,8 @@ function LeavePageContent() {
       sortable: true,
       render: (req) => (
         <>
-          <p className="text-xs font-black text-white font-mono">{format(new Date(req.start_date), 'dd MMM')}</p>
-          <p className="text-[10px] font-bold text-(--on-glass-dim) uppercase tracking-widest font-mono">TO {format(new Date(req.end_date), 'dd MMM')}</p>
+          <p className="text-xs font-black text-white font-mono">{fmtLeaveDay(req.start_date)}</p>
+          <p className="text-[10px] font-bold text-(--on-glass-dim) uppercase tracking-widest font-mono">TO {fmtLeaveDay(req.end_date)}</p>
         </>
       ),
     },

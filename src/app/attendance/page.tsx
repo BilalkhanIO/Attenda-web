@@ -8,6 +8,7 @@ import {
 import type { DropdownOption } from '@/components/ui';
 import { attendanceApi, remoteApi, overtimeApi } from '@/lib/api';
 import { statusConfig, formatTime, formatDate, getApiError, runDeferred } from '@/lib/utils';
+import { formatDate as intlFormatDate, formatNumber, LOCAL_TZ } from '@/lib/i18n';
 import type { AttendanceRecord } from '@/types';
 import {
   Clock, Edit2, Download, Calendar, Coffee, PlayCircle, StopCircle,
@@ -540,7 +541,7 @@ export default function AttendancePage() {
               <StatBox
                 label="Hours"
                 labelIcon={<CheckCircle2 size={10} className="text-[var(--secondary)]" />}
-                value={myRecord?.hours_worked != null ? `${n(myRecord.hours_worked).toFixed(1)}h` : '0.0h'}
+                value={myRecord?.hours_worked != null ? `${formatNumber(n(myRecord.hours_worked), { minimumFractionDigits: 1, maximumFractionDigits: 1 })}h` : '0.0h'}
               />
               <StatBox
                 label="Method"
@@ -767,7 +768,7 @@ export default function AttendancePage() {
                     {teamNotices.map(n => {
                        const isEarly = n.reason.startsWith('[Early Departure]');
                        const cleanReason = isEarly ? n.reason.replace('[Early Departure]', '').trim() : n.reason;
-                       const nDate = n.date ? format(new Date(n.date), 'MMM d') : 'Today';
+                       const nDate = n.date ? intlFormatDate(n.date, { month: 'short', day: 'numeric', timeZone: LOCAL_TZ }) : 'Today';
                        return (
                          <RequestItem key={n.id}
                            name={n.user?.name || ''}

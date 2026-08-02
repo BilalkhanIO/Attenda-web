@@ -11,7 +11,8 @@ import { announcementsApi, departmentsApi, type DepartmentNode } from '@/lib/api
 import {
   keys, announcementsQuery, announcementReceiptsQuery, type Announcement,
 } from '@/lib/queries';
-import { cn, formatDate, formatDateTime, getApiError } from '@/lib/utils';
+import { cn, formatDateTime, getApiError } from '@/lib/utils';
+import { toISODate } from '@/lib/i18n';
 import { Send, CheckCircle2, Clock3, Megaphone, Users } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -193,7 +194,7 @@ export default function OrgAnnouncementsPage() {
                 required
                 value={scheduledAt}
                 onChange={setScheduledAt}
-                minDate={formatDate(new Date(), 'yyyy-MM-dd')}
+                minDate={toISODate(new Date())}
                 placeholder="Select date & time"
               />
             )}

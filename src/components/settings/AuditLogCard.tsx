@@ -5,7 +5,7 @@ import { Card, Button, Skeleton } from '@/components/ui';
 import { orgApi } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { ScrollText, ChevronLeft, ChevronRight } from 'lucide-react';
-import { format } from 'date-fns';
+import { formatDate, LOCAL_TZ } from '@/lib/i18n';
 
 interface AuditRow {
   id: string;
@@ -71,7 +71,7 @@ export default function AuditLogCard() {
                 {row.reason && <p className="text-[11px] text-slate-500 italic truncate">“{row.reason}”</p>}
               </div>
               <span className="text-[11px] text-slate-500 whitespace-nowrap">
-                {format(new Date(row.created_at), 'MMM d, HH:mm')}
+                {formatDate(row.created_at, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false, timeZone: LOCAL_TZ })}
               </span>
             </div>
           ))}

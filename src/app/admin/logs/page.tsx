@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { adminApi } from '@/lib/api';
 import { getApiError, runDeferred } from '@/lib/utils';
+import { fmtDateTime } from '@/lib/admin-shared';
 import { PageHeader, Card, Table, Button, Badge } from '@/components/ui';
 import { History, RefreshCw, Search, Filter } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -90,7 +91,7 @@ export default function AdminLogsPage() {
           {logs.map((log) => (
             <tr key={log.id} className="hover:bg-[var(--glass-05)] transition-all text-xs">
               <td className="py-3 px-6 text-[var(--on-glass-dim)] font-mono">
-                {new Date(log.created_at).toLocaleString()}
+                {fmtDateTime(log.created_at)}
               </td>
               <td className="py-3 px-6 font-bold text-white truncate max-w-[120px]" title={log.org_id}>
                 {log.org_id === 'SYSTEM' ? <Badge label="SYSTEM" color="#a855f7" bg="rgba(168, 85, 247, 0.1)" /> : log.org_id.split('-')[0]}

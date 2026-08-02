@@ -17,6 +17,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
 import { format, subMonths } from 'date-fns';
+import { formatDate as intlFormatDate, formatNumber, LOCAL_TZ } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 
 const adjustSchema = z.object({
@@ -28,7 +29,7 @@ type AdjustForm = z.infer<typeof adjustSchema>;
 
 const MONTHS = Array.from({ length: 12 }, (_, i) => {
   const d = subMonths(new Date(), i);
-  return { value: format(d, 'yyyy-MM'), label: format(d, 'MMMM yyyy') };
+  return { value: format(d, 'yyyy-MM'), label: intlFormatDate(d, { month: 'long', year: 'numeric', timeZone: LOCAL_TZ }) };
 });
 
 export default function PayrollPage() {
@@ -217,7 +218,7 @@ export default function PayrollPage() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
             <KPICard title="Total Gross Pay"   value={formatCurrency(totalGross)}    icon={<Wallet size={16} />}       color="var(--success-500)" bg="#10b981" />
             <KPICard title="Employees"         value={payroll.records.length}        icon={<Wallet size={16} />}       color="var(--primary-600)" bg="#00C896" />
-            <KPICard title="Overtime Hours"    value={`${totalOT.toFixed(1)}h`}      icon={<AlertTriangle size={16} />} color="var(--warning-500)" bg="#f59e0b" />
+            <KPICard title="Overtime Hours"    value={`${formatNumber(totalOT, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}h`} icon={<AlertTriangle size={16} />} color="var(--warning-500)" bg="#f59e0b" />
             <KPICard title="Total Deductions"  value={formatCurrency(totalDeductions)} icon={<Download size={16} />}  color="var(--danger-500)"  bg="#ef4444"  />
           </div>
 
@@ -234,7 +235,7 @@ export default function PayrollPage() {
           <Card className="overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3 bg-(--glass-05) border-b border-(--glass-border)">
               <h3 className="text-[10px] font-black text-white uppercase tracking-widest">
-                {format(new Date(selectedMonth + '-01'), 'MMMM yyyy').toUpperCase()} Payroll
+                {intlFormatDate(new Date(selectedMonth + '-01'), { month: 'long', year: 'numeric', timeZone: LOCAL_TZ }).toUpperCase()} Payroll
               </h3>
               {statusBadge(payroll.status)}
             </div>

@@ -9,6 +9,7 @@ import {
 } from '@/lib/queries';
 import type { OvertimeRequest } from '@/lib/queries';
 import { useAuth } from '@/lib/auth';
+import { formatDate, formatNumber, LOCAL_TZ } from '@/lib/i18n';
 import { Clock, CheckCircle, XCircle, TrendingUp } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -25,7 +26,8 @@ function fmtMins(mins: number) {
 }
 
 function fmtDate(s: string) {
-  return new Date(s).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  // Style-pinned day-first render ("2 Aug 2026") in the viewer's timezone.
+  return formatDate(s, { day: 'numeric', month: 'short', year: 'numeric', locale: 'en-GB', timeZone: LOCAL_TZ });
 }
 
 export default function OvertimePage() {
@@ -218,7 +220,7 @@ export default function OvertimePage() {
                             </span>
                           </td>
                           <td className="px-4 py-2.5 text-right text-xs font-bold" style={{ color: 'var(--success-500)' }}>
-                            {row.overtime_pay > 0 ? `+${row.overtime_pay.toFixed(2)}` : '—'}
+                            {row.overtime_pay > 0 ? `+${formatNumber(row.overtime_pay, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
                           </td>
                         </tr>
                       ))}

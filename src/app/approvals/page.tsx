@@ -8,9 +8,9 @@ import { keys } from '@/lib/queries';
 import type { ExpenseClaim } from '@/lib/queries';
 import { useAuth } from '@/lib/auth';
 import { cn, formatTime, getApiError } from '@/lib/utils';
+import { formatCurrency, formatDate, LOCAL_TZ } from '@/lib/i18n';
 import { Calendar, AlarmClock, Home, Repeat, Clock, Check, X, Inbox, FilePenLine, Receipt, Banknote } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { format } from 'date-fns';
 
 type ApprovalType = 'leave' | 'overtime' | 'remote' | 'swap' | 'late_notice' | 'correction' | 'expense';
 
@@ -44,10 +44,13 @@ const TYPE_META: Record<ApprovalType, { label: string; icon: React.ReactNode; co
 
 const MONTH_OPTIONS = Array.from({ length: 12 }, (_, i) => ({
   value: String(i + 1),
-  label: format(new Date(2000, i, 1), 'MMMM'),
+  label: formatDate(new Date(2000, i, 1), { month: 'long', timeZone: LOCAL_TZ }),
 }));
 
-const fmtClaimAmount = (c: ExpenseClaim) => `${c.currency} ${Number(c.amount).toFixed(2)}`;
+// Code display ("USD 25.00") — claims can be in any currency, so the code disambiguates.
+const fmtClaimAmount = (c: ExpenseClaim) => formatCurrency(Number(c.amount), c.currency, {
+  currencyDisplay: 'code', minimumFractionDigits: 2, maximumFractionDigits: 2,
+});
 
 // Loose row shape — each source endpoint nests differently; we normalize.
 type Row = Record<string, unknown> & {
@@ -59,7 +62,7 @@ const num = (v: unknown): number | undefined => (typeof v === 'number' ? v : und
 const day = (v: unknown): string => {
   const s = str(v);
   if (!s) return '';
-  try { return format(new Date(s), 'MMM d'); } catch { return s; }
+  try { return formatDate(s, { month: 'short', day: 'numeric', timeZone: LOCAL_TZ }); } catch { return s; }
 };
 
 export default function ApprovalsPage() {

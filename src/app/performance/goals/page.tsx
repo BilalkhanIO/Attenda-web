@@ -13,7 +13,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
-import { format } from 'date-fns';
+import { formatDate, LOCAL_TZ } from '@/lib/i18n';
 import { PerformanceProgress } from '@/components/performance/PerformanceProgress';
 
 const goalSchema = z.object({
@@ -23,6 +23,10 @@ const goalSchema = z.object({
   target_date: z.string().optional(),
 });
 type GoalForm = z.infer<typeof goalSchema>;
+
+// Style-pinned day-first render ("02 Aug 2026") in the viewer's timezone.
+const fmtGoalDate = (d: string) =>
+  formatDate(d, { day: '2-digit', month: 'short', year: 'numeric', locale: 'en-GB', timeZone: LOCAL_TZ });
 
 export default function GoalsPage() {
   const { hasPermission } = useAuth();
@@ -98,7 +102,7 @@ export default function GoalsPage() {
               </td>
               <td className="px-4 py-3 text-sm font-black text-[var(--primary-600)] tracking-tighter">{goal.weight}%</td>
               <td className="px-4 py-3 text-[11px] font-bold text-[var(--on-glass-dim)] uppercase tracking-wider">
-                {goal.target_date ? format(new Date(goal.target_date), 'dd MMM yyyy') : (goal.due_date ? format(new Date(goal.due_date), 'dd MMM yyyy') : '—')}
+                {goal.target_date ? fmtGoalDate(goal.target_date) : (goal.due_date ? fmtGoalDate(goal.due_date) : '—')}
               </td>
               <td className="px-4 py-3 min-w-[140px]"><PerformanceProgress value={goal.completion ?? goal.progress ?? 0} /></td>
               {canManage && (
