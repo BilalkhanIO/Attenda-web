@@ -150,7 +150,8 @@ export const authApi = {
 
 // ─── USERS ────────────────────────────────────────────
 export const usersApi = {
-  getAll: (params?: { page?: number; limit?: number; department?: string; role?: string; status?: string; search?: string }) =>
+  // `q` is the cross-endpoint search contract; sort ∈ name,email,department,job_title,joined_at,created_at
+  getAll: (params?: { page?: number; limit?: number; department?: string; role?: string; status?: string; q?: string; sort?: string; order?: 'asc' | 'desc' }) =>
     apiClient.get('/users', { params }),
   getOne: (id: string) =>
     apiClient.get(`/users/${id}`),

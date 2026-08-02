@@ -1,17 +1,18 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import {
-  PageHeader, Card, Table, Avatar, Badge, Button, Modal, ConfirmDialog,
+  PageHeader, Card, DataTable, Avatar, Badge, Button, Modal, ConfirmDialog,
   Input, RoleBadge, Dropdown,
 } from '@/components/ui';
-import type { DropdownOption } from '@/components/ui';
+import type { DataTableColumn, DropdownOption } from '@/components/ui';
 import { usersApi } from '@/lib/api';
 import { keys, usersListQuery, managersQuery, departmentsQuery } from '@/lib/queries';
+import { useUrlListParams, parsePageParam } from '@/lib/url-list-params';
 import { roleLabels, getApiError } from '@/lib/utils';
 import type { User, Role } from '@/types';
-import { UserPlus, Upload, Search, MoreHorizontal, Edit, UserX, Eye } from 'lucide-react';
+import { UserPlus, Upload, Search, Edit, UserX, Eye } from 'lucide-react';
 import { useForm, Controller, UseFormReturn } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -19,6 +20,7 @@ import toast from 'react-hot-toast';
 import { useAuth } from '@/lib/auth';
 
 const PAGE_SIZE = 20;
+const DEFAULT_SORT = 'name'; // server default for GET /users
 
 // ─── Schema ───────────────────────────────────────────
 const userSchema = z.object({
@@ -115,41 +117,52 @@ function UserFormFields({ form, departments, managers, canUpdateCreds, isEdit }:
   );
 }
 
-export default function EmployeesPage() {
+function EmployeesPageContent() {
   const { hasPermission } = useAuth();
   const queryClient = useQueryClient();
 
-  // Server-side pagination/filter state
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [deptFilter, setDeptFilter] = useState('');
-  const [roleFilter, setRoleFilter] = useState('');
+  // Server-side list state lives in the URL — survives refresh/back-nav.
+  const { searchParams, setParams } = useUrlListParams();
+  const page       = parsePageParam(searchParams.get('page'));
+  const q          = searchParams.get('q') ?? '';
+  const sort       = searchParams.get('sort') ?? DEFAULT_SORT;
+  const order      = searchParams.get('order') === 'desc' ? 'desc' as const : 'asc' as const;
+  const deptFilter = searchParams.get('department') ?? '';
+  const roleFilter = searchParams.get('role') ?? '';
 
-  // Debounce search ~300ms before it reaches the query key
+  // Search input: local echo of `q`, committed to the URL after a 300ms
+  // debounce. Only typing starts the timer, so mount/back-nav never rewrite
+  // the URL with stale text.
+  const [search, setSearch] = useState(q);
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onSearchChange = (value: string) => {
+    setSearch(value);
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    searchTimer.current = setTimeout(() => {
+      searchTimer.current = null;
+      setParams({ q: value || null, page: null });
+    }, 300);
+  };
+  // Re-sync the input when `q` changes from outside (back/forward nav)
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedSearch(search), 300);
-    return () => clearTimeout(t);
-  }, [search]);
+    if (!searchTimer.current) setSearch(q);
+  }, [q]);
+
+  const onSort = (key: string) => {
+    if (key === sort) setParams({ order: order === 'asc' ? 'desc' : null, page: null });
+    else setParams({ sort: key === DEFAULT_SORT ? null : key, order: null, page: null });
+  };
 
   // Modal states
   const [addOpen, setAddOpen] = useState(false);
   const [editUser, setEditUser] = useState<User | null>(null);
   const [viewUser, setViewUser] = useState<User | null>(null);
   const [deactivateTarget, setDeactivateTarget] = useState<User | null>(null);
-  const [actionMenuId, setActionMenuId] = useState<string | null>(null);
 
   const form = useForm<UserForm>({ resolver: zodResolver(userSchema) });
 
-  const listParams = {
-    page,
-    limit: PAGE_SIZE,
-    search: debouncedSearch,
-    department: deptFilter,
-    role: roleFilter,
-  };
   const usersQuery = useQuery({
-    ...usersListQuery(listParams),
+    ...usersListQuery({ page, limit: PAGE_SIZE, q, department: deptFilter, role: roleFilter, sort, order }),
     placeholderData: keepPreviousData,
   });
   const deptsQuery    = useQuery(departmentsQuery());
@@ -157,18 +170,12 @@ export default function EmployeesPage() {
 
   const users       = usersQuery.data?.users ?? [];
   const total       = usersQuery.data?.pagination.total ?? 0;
-  const pageCount   = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const loading     = usersQuery.isPending;
   const departments = deptsQuery.data ?? [];
   const managers    = managersQ.data ?? [];
 
   const invalidateUsers = () =>
     queryClient.invalidateQueries({ queryKey: keys.users.all });
-
-  // Filter changes always jump back to the first page
-  const setSearchAndReset = (v: string) => { setSearch(v); setPage(1); };
-  const setDeptAndReset   = (v: string) => { setDeptFilter(v); setPage(1); };
-  const setRoleAndReset   = (v: string) => { setRoleFilter(v); setPage(1); };
 
   const openAdd = () => {
     form.reset({ role: 'employee' });
@@ -188,7 +195,6 @@ export default function EmployeesPage() {
       password:    '',
     });
     setEditUser(user);
-    setActionMenuId(null);
   };
 
   const saveMutation = useMutation({
@@ -235,6 +241,59 @@ export default function EmployeesPage() {
     if (!deactivateTarget) return;
     deactivateMutation.mutate({ id: deactivateTarget.id, name: deactivateTarget.name });
   };
+
+  const columns: DataTableColumn<User>[] = [
+    {
+      key: 'name',
+      header: 'Employee',
+      sortable: true,
+      render: (user) => (
+        <div className="flex items-center gap-4">
+          <Avatar name={user.name} imageUrl={user.avatar_url} size="sm" />
+          <div className="min-w-0">
+            <p className="text-sm font-black text-white group-hover:text-[var(--primary-600)] transition-colors truncate">{user.name}</p>
+            <p className="text-xs font-medium text-[var(--on-glass-muted)] truncate">{user.email}</p>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'role',
+      header: 'Role',
+      render: (user) => <RoleBadge role={user.role} />,
+    },
+    {
+      key: 'department',
+      header: 'Department',
+      sortable: true,
+      render: (user) => <span className="text-sm font-medium text-[var(--on-glass-dim)]">{user.department}</span>,
+    },
+    {
+      key: 'manager',
+      header: 'Manager',
+      render: (user) => <span className="text-sm font-medium text-[var(--on-glass-dim)]">{user.manager?.name || '—'}</span>,
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (user) => (
+        <Badge
+          label={user.status === 'active' ? 'Active' : 'Inactive'}
+          color={user.status === 'active' ? 'var(--success-500)' : 'var(--on-glass-muted)'}
+          bg={user.status === 'active'   ? '#10b981' : '#94a3b8'}
+        />
+      ),
+    },
+    {
+      key: 'rate',
+      header: 'Rate',
+      render: (user) => (
+        <span className="text-sm font-black text-[var(--primary-600)]/80 tracking-tighter">
+          {user.hourly_rate ? `$${user.hourly_rate}/hr` : '—'}
+        </span>
+      ),
+    },
+  ];
 
   return (
     <DashboardLayout>
@@ -283,14 +342,14 @@ export default function EmployeesPage() {
             <input
               placeholder="Search by name or email..."
               value={search}
-              onChange={e => setSearchAndReset(e.target.value)}
+              onChange={e => onSearchChange(e.target.value)}
               className="panel w-full pl-12 pr-4 py-3 text-sm text-white outline-none placeholder:text-(--on-glass-dim)"
             />
           </div>
           <div className="flex items-center gap-3">
             <Dropdown
               value={deptFilter}
-              onChange={setDeptAndReset}
+              onChange={v => setParams({ department: v || null, page: null })}
               placeholder="All Departments"
               options={[
                 { value: '', label: 'All Departments' },
@@ -300,7 +359,7 @@ export default function EmployeesPage() {
             />
             <Dropdown
               value={roleFilter}
-              onChange={setRoleAndReset}
+              onChange={v => setParams({ role: v || null, page: null })}
               placeholder="All Roles"
               options={[
                 { value: '', label: 'All Roles' },
@@ -313,107 +372,36 @@ export default function EmployeesPage() {
           </div>
         </div>
 
-        {/* Table */}
-        <Table
-          headers={['Employee', 'Role', 'Department', 'Manager', 'Status', 'Rate', '']}
+        {/* Table — pagination + sorting handled by the server */}
+        <DataTable<User>
+          columns={columns}
+          data={users}
+          rowKey={u => u.id}
           loading={loading}
-        >
-          {users.map((user) => (
-            <tr key={user.id} className="hover:bg-[var(--glass-05)] transition-all group">
-              <td className="py-3 px-4">
-                <div className="flex items-center gap-4">
-                  <Avatar name={user.name} imageUrl={user.avatar_url} size="sm" />
-                  <div className="min-w-0">
-                    <p className="text-sm font-black text-white group-hover:text-[var(--primary-600)] transition-colors truncate">{user.name}</p>
-                    <p className="text-xs font-medium text-[var(--on-glass-muted)] truncate">{user.email}</p>
-                  </div>
-                </div>
-              </td>
-              <td className="py-3 px-4">
-                <RoleBadge role={user.role} />
-              </td>
-              <td className="py-3 px-4">
-                <span className="text-sm font-medium text-[var(--on-glass-dim)]">{user.department}</span>
-              </td>
-              <td className="py-3 px-4">
-                <span className="text-sm font-medium text-[var(--on-glass-dim)]">{user.manager?.name || '—'}</span>
-              </td>
-              <td className="py-3 px-4">
-                <Badge
-                  label={user.status === 'active' ? 'Active' : 'Inactive'}
-                  color={user.status === 'active' ? 'var(--success-500)' : 'var(--on-glass-muted)'}
-                  bg={user.status === 'active'   ? '#10b981' : '#94a3b8'}
-                />
-              </td>
-              <td className="py-3 px-4">
-                <span className="text-sm font-black text-[var(--primary-600)]/80 tracking-tighter">
-                  {user.hourly_rate ? `$${user.hourly_rate}/hr` : '—'}
-                </span>
-              </td>
-              <td className="py-3 px-4">
-                <div className="relative flex justify-end">
-                  <button
-                    onClick={() => setActionMenuId(actionMenuId === user.id ? null : user.id)}
-                    aria-label="Employee actions"
-                    className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-[var(--glass-10)] text-[var(--on-glass-dim)] hover:text-white transition-all active:scale-90"
-                  >
-                    <MoreHorizontal size={20} />
-                  </button>
-                  {actionMenuId === user.id && (
-                    <>
-                      <div role="presentation" className="fixed inset-0 z-10" onClick={() => setActionMenuId(null)} />
-                      <div className="absolute right-0 top-11 z-20 min-w-[200px] bg-[var(--dark-950)]/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-[var(--glass-border)] py-2 fade-in-up overflow-hidden">
-                        <button onClick={() => { setViewUser(user); setActionMenuId(null); }}
-                          className="w-full text-left px-5 py-3 text-[13px] font-bold flex items-center gap-3 hover:bg-[var(--glass-10)] text-white transition-all">
-                          <Eye size={16} /> View Profile
-                        </button>
-                        {hasPermission('employees.update') && (
-                          <button onClick={() => openEdit(user)}
-                            className="w-full text-left px-5 py-3 text-[13px] font-bold flex items-center gap-3 hover:bg-[var(--glass-10)] text-white transition-all">
-                            <Edit size={16} /> Edit
-                          </button>
-                        )}
-                        {hasPermission('employees.deactivate') && user.status === 'active' && (
-                          <button onClick={() => { setDeactivateTarget(user); setActionMenuId(null); }}
-                            className="w-full text-left px-5 py-3 text-[13px] font-bold flex items-center gap-3 hover:bg-[var(--danger-500)]/10 text-[var(--danger-500)] transition-all">
-                            <UserX size={16} /> Deactivate
-                          </button>
-                        )}
-                      </div>
-                    </>
-                  )}
-                </div>
-              </td>
-            </tr>
-          ))}
-        </Table>
-
-        {!loading && users.length === 0 && (
-          <div className="py-20 text-center">
-            <p className="text-[var(--on-glass-muted)] text-sm font-medium tracking-wide">
-              No employees found matching your filters.
-            </p>
-          </div>
-        )}
-
-        {/* Pagination */}
-        {!loading && total > PAGE_SIZE && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-[var(--glass-border)]">
-            <p className="text-xs font-medium text-[var(--on-glass-muted)]">
-              Page {page} of {pageCount} · {total} total
-            </p>
-            <div className="flex items-center gap-2">
-              <Button size="sm" variant="ghost" disabled={page <= 1 || usersQuery.isFetching}
-                onClick={() => setPage(p => Math.max(1, p - 1))}>
-                Previous
-              </Button>
-              <Button size="sm" variant="ghost" disabled={page >= pageCount || usersQuery.isFetching}
-                onClick={() => setPage(p => Math.min(pageCount, p + 1))}>
-                Next
-              </Button>
+          page={page}
+          pageSize={PAGE_SIZE}
+          total={total}
+          onPageChange={p => setParams({ page: p <= 1 ? null : String(p) })}
+          sortKey={sort}
+          sortDir={order}
+          onSort={onSort}
+          emptyState={
+            <div className="py-20 text-center">
+              <p className="text-[var(--on-glass-muted)] text-sm font-medium tracking-wide">
+                No employees found matching your filters.
+              </p>
             </div>
-          </div>
-        )}
+          }
+          rowActions={(user) => [
+            { label: 'View Profile', icon: <Eye size={16} />, onClick: () => setViewUser(user) },
+            ...(hasPermission('employees.update')
+              ? [{ label: 'Edit', icon: <Edit size={16} />, onClick: () => openEdit(user) }]
+              : []),
+            ...(hasPermission('employees.deactivate') && user.status === 'active'
+              ? [{ label: 'Deactivate', icon: <UserX size={16} />, onClick: () => setDeactivateTarget(user), danger: true }]
+              : []),
+          ]}
+        />
       </Card>
 
       {/* Add Employee Modal */}
@@ -500,5 +488,14 @@ export default function EmployeesPage() {
         variant="danger"
       />
     </DashboardLayout>
+  );
+}
+
+// useSearchParams requires a Suspense boundary during prerendering
+export default function EmployeesPage() {
+  return (
+    <Suspense fallback={null}>
+      <EmployeesPageContent />
+    </Suspense>
   );
 }

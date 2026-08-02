@@ -254,10 +254,12 @@ export const swapRequestsQuery = () =>
 export interface UsersListParams {
   page: number;
   limit: number;
-  search?: string;
+  q?: string;
   department?: string;
   role?: string;
   status?: string;
+  sort?: string;
+  order?: 'asc' | 'desc';
 }
 
 export interface UsersListResult {
@@ -274,10 +276,12 @@ export const usersListQuery = (params: UsersListParams) =>
       const res = (await usersApi.getAll({
         page: params.page,
         limit: params.limit,
-        search: params.search || undefined,
+        q: params.q || undefined,
         department: params.department || undefined,
         role: params.role || undefined,
         status: params.status || undefined,
+        sort: params.sort || undefined,
+        order: params.order || undefined,
       })).data;
       return {
         users: res.data ?? [],
