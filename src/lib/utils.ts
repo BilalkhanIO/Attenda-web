@@ -1,7 +1,17 @@
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { formatDistanceToNow, parseISO } from 'date-fns';
+import { parseISO } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
+import {
+  formatDate as intlFormatDate,
+  formatTime as intlFormatTime,
+  formatDateTime as intlFormatDateTime,
+  formatDateOnly as intlFormatDateOnly,
+  formatCurrency as intlFormatCurrency,
+  formatRelative,
+  getDisplayTimezone,
+  toISODate,
+} from './i18n';
 import type { Role, AttendanceStatus, LeaveStatus } from '@/types';
 
 export function cn(...inputs: ClassValue[]) {
@@ -9,36 +19,32 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 // ─── Date / Time ──────────────────────────────────────
-// All wall-clock display uses the ORGANISATION's timezone, so an employee's
-// 9:00 AM check-in reads as 9:00 AM for every viewer regardless of their own
-// browser timezone. `_displayTz` is set once after login (AuthProvider →
-// setDisplayTimezone) from the org settings; until then we fall back to the
-// browser timezone so the first paint isn't UTC.
-let _displayTz: string = (typeof Intl !== 'undefined'
-  && Intl.DateTimeFormat().resolvedOptions().timeZone) || 'UTC';
+// All formatting is Intl-backed and centralized in ./i18n (locale +
+// org display timezone + org currency live there); these wrappers keep
+// the legacy date-fns-style signatures so call sites don't churn.
+export { setDisplayTimezone, getDisplayTimezone } from './i18n';
 
-export function setDisplayTimezone(tz?: string | null) {
-  if (tz) _displayTz = tz;
-}
-export function getDisplayTimezone() {
-  return _displayTz;
-}
+const DEFAULT_DATE_FMT = 'MMM d, yyyy';
 
 function toInstant(date: string | Date): Date {
   return typeof date === 'string' ? parseISO(date) : date;
 }
 
 /** Format a real timestamp (e.g. check_in_at) in the org timezone. */
-export function formatDate(date: string | Date, fmt = 'MMM d, yyyy', tz: string = _displayTz) {
+export function formatDate(date: string | Date, fmt = DEFAULT_DATE_FMT, tz: string = getDisplayTimezone()) {
+  if (fmt === DEFAULT_DATE_FMT) return intlFormatDate(date, { timeZone: tz });
+  if (fmt === 'yyyy-MM-dd') return toISODate(date, tz);
+  // Legacy escape hatch for other date-fns patterns (none in-tree —
+  // prefer i18n.formatDate with Intl options).
   return formatInTimeZone(toInstant(date), tz, fmt);
 }
 
-export function formatTime(date: string | Date, tz: string = _displayTz) {
-  return formatInTimeZone(toInstant(date), tz, 'hh:mm a');
+export function formatTime(date: string | Date, tz: string = getDisplayTimezone()) {
+  return intlFormatTime(date, { timeZone: tz });
 }
 
-export function formatDateTime(date: string | Date, tz: string = _displayTz) {
-  return formatInTimeZone(toInstant(date), tz, 'MMM d, yyyy hh:mm a');
+export function formatDateTime(date: string | Date, tz: string = getDisplayTimezone()) {
+  return intlFormatDateTime(date, { timeZone: tz });
 }
 
 /**
@@ -46,13 +52,14 @@ export function formatDateTime(date: string | Date, tz: string = _displayTz) {
  * stored as UTC-midnight carrying the org-local Y-M-D). Rendered in UTC so the
  * day never shifts in timezones behind UTC.
  */
-export function formatDateOnly(date: string | Date, fmt = 'MMM d, yyyy') {
+export function formatDateOnly(date: string | Date, fmt = DEFAULT_DATE_FMT) {
+  if (fmt === DEFAULT_DATE_FMT) return intlFormatDateOnly(date);
   return formatInTimeZone(toInstant(date), 'UTC', fmt);
 }
 
 export function timeAgo(date: string | Date) {
   // Relative ("3 hours ago") — a duration between two instants, timezone-agnostic.
-  return formatDistanceToNow(toInstant(date), { addSuffix: true });
+  return formatRelative(date);
 }
 
 // ─── Status helpers ───────────────────────────────────
@@ -81,8 +88,8 @@ export const roleLabels: Record<Role, string> = {
 };
 
 // ─── Number helpers ───────────────────────────────────
-export function formatCurrency(amount: number, currency = 'USD') {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount);
+export function formatCurrency(amount: number, currency?: string) {
+  return intlFormatCurrency(amount, currency);
 }
 
 export function formatHours(hours: number) {
