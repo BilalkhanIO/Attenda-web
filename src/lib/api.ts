@@ -387,6 +387,49 @@ export const documentsApi = {
     apiClient.delete(`/documents/${id}`),
 };
 
+// ─── ONBOARDING ───────────────────────────────────────
+export interface OnboardingTemplateItemInput {
+  title: string;
+  description?: string | null;
+  due_days?: number | null;
+  sort_order?: number;
+  assignee_role?: 'employee' | 'manager';
+}
+
+export interface OnboardingTemplateInput {
+  name: string;
+  is_default?: boolean;
+  items: OnboardingTemplateItemInput[]; // 1–50 items
+}
+
+export const onboardingApi = {
+  // Template CRUD + assignment require onboarding.manage
+  getTemplates: () =>
+    apiClient.get('/onboarding/templates'),
+  createTemplate: (data: OnboardingTemplateInput) =>
+    apiClient.post('/onboarding/templates', data),
+  // Replaces fields and items wholesale
+  updateTemplate: (id: string, data: OnboardingTemplateInput) =>
+    apiClient.put(`/onboarding/templates/${id}`, data),
+  deleteTemplate: (id: string) =>
+    apiClient.delete(`/onboarding/templates/${id}`),
+  // Idempotent per (user, template) → { created, skipped }
+  assign: (data: { user_id: string; template_id: string }) =>
+    apiClient.post('/onboarding/assign', data),
+  // Tasks assigned to the caller (own onboarding + manager-side items
+  // for their hires), pending first
+  getMine: () =>
+    apiClient.get('/onboarding/me'),
+  // Requires onboarding.view_team → { user, tasks, progress }
+  getForUser: (userId: string) =>
+    apiClient.get(`/onboarding/user/${userId}`),
+  // Allowed for the task's assignee or onboarding.manage
+  completeTask: (id: string) =>
+    apiClient.put(`/onboarding/tasks/${id}/complete`),
+  skipTask: (id: string) =>
+    apiClient.put(`/onboarding/tasks/${id}/skip`),
+};
+
 // ─── ANNOUNCEMENTS ────────────────────────────────────
 export const announcementsApi = {
   // Requires org.announcements.send → { announcement, count, message }

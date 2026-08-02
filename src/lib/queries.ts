@@ -2,7 +2,7 @@ import { queryOptions } from '@tanstack/react-query';
 import {
   adminApi, announcementsApi, attendanceApi, documentsApi, expensesApi,
   leaveApi, overtimeApi, remoteApi, shiftsApi, usersApi, orgApi,
-  performanceApi, orgRbacApi
+  performanceApi, orgRbacApi, onboardingApi
 } from './api';
 import { toISODate } from './i18n';
 import type { AdminOrg } from './admin-shared';
@@ -42,6 +42,12 @@ export const keys = {
     all: ['announcements'] as const,
     list: () => [...keys.announcements.all, 'list'] as const,
     receipts: (id: string) => [...keys.announcements.all, 'receipts', id] as const,
+  },
+  onboarding: {
+    all: ['onboarding'] as const,
+    templates: () => [...keys.onboarding.all, 'templates'] as const,
+    mine: () => [...keys.onboarding.all, 'me'] as const,
+    user: (userId: string) => [...keys.onboarding.all, 'user', userId] as const,
   },
   overtime: {
     all: ['overtime'] as const,
@@ -297,6 +303,74 @@ export const announcementReceiptsQuery = (id: string) =>
       (await announcementsApi.getReceipts(id)).data.data ?? null,
   });
 
+// ─── Onboarding ───────────────────────────────────────
+
+export type OnboardingAssigneeRole = 'employee' | 'manager';
+export type OnboardingTaskStatus = 'pending' | 'done' | 'skipped';
+
+export interface OnboardingTemplateItem {
+  id: string;
+  title: string;
+  description: string | null;
+  due_days: number | null;
+  sort_order: number;
+  assignee_role: OnboardingAssigneeRole;
+}
+
+export interface OnboardingTemplate {
+  id: string;
+  name: string;
+  is_default: boolean;
+  items: OnboardingTemplateItem[];
+  creator?: { id: string; name: string } | null;
+  created_at?: string;
+}
+
+export interface OnboardingTask {
+  id: string;
+  item_title: string;
+  item_description: string | null;
+  /** @db.Date (UTC-midnight calendar date) — render with formatDateOnly. */
+  due_date: string | null;
+  status: OnboardingTaskStatus;
+  /** The hire whose onboarding this task belongs to. */
+  user: { id: string; name: string; avatar_url?: string; department?: string };
+  assignee?: { id: string; name: string; avatar_url?: string } | null;
+}
+
+export interface OnboardingUserChecklist {
+  user: { id: string; name: string; avatar_url?: string; department?: string };
+  tasks: OnboardingTask[];
+  progress: { done: number; total: number };
+}
+
+// Requires onboarding.manage — callers gate rendering on the permission.
+export const onboardingTemplatesQuery = () =>
+  queryOptions({
+    queryKey: keys.onboarding.templates(),
+    queryFn: async (): Promise<OnboardingTemplate[]> =>
+      (await onboardingApi.getTemplates()).data.data ?? [],
+  });
+
+// Pending-first list of tasks assigned to the caller.
+export const myOnboardingTasksQuery = () =>
+  queryOptions({
+    queryKey: keys.onboarding.mine(),
+    // The dashboard card renders nothing on failure — never toast for it.
+    meta: { silent: true },
+    queryFn: async (): Promise<OnboardingTask[]> =>
+      (await onboardingApi.getMine()).data.data ?? [],
+  });
+
+// Requires onboarding.view_team — callers gate rendering on the permission.
+export const onboardingUserQuery = (userId: string) =>
+  queryOptions({
+    queryKey: keys.onboarding.user(userId),
+    enabled: !!userId,
+    queryFn: async (): Promise<OnboardingUserChecklist | null> =>
+      (await onboardingApi.getForUser(userId)).data.data ?? null,
+  });
+
 // ─── Overtime ─────────────────────────────────────────
 
 export interface OvertimeRequest {
@@ -476,6 +550,19 @@ export const managersQuery = () =>
       ]);
       return [...(mgrs.data.data ?? []), ...(admins.data.data ?? [])];
     },
+  });
+
+// Active org members for select inputs (assign onboarding, kudos
+// recipients). GET /users needs employees.view / employees.view_team and
+// caps limit at 100 — same precedent as managersQuery above.
+export const selectableUsersQuery = () =>
+  queryOptions({
+    queryKey: [...keys.users.all, 'selectable'] as const,
+    staleTime: 5 * 60_000,
+    // 403s for members without a view permission — callers fall back.
+    meta: { silent: true },
+    queryFn: async (): Promise<User[]> =>
+      (await usersApi.getAll({ status: 'active', limit: 100 })).data.data ?? [],
   });
 
 export const departmentsQuery = () =>

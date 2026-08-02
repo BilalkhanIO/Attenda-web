@@ -8,7 +8,8 @@ import { formatDate, formatRelative, LOCAL_TZ } from '@/lib/i18n';
 import {
   LayoutDashboard, Clock, Calendar, CalendarClock, Wallet, Users, TrendingUp,
   BarChart2, Settings, LogOut, Bell, Menu, MessageSquare, ClipboardCheck,
-  ChevronDown, Home, Check, Trash2, AlarmClock, Megaphone, Receipt, FileText
+  ChevronDown, Home, Check, Trash2, AlarmClock, Megaphone, Receipt, FileText,
+  ListChecks
 } from 'lucide-react';
 import { Avatar } from '@/components/ui';
 import AttendaLogo from '@/components/ui/AttendaLogo';
@@ -64,6 +65,7 @@ const navItems: NavItem[] = [
 
   { section: 'Admin',
     label: 'WhatsApp',    href: '/settings/whatsapp',    icon: <MessageSquare size={15} />, feature: 'whatsapp',          permission: 'org.whatsapp.update' },
+  { label: 'Onboarding',  href: '/settings/onboarding',  icon: <ListChecks size={15} />,                                  permission: 'onboarding.manage' },
   { label: 'Settings',    href: '/settings',             icon: <Settings size={15} />,                                    permission: 'org.settings.view' },
 ];
 
