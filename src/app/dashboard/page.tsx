@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import WhosOutCard from '@/components/dashboard/WhosOutCard';
+import MyOnboardingCard from '@/components/dashboard/MyOnboardingCard';
 import { KPICard, Card, Avatar, Badge, Skeleton, PageHeader, Button, Modal } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { todayAttendanceQuery, myTodayStatusQuery } from '@/lib/queries';
@@ -154,7 +155,10 @@ export default function DashboardPage() {
                 <p className="text-sm text-[var(--on-glass-muted)]">No shift scheduled for today.</p>
               )}
             </Card>
-            <WhosOutCard />
+            <div className="space-y-4">
+              <MyOnboardingCard />
+              <WhosOutCard />
+            </div>
           </>
         )}
       </DashboardLayout>
@@ -347,6 +351,7 @@ export default function DashboardPage() {
               )}
             </div>
           </Card>
+          <MyOnboardingCard />
           <WhosOutCard />
         </div>
       </div>
