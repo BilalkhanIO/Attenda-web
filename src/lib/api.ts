@@ -459,8 +459,10 @@ export const notificationApi = {
 export const adminApi = {
   getStats: () =>
     apiClient.get('/admin/stats'),
-  getOrgs: () =>
-    apiClient.get('/admin/orgs'),
+  // Pagination is opt-in: pass page/limit for the { data, pagination } envelope;
+  // without them the full list is returned. sort ∈ created_at,name,status,subscription_status
+  getOrgs: (params?: { q?: string; status?: string; page?: number; limit?: number; sort?: string; order?: 'asc' | 'desc' }) =>
+    apiClient.get('/admin/orgs', { params }),
   getPendingOrgs: () =>
     apiClient.get('/admin/orgs/pending'),
   getOrg: (id: string) =>

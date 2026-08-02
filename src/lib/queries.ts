@@ -1,12 +1,13 @@
 import { queryOptions } from '@tanstack/react-query';
 import {
-  attendanceApi, leaveApi, overtimeApi, remoteApi, shiftsApi,
+  adminApi, attendanceApi, leaveApi, overtimeApi, remoteApi, shiftsApi,
   usersApi, orgApi, performanceApi, orgRbacApi
 } from './api';
 import { formatDate } from './utils';
+import type { AdminOrg } from './admin-shared';
 import type {
   AttendanceRecord, LeaveRequest, SwapRequest, User,
-  PerformanceGoal, PerformanceReview
+  PerformanceGoal, PerformanceReview, PlanDefinition
 } from '@/types';
 
 /**
@@ -58,6 +59,11 @@ export const keys = {
     catalog: () => [...keys.rbac.all, 'catalog'] as const,
     roles: () => [...keys.rbac.all, 'roles'] as const,
     userPermissions: (userId: string) => [...keys.rbac.all, 'user-permissions', userId] as const,
+  },
+  admin: {
+    all: ['admin'] as const,
+    orgs: (params: AdminOrgsParams) => [...keys.admin.all, 'orgs', params] as const,
+    plans: () => [...keys.admin.all, 'plans'] as const,
   },
   performance: {
     all: ['performance'] as const,
@@ -463,6 +469,50 @@ export const userPermissionsQuery = (userId: string) =>
     enabled: !!userId,
     queryFn: async (): Promise<UserPermissionGrant[]> =>
       (await usersApi.getPermissions(userId)).data.data ?? [],
+  });
+
+// ─── Admin (platform) ─────────────────────────────────
+
+export interface AdminOrgsParams {
+  q?: string;
+  status?: string;
+  page: number;
+  limit: number;
+  sort?: string;
+  order?: 'asc' | 'desc';
+}
+
+export interface AdminOrgsResult {
+  orgs: AdminOrg[];
+  pagination: { total: number; page: number; limit: number; pages?: number };
+}
+
+export const adminOrgsQuery = (params: AdminOrgsParams) =>
+  queryOptions({
+    queryKey: keys.admin.orgs(params),
+    queryFn: async (): Promise<AdminOrgsResult> => {
+      // Passing page/limit opts in to the { data, pagination } envelope
+      const res = (await adminApi.getOrgs({
+        q: params.q || undefined,
+        status: params.status || undefined,
+        page: params.page,
+        limit: params.limit,
+        sort: params.sort || undefined,
+        order: params.order || undefined,
+      })).data;
+      return {
+        orgs: res.data ?? [],
+        pagination: res.pagination ?? { total: (res.data ?? []).length, page: params.page, limit: params.limit },
+      };
+    },
+  });
+
+export const adminPlansQuery = () =>
+  queryOptions({
+    queryKey: keys.admin.plans(),
+    staleTime: 5 * 60_000,
+    queryFn: async (): Promise<PlanDefinition[]> =>
+      (await adminApi.getPlans()).data.data ?? [],
   });
 
 // ─── Performance ──────────────────────────────────────
