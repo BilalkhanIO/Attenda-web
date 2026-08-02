@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import {
   LayoutDashboard, Clock, Calendar, CalendarClock, Wallet, Users, TrendingUp,
   BarChart2, Settings, LogOut, Bell, Menu, MessageSquare, ClipboardCheck,
-  ChevronDown, Home, Check, Trash2, AlarmClock, Megaphone, Receipt
+  ChevronDown, Home, Check, Trash2, AlarmClock, Megaphone, Receipt, FileText
 } from 'lucide-react';
 import { Avatar } from '@/components/ui';
 import AttendaLogo from '@/components/ui/AttendaLogo';
@@ -42,6 +42,7 @@ const navItems: NavItem[] = [
   { label: 'Leave',       href: '/leave',                icon: <Calendar size={15} />,     feature: 'leave_management' },
   { label: 'Overtime',    href: '/overtime',             icon: <AlarmClock size={15} />,   feature: 'attendance' },
   { label: 'Expenses',    href: '/expenses',             icon: <Receipt size={15} /> },
+  { label: 'Documents',   href: '/documents',            icon: <FileText size={15} /> },
 
   { section: 'Scheduling',
     label: 'Shifts',      href: '/shifts',               icon: <CalendarClock size={15} />, feature: 'shifts',            permission: 'shifts.view' },

@@ -361,6 +361,32 @@ export const expensesApi = {
     apiClient.post(`/expenses/${id}/reimburse`, { month, year }),
 };
 
+// ─── DOCUMENTS ────────────────────────────────────────
+export const documentsApi = {
+  // Step 1: presigned S3 PUT url. The actual upload must be a raw fetch PUT
+  // to upload_url carrying exactly the returned Content-Type header — never
+  // the axios client (no Authorization header on the S3 request).
+  getUploadUrl: (data: { user_id?: string; file_name: string; mime_type: string; file_size: number }) =>
+    apiClient.post('/documents/upload-url', data),
+  // Step 3: register the document after the S3 PUT succeeded.
+  register: (data: {
+    user_id?: string; title: string; category: string;
+    file_key: string; file_name: string; file_size: number; mime_type: string;
+    expires_at?: string; // YYYY-MM-DD
+  }) =>
+    apiClient.post('/documents', data),
+  getMine: () =>
+    apiClient.get('/documents/me'),
+  // Requires documents.view_team
+  getForUser: (userId: string) =>
+    apiClient.get(`/documents/user/${userId}`),
+  // Returns { download_url, file_name, mime_type, expires_in }
+  download: (id: string) =>
+    apiClient.get(`/documents/${id}/download`),
+  remove: (id: string) =>
+    apiClient.delete(`/documents/${id}`),
+};
+
 // ─── ANALYTICS ────────────────────────────────────────
 export const analyticsApi = {
   getOverview: () =>

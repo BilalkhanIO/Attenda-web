@@ -1,7 +1,7 @@
 import { queryOptions } from '@tanstack/react-query';
 import {
-  adminApi, attendanceApi, expensesApi, leaveApi, overtimeApi, remoteApi,
-  shiftsApi, usersApi, orgApi, performanceApi, orgRbacApi
+  adminApi, attendanceApi, documentsApi, expensesApi, leaveApi, overtimeApi,
+  remoteApi, shiftsApi, usersApi, orgApi, performanceApi, orgRbacApi
 } from './api';
 import { formatDate } from './utils';
 import type { AdminOrg } from './admin-shared';
@@ -31,6 +31,11 @@ export const keys = {
   expenses: {
     all: ['expenses'] as const,
     mine: () => [...keys.expenses.all, 'me'] as const,
+  },
+  documents: {
+    all: ['documents'] as const,
+    mine: () => [...keys.documents.all, 'me'] as const,
+    user: (userId: string) => [...keys.documents.all, 'user', userId] as const,
   },
   overtime: {
     all: ['overtime'] as const,
@@ -210,6 +215,42 @@ export const myExpensesQuery = () =>
     queryKey: keys.expenses.mine(),
     queryFn: async (): Promise<ExpenseClaim[]> =>
       (await expensesApi.getMine()).data.data ?? [],
+  });
+
+// ─── Documents ────────────────────────────────────────
+
+export type DocumentCategory = 'contract' | 'id' | 'visa' | 'certificate' | 'other';
+
+export interface EmployeeDocument {
+  id: string;
+  user_id: string;
+  org_id: string;
+  title: string;
+  category: DocumentCategory | string;
+  file_name: string;
+  file_size: number;
+  mime_type: string;
+  expires_at: string | null;
+  uploaded_by: string;
+  created_at: string;
+  owner?: { id: string; name: string; avatar_url?: string; department?: string };
+  uploader?: { id: string; name: string };
+}
+
+export const myDocumentsQuery = () =>
+  queryOptions({
+    queryKey: keys.documents.mine(),
+    queryFn: async (): Promise<EmployeeDocument[]> =>
+      (await documentsApi.getMine()).data.data ?? [],
+  });
+
+// Requires documents.view_team — callers gate rendering on the permission.
+export const userDocumentsQuery = (userId: string) =>
+  queryOptions({
+    queryKey: keys.documents.user(userId),
+    enabled: !!userId,
+    queryFn: async (): Promise<EmployeeDocument[]> =>
+      (await documentsApi.getForUser(userId)).data.data ?? [],
   });
 
 // ─── Overtime ─────────────────────────────────────────
