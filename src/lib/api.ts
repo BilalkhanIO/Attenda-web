@@ -416,6 +416,32 @@ export const orgApi = {
     apiClient.get('/org/whos-out', { params }),
 };
 
+// ─── ORG OUTBOUND WEBHOOKS ────────────────────────────
+export interface OrgWebhook {
+  id: string;
+  url: string;
+  events: string[];
+  is_active: boolean;
+  last_success_at: string | null;
+  last_failure_at: string | null;
+  failure_count: number;
+  created_at: string;
+}
+
+export const orgWebhooksApi = {
+  // The secret is never included in list responses.
+  getAll: () =>
+    apiClient.get('/org/outbound-webhooks'),
+  // The response carries the signing secret ONCE — it is never shown again.
+  create: (data: { url: string; events: string[] }) =>
+    apiClient.post('/org/outbound-webhooks', data),
+  remove: (id: string) =>
+    apiClient.delete(`/org/outbound-webhooks/${id}`),
+  // Returns { delivered: boolean }.
+  test: (id: string) =>
+    apiClient.post(`/org/outbound-webhooks/${id}/test`),
+};
+
 // ─── DEPARTMENTS ──────────────────────────────────────
 export interface DepartmentNode {
   id: string;

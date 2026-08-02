@@ -11,6 +11,7 @@ import AuditLogCard from '@/components/settings/AuditLogCard';
 import LeaveAccrualCard, { type LeaveAccrualPolicy } from '@/components/settings/LeaveAccrualCard';
 import LatePolicyCard, { type LatePolicy } from '@/components/settings/LatePolicyCard';
 import HolidaysCard from '@/components/settings/HolidaysCard';
+import WebhooksCard from '@/components/settings/WebhooksCard';
 import AccessControlModal from '@/components/settings/AccessControlModal';
 import OvertimeRulesModal from '@/components/settings/OvertimeRulesModal';
 import WhatsAppSettingsModal from '@/components/settings/WhatsAppSettingsModal';
@@ -263,6 +264,7 @@ export default function SettingsPage() {
           />
           <HolidaysCard />
           <DepartmentsCard />
+          <WebhooksCard />
           <AuditLogCard />
         </div>
 
