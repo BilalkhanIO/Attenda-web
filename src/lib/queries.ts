@@ -1,7 +1,8 @@
 import { queryOptions } from '@tanstack/react-query';
 import {
-  adminApi, attendanceApi, documentsApi, expensesApi, leaveApi, overtimeApi,
-  remoteApi, shiftsApi, usersApi, orgApi, performanceApi, orgRbacApi
+  adminApi, announcementsApi, attendanceApi, documentsApi, expensesApi,
+  leaveApi, overtimeApi, remoteApi, shiftsApi, usersApi, orgApi,
+  performanceApi, orgRbacApi
 } from './api';
 import { formatDate } from './utils';
 import type { AdminOrg } from './admin-shared';
@@ -36,6 +37,11 @@ export const keys = {
     all: ['documents'] as const,
     mine: () => [...keys.documents.all, 'me'] as const,
     user: (userId: string) => [...keys.documents.all, 'user', userId] as const,
+  },
+  announcements: {
+    all: ['announcements'] as const,
+    list: () => [...keys.announcements.all, 'list'] as const,
+    receipts: (id: string) => [...keys.announcements.all, 'receipts', id] as const,
   },
   overtime: {
     all: ['overtime'] as const,
@@ -251,6 +257,44 @@ export const userDocumentsQuery = (userId: string) =>
     enabled: !!userId,
     queryFn: async (): Promise<EmployeeDocument[]> =>
       (await documentsApi.getForUser(userId)).data.data ?? [],
+  });
+
+// ─── Announcements ────────────────────────────────────
+
+export interface Announcement {
+  id: string;
+  org_id: string;
+  title: string;
+  body: string;
+  department_id: string | null;
+  scheduled_for: string | null;
+  published_at: string | null;
+  created_at: string;
+  my_read_at?: string | null;
+  author?: { id: string; name: string; avatar_url?: string };
+}
+
+// Published announcements targeted at the caller (org-wide + own department)
+export const announcementsQuery = () =>
+  queryOptions({
+    queryKey: keys.announcements.list(),
+    queryFn: async (): Promise<Announcement[]> =>
+      (await announcementsApi.getAll()).data.data ?? [],
+  });
+
+export interface AnnouncementReceipts {
+  read_count: number;
+  audience_count: number;
+  readers: { id: string; name: string; avatar_url?: string; department?: string; read_at: string }[];
+}
+
+// Requires org.announcements.send
+export const announcementReceiptsQuery = (id: string) =>
+  queryOptions({
+    queryKey: keys.announcements.receipts(id),
+    enabled: !!id,
+    queryFn: async (): Promise<AnnouncementReceipts | null> =>
+      (await announcementsApi.getReceipts(id)).data.data ?? null,
   });
 
 // ─── Overtime ─────────────────────────────────────────

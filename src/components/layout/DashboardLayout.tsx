@@ -14,7 +14,7 @@ import AttendaLogo from '@/components/ui/AttendaLogo';
 import { fetchEventSource } from '@microsoft/fetch-event-source';
 import { useQueryClient } from '@tanstack/react-query';
 import { keys } from '@/lib/queries';
-import { notificationApi, getAccessToken } from '@/lib/api';
+import { notificationApi, announcementsApi, getAccessToken } from '@/lib/api';
 import type { InAppNotification } from '@/types';
 import TrialBanner from '@/components/TrialBanner';
 import AIChatWidget from '@/components/AIChatWidget';
@@ -90,6 +90,8 @@ const NOTIF_ICONS: Record<string, string> = {
   review_submitted: '📊',
   payslip_ready:    '💰',
   shift_reminder:   '🔔',
+  announcement:     '📣',
+  document_added:   '📁',
 };
 
 // Server-pushed invalidation hints → TanStack Query key roots. Unknown
@@ -197,9 +199,20 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
+  // Announcement notifications carry the announcement id — reading the
+  // notification is the natural "viewed" hook, so record the (idempotent)
+  // announcement read receipt alongside. Fire-and-forget.
+  const recordAnnouncementRead = (n: InAppNotification) => {
+    if (n.action_type === 'announcement' && n.action_id) {
+      announcementsApi.markRead(n.action_id).catch(() => {});
+    }
+  };
+
   const handleMarkRead = async (id: string) => {
     try {
       await notificationApi.markRead(id);
+      const notif = notifs.find(n => n.id === id);
+      if (notif) recordAnnouncementRead(notif);
       setNotifs(prev => prev.map(n => n.id === id ? { ...n, read_at: new Date().toISOString() } : n));
       setUnreadCount(prev => Math.max(0, prev - 1));
     } catch { /* ignore */ }
@@ -208,6 +221,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const handleMarkAllRead = async () => {
     try {
       await notificationApi.markAllRead();
+      notifs.filter(n => !n.read_at).forEach(recordAnnouncementRead);
       setNotifs(prev => prev.map(n => ({ ...n, read_at: n.read_at ?? new Date().toISOString() })));
       setUnreadCount(0);
     } catch { /* ignore */ }

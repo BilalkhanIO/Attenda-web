@@ -387,6 +387,22 @@ export const documentsApi = {
     apiClient.delete(`/documents/${id}`),
 };
 
+// ─── ANNOUNCEMENTS ────────────────────────────────────
+export const announcementsApi = {
+  // Requires org.announcements.send → { announcement, count, message }
+  send: (data: { title: string; body: string; department_id?: string; scheduled_for?: string }) =>
+    apiClient.post('/performance/announcements', data),
+  // Published announcements targeted at the caller, each with my_read_at
+  getAll: () =>
+    apiClient.get('/performance/announcements'),
+  // Idempotent read receipt
+  markRead: (id: string) =>
+    apiClient.post(`/performance/announcements/${id}/read`),
+  // Requires org.announcements.send → { read_count, audience_count, readers }
+  getReceipts: (id: string) =>
+    apiClient.get(`/performance/announcements/${id}/receipts`),
+};
+
 // ─── ANALYTICS ────────────────────────────────────────
 export const analyticsApi = {
   getOverview: () =>
