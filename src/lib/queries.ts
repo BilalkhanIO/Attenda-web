@@ -23,6 +23,8 @@ export const keys = {
   leave: {
     all: ['leave'] as const,
     requests: (scope: 'all' | 'team') => [...keys.leave.all, 'requests', scope] as const,
+    list: (params: LeaveListParams) => [...keys.leave.requests('all'), params] as const,
+    pendingCount: () => [...keys.leave.all, 'pending-count'] as const,
     myBalance: () => [...keys.leave.all, 'balance', 'me'] as const,
   },
   overtime: {
@@ -105,6 +107,54 @@ export const leaveRequestsQuery = (scope: 'all' | 'team') =>
     queryFn: async (): Promise<LeaveRequest[]> => {
       const fn = scope === 'all' ? leaveApi.getAllRequests : leaveApi.getTeamRequests;
       return (await fn()).data.data ?? [];
+    },
+  });
+
+// ─── Leave (server-side paginated, HR org-wide list) ──
+
+export interface LeaveListParams {
+  status?: string;
+  q?: string;
+  page: number;
+  limit: number;
+  sort?: string;
+  order?: 'asc' | 'desc';
+}
+
+export interface LeaveListResult {
+  requests: LeaveRequest[];
+  pagination: { total: number; page: number; limit: number; pages?: number };
+}
+
+export const leaveRequestsListQuery = (params: LeaveListParams) =>
+  queryOptions({
+    queryKey: keys.leave.list(params),
+    queryFn: async (): Promise<LeaveListResult> => {
+      // Passing page/limit opts in to the { data, pagination } envelope
+      const res = (await leaveApi.getAllRequests({
+        status: params.status || undefined,
+        q: params.q || undefined,
+        page: params.page,
+        limit: params.limit,
+        sort: params.sort || undefined,
+        order: params.order || undefined,
+      })).data;
+      return {
+        requests: res.data ?? [],
+        pagination: res.pagination ?? { total: (res.data ?? []).length, page: params.page, limit: params.limit },
+      };
+    },
+  });
+
+// Org-wide pending count for the header/tab — the paginated list only
+// knows the total of the current filter, so this is fetched separately
+// (limit 1: only the pagination envelope matters).
+export const pendingLeaveCountQuery = () =>
+  queryOptions({
+    queryKey: keys.leave.pendingCount(),
+    queryFn: async (): Promise<number> => {
+      const res = (await leaveApi.getAllRequests({ status: 'pending', page: 1, limit: 1 })).data;
+      return res.pagination?.total ?? (res.data ?? []).length;
     },
   });
 

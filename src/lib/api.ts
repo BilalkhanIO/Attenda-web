@@ -225,7 +225,9 @@ export const attendanceApi = {
 
 // ─── LEAVE ────────────────────────────────────────────
 export const leaveApi = {
-  getAllRequests: (params?: { status?: string; department?: string }) =>
+  // Pagination is opt-in: pass page/limit for the { data, pagination } envelope;
+  // without them the full list is returned. sort ∈ created_at,start_date,end_date,status,leave_type
+  getAllRequests: (params?: { status?: string; department?: string; q?: string; page?: number; limit?: number; sort?: string; order?: 'asc' | 'desc' }) =>
     apiClient.get('/leave/requests', { params }),
   getTeamRequests: () =>
     apiClient.get('/leave/requests/team'),

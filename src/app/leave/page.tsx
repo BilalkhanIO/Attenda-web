@@ -1,16 +1,21 @@
 'use client';
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Suspense, useEffect, useRef, useState } from 'react';
+import { keepPreviousData, useMutation, useQuery, useQueryClient, type QueryKey } from '@tanstack/react-query';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import {
-  PageHeader, Card, Table, Avatar, Badge, Button, Modal, ConfirmDialog,
+  PageHeader, Card, DataTable, Avatar, Badge, Button, Modal, ConfirmDialog,
   Textarea, StatBox, Dropdown, DatePicker, TimePicker,
 } from '@/components/ui';
+import type { DataTableColumn } from '@/components/ui';
 import { leaveApi } from '@/lib/api';
-import { keys, leaveRequestsQuery, myLeaveBalanceQuery } from '@/lib/queries';
+import {
+  keys, leaveRequestsQuery, leaveRequestsListQuery, pendingLeaveCountQuery,
+  myLeaveBalanceQuery, type LeaveListResult,
+} from '@/lib/queries';
+import { useUrlListParams, parsePageParam } from '@/lib/url-list-params';
 import { leaveStatusConfig } from '@/lib/utils';
 import type { LeaveRequest } from '@/types';
-import { Calendar, Plus, Check, X } from 'lucide-react';
+import { Calendar, Plus, Check, X, Search } from 'lucide-react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -18,6 +23,9 @@ import toast from 'react-hot-toast';
 import { useAuth } from '@/lib/auth';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+
+const PAGE_SIZE = 20;
+const DEFAULT_SORT = 'created_at'; // server default for GET /leave/requests (desc)
 
 const LEAVE_TYPES = [
   { value: 'annual',    label: 'Annual Leave (Paid)' },
@@ -50,11 +58,51 @@ type LeaveForm = z.infer<typeof leaveSchema>;
 const rejectSchema = z.object({ reason: z.string().min(5, 'Rejection reason required') });
 type RejectForm = z.infer<typeof rejectSchema>;
 
-export default function LeavePage() {
+// Both cache shapes live under the ['leave','requests'] prefix: the team
+// scope holds a plain array, the org-wide scope the paginated result.
+type LeaveCacheEntry = LeaveRequest[] | LeaveListResult | undefined;
+
+function flipStatus(old: LeaveCacheEntry, id: string, status: 'approved' | 'rejected'): LeaveCacheEntry {
+  if (Array.isArray(old)) return old.map(r => r.id === id ? { ...r, status } : r);
+  if (old?.requests) return { ...old, requests: old.requests.map(r => r.id === id ? { ...r, status } : r) };
+  return old;
+}
+
+function LeavePageContent() {
   const { hasPermission } = useAuth();
   const queryClient = useQueryClient();
+  // HR (leave.view_all) gets the org-wide server-paginated list; managers
+  // keep the team endpoint, which has no pagination support.
   const scope = hasPermission('leave.view_all') ? 'all' as const : 'team' as const;
-  const [statusFilter, setStatus] = useState('');
+
+  // List state lives in the URL so it survives refresh/back-nav
+  const { searchParams, setParams } = useUrlListParams();
+  const statusFilter = searchParams.get('status') ?? '';
+  const page  = parsePageParam(searchParams.get('page'));
+  const q     = searchParams.get('q') ?? '';
+  const sort  = searchParams.get('sort') ?? DEFAULT_SORT;
+  const order = searchParams.get('order') === 'asc' ? 'asc' as const : 'desc' as const;
+
+  // Debounced (300ms) employee-name search — commits `q` to the URL.
+  // Only typing arms the timer, so mount/back-nav never rewrite the URL.
+  const [search, setSearch] = useState(q);
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onSearchChange = (value: string) => {
+    setSearch(value);
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    searchTimer.current = setTimeout(() => {
+      searchTimer.current = null;
+      setParams({ q: value || null, page: null });
+    }, 300);
+  };
+  useEffect(() => {
+    if (!searchTimer.current) setSearch(q);
+  }, [q]);
+
+  const onSort = (key: string) => {
+    if (key === sort) setParams({ order: order === 'desc' ? 'asc' : null, page: null });
+    else setParams({ sort: key === DEFAULT_SORT ? null : key, order: null, page: null });
+  };
 
   // Modal states
   const [addOpen, setAddOpen]           = useState(false);
@@ -64,24 +112,40 @@ export default function LeavePage() {
   const leaveForm  = useForm<LeaveForm>({ resolver: zodResolver(leaveSchema) });
   const rejectForm = useForm<RejectForm>({ resolver: zodResolver(rejectSchema) });
 
-  const requestsQuery = useQuery(leaveRequestsQuery(scope));
-  const balanceQuery  = useQuery(myLeaveBalanceQuery());
-  const requests = requestsQuery.data ?? [];
+  const listQuery = useQuery({
+    ...leaveRequestsListQuery({ status: statusFilter, q, page, limit: PAGE_SIZE, sort, order }),
+    enabled: scope === 'all',
+    placeholderData: keepPreviousData,
+  });
+  const teamQuery = useQuery({ ...leaveRequestsQuery('team'), enabled: scope === 'team' });
+  const pendingCountQuery = useQuery({ ...pendingLeaveCountQuery(), enabled: scope === 'all' });
+  const balanceQuery = useQuery(myLeaveBalanceQuery());
   const balances = balanceQuery.data ?? [];
-  const loading  = requestsQuery.isPending;
+
+  const teamRequests = teamQuery.data ?? [];
+  const rows = scope === 'all'
+    ? listQuery.data?.requests ?? []
+    : teamRequests.filter(r => !statusFilter || r.status === statusFilter);
+  const total   = scope === 'all' ? listQuery.data?.pagination.total ?? 0 : rows.length;
+  const loading = scope === 'all' ? listQuery.isPending : teamQuery.isPending;
+  const pendingCount = scope === 'all'
+    ? pendingCountQuery.data ?? 0
+    : teamRequests.filter(r => r.status === 'pending').length;
 
   // Optimistic status flip shared by approve/reject: the row updates
   // instantly, rolls back on failure, and the list re-syncs afterwards.
+  // setQueriesData over the requests prefix covers both cache shapes.
+  const requestsPrefix = [...keys.leave.all, 'requests'] as const;
   const reviewLeave = (status: 'approved' | 'rejected') =>
     async (vars: { id: string; reason?: string }) => {
-      await queryClient.cancelQueries({ queryKey: keys.leave.requests(scope) });
-      const previous = queryClient.getQueryData<LeaveRequest[]>(keys.leave.requests(scope));
-      queryClient.setQueryData<LeaveRequest[]>(keys.leave.requests(scope), old =>
-        (old ?? []).map(r => r.id === vars.id ? { ...r, status } : r));
+      await queryClient.cancelQueries({ queryKey: requestsPrefix });
+      const previous = queryClient.getQueriesData({ queryKey: requestsPrefix });
+      queryClient.setQueriesData({ queryKey: requestsPrefix }, (old: unknown) =>
+        flipStatus(old as LeaveCacheEntry, vars.id, status));
       return { previous };
     };
-  const rollback = (_e: unknown, _v: unknown, ctx?: { previous?: LeaveRequest[] }) => {
-    if (ctx?.previous) queryClient.setQueryData(keys.leave.requests(scope), ctx.previous);
+  const rollback = (_e: unknown, _v: unknown, ctx?: { previous?: Array<[QueryKey, unknown]> }) => {
+    ctx?.previous?.forEach(([key, data]) => queryClient.setQueryData(key, data));
   };
   const resync = () => {
     queryClient.invalidateQueries({ queryKey: keys.leave.all });
@@ -124,8 +188,89 @@ export default function LeavePage() {
     if (rejectReq) rejectMutation.mutate({ id: rejectReq.id, reason: data.reason });
   };
 
-  const filtered = requests.filter(r => !statusFilter || r.status === statusFilter);
-  const pendingCount = requests.filter(r => r.status === 'pending').length;
+  const columns: DataTableColumn<LeaveRequest>[] = [
+    {
+      key: 'employee',
+      header: 'Employee',
+      render: (req) => req.user ? (
+        <div className="flex items-center gap-3">
+          <Avatar name={req.user.name} size="sm" />
+          <div className="min-w-0">
+            <p className="text-sm font-black text-white group-hover:text-(--primary-600) transition-colors truncate">{req.user.name}</p>
+            <p className="text-[10px] font-bold text-(--on-glass-muted) uppercase tracking-widest truncate">{req.user.department || 'Operations'}</p>
+          </div>
+        </div>
+      ) : <span className="text-xs text-(--on-glass-dim)">—</span>,
+    },
+    {
+      key: 'leave_type',
+      header: 'Leave Type',
+      sortable: true,
+      render: (req) => (
+        <div>
+          <p className="text-xs font-bold text-white uppercase tracking-tight">{(req.leave_type as unknown as string) || '—'}</p>
+          <p className="text-[10px] font-bold text-(--on-glass-dim) uppercase tracking-widest mt-0.5">{(req.leave_type as unknown as string) === 'unpaid' ? 'UNPAID' : 'PAID'}</p>
+        </div>
+      ),
+    },
+    {
+      key: 'duration',
+      header: 'Duration',
+      render: (req) => (
+        <>
+          <span className="text-xs font-black text-white">{req.working_days} DAY{req.working_days !== 1 ? 'S' : ''}</span>
+          {req.leave_start_time && req.leave_end_time && (
+            <p className="text-[10px] font-bold text-(--on-glass-dim) uppercase tracking-widest font-mono mt-0.5">
+              {req.leave_start_time} - {req.leave_end_time}
+            </p>
+          )}
+        </>
+      ),
+    },
+    {
+      key: 'start_date',
+      header: 'Dates',
+      sortable: true,
+      render: (req) => (
+        <>
+          <p className="text-xs font-black text-white font-mono">{format(new Date(req.start_date), 'dd MMM')}</p>
+          <p className="text-[10px] font-bold text-(--on-glass-dim) uppercase tracking-widest font-mono">TO {format(new Date(req.end_date), 'dd MMM')}</p>
+        </>
+      ),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      sortable: true,
+      render: (req) => {
+        const cfg = leaveStatusConfig[req.status];
+        return <Badge label={cfg.label} color={cfg.color} bg={cfg.bg} size="sm" />;
+      },
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      render: (req) => (
+        <>
+          {req.status === 'pending' && hasPermission('leave.approve') && (
+            <div className="flex items-center gap-1.5">
+              <button onClick={() => setApproveReq(req)} aria-label="Approve request" className="action-btn action-btn-approve">
+                <Check size={12} />
+              </button>
+              <button onClick={() => { setRejectReq(req); rejectForm.reset(); }} aria-label="Reject request" className="action-btn action-btn-reject">
+                <X size={12} />
+              </button>
+            </div>
+          )}
+          {req.rejection_reason && (
+            <p className="text-[10px] font-medium text-(--danger-500) max-w-50 truncate uppercase tracking-widest" title={req.rejection_reason}>
+              {req.rejection_reason}
+            </p>
+          )}
+        </>
+      ),
+    },
+  ];
 
   return (
     <DashboardLayout>
@@ -154,89 +299,63 @@ export default function LeavePage() {
       )}
 
       <Card>
-        {/* Status filter */}
-        <div className="flex items-center gap-1 px-5 pt-4 border-b border-[var(--glass-border)] overflow-x-auto bg-[var(--glass-05)]">
-          {['', 'pending', 'approved', 'rejected', 'cancelled'].map((s) => (
-            <button key={s} onClick={() => setStatus(s)}
-              className={cn(
-                "px-4 py-3 text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap border-b-2",
-                statusFilter === s
-                  ? "text-[var(--primary-600)] border-[var(--primary-600)]"
-                  : "text-[var(--on-glass-dim)] border-transparent hover:text-white"
-              )}
-            >
-              {s === '' ? `All (${requests.length})` : `${s.toUpperCase()} (${requests.filter(r => r.status === s).length})`}
-            </button>
-          ))}
-        </div>
-
-        <Table
-          headers={['Employee', 'Leave Type', 'Duration', 'Dates', 'Status', 'Actions']}
-          loading={loading}
-          emptyState={
-            <div className="py-24 text-center">
-               <Calendar size={32} className="mx-auto text-[var(--on-glass-dim)] mb-4" />
-               <p className="text-[11px] font-black text-[var(--on-glass-dim)] uppercase tracking-[0.3em]">No Leave Records Found</p>
+        {/* Search (org-wide list only) — applied server-side */}
+        {scope === 'all' && (
+          <div className="p-4 border-b border-[var(--glass-border)] bg-(--glass-05)">
+            <div className="relative max-w-md group">
+              <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-(--on-glass-dim) group-focus-within:text-(--primary-600) transition-colors" />
+              <input
+                placeholder="Search by employee name..."
+                value={search}
+                onChange={e => onSearchChange(e.target.value)}
+                className="panel w-full pl-12 pr-4 py-3 text-sm text-white outline-none placeholder:text-(--on-glass-dim)"
+              />
             </div>
-          }
-        >
-          {filtered.map((req) => {
-            const cfg = leaveStatusConfig[req.status];
+          </div>
+        )}
+
+        {/* Status filter — server-side for the org-wide list */}
+        <div className="flex items-center gap-1 px-5 pt-4 border-b border-[var(--glass-border)] overflow-x-auto bg-[var(--glass-05)]">
+          {['', 'pending', 'approved', 'rejected', 'cancelled'].map((s) => {
+            const label = scope === 'all'
+              ? (s === '' ? 'All' : s.toUpperCase())
+              : (s === '' ? `All (${teamRequests.length})` : `${s.toUpperCase()} (${teamRequests.filter(r => r.status === s).length})`);
             return (
-              <tr key={req.id} className="hover:bg-(--glass-05) transition-all group">
-                <td className="py-3 px-4">
-                  {req.user ? (
-                    <div className="flex items-center gap-3">
-                      <Avatar name={req.user.name} size="sm" />
-                      <div className="min-w-0">
-                        <p className="text-sm font-black text-white group-hover:text-(--primary-600) transition-colors truncate">{req.user.name}</p>
-                        <p className="text-[10px] font-bold text-(--on-glass-muted) uppercase tracking-widest truncate">{req.user.department || 'Operations'}</p>
-                      </div>
-                    </div>
-                  ) : <span className="text-xs text-(--on-glass-dim)">—</span>}
-                </td>
-                <td className="py-3 px-4">
-                  <div>
-                    <p className="text-xs font-bold text-white uppercase tracking-tight">{(req.leave_type as unknown as string) || '—'}</p>
-                    <p className="text-[10px] font-bold text-(--on-glass-dim) uppercase tracking-widest mt-0.5">{(req.leave_type as unknown as string) === 'unpaid' ? 'UNPAID' : 'PAID'}</p>
-                  </div>
-                </td>
-                <td className="py-3 px-4">
-                  <span className="text-xs font-black text-white">{req.working_days} DAY{req.working_days !== 1 ? 'S' : ''}</span>
-                  {req.leave_start_time && req.leave_end_time && (
-                    <p className="text-[10px] font-bold text-(--on-glass-dim) uppercase tracking-widest font-mono mt-0.5">
-                      {req.leave_start_time} - {req.leave_end_time}
-                    </p>
-                  )}
-                </td>
-                <td className="py-3 px-4">
-                  <p className="text-xs font-black text-white font-mono">{format(new Date(req.start_date), 'dd MMM')}</p>
-                  <p className="text-[10px] font-bold text-(--on-glass-dim) uppercase tracking-widest font-mono">TO {format(new Date(req.end_date), 'dd MMM')}</p>
-                </td>
-                <td className="py-3 px-4">
-                  <Badge label={cfg.label} color={cfg.color} bg={cfg.bg} size="sm" />
-                </td>
-                <td className="py-3 px-4">
-                  {req.status === 'pending' && hasPermission('leave.approve') && (
-                    <div className="flex items-center gap-1.5">
-                      <button onClick={() => setApproveReq(req)} aria-label="Approve request" className="action-btn action-btn-approve">
-                        <Check size={12} />
-                      </button>
-                      <button onClick={() => { setRejectReq(req); rejectForm.reset(); }} aria-label="Reject request" className="action-btn action-btn-reject">
-                        <X size={12} />
-                      </button>
-                    </div>
-                  )}
-                  {req.rejection_reason && (
-                    <p className="text-[10px] font-medium text-(--danger-500) max-w-50 truncate uppercase tracking-widest" title={req.rejection_reason}>
-                      {req.rejection_reason}
-                    </p>
-                  )}
-                </td>
-              </tr>
+              <button key={s} onClick={() => setParams({ status: s || null, page: null })}
+                className={cn(
+                  "px-4 py-3 text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap border-b-2",
+                  statusFilter === s
+                    ? "text-[var(--primary-600)] border-[var(--primary-600)]"
+                    : "text-[var(--on-glass-dim)] border-transparent hover:text-white"
+                )}
+              >
+                {label}
+              </button>
             );
           })}
-        </Table>
+        </div>
+
+        <DataTable<LeaveRequest>
+          columns={columns}
+          data={rows}
+          rowKey={r => r.id}
+          loading={loading}
+          {...(scope === 'all' ? {
+            page,
+            pageSize: PAGE_SIZE,
+            total,
+            onPageChange: (p: number) => setParams({ page: p <= 1 ? null : String(p) }),
+            sortKey: sort,
+            sortDir: order,
+            onSort,
+          } : {})}
+          emptyState={
+            <div className="py-24 text-center">
+              <Calendar size={32} className="mx-auto text-[var(--on-glass-dim)] mb-4" />
+              <p className="text-[11px] font-black text-[var(--on-glass-dim)] uppercase tracking-[0.3em]">No Leave Records Found</p>
+            </div>
+          }
+        />
       </Card>
 
       {/* Request Leave Modal */}
@@ -341,5 +460,14 @@ export default function LeavePage() {
         </div>
       </Modal>
     </DashboardLayout>
+  );
+}
+
+// useSearchParams requires a Suspense boundary during prerendering
+export default function LeavePage() {
+  return (
+    <Suspense fallback={null}>
+      <LeavePageContent />
+    </Suspense>
   );
 }
