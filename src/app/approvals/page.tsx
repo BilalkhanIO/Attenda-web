@@ -2,16 +2,17 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { PageHeader, Card, Avatar, Button, Modal, Textarea, Skeleton } from '@/components/ui';
-import { leaveApi, overtimeApi, remoteApi, shiftsApi, attendanceApi } from '@/lib/api';
+import { PageHeader, Card, Avatar, Button, Modal, Textarea, Select, Input, Skeleton } from '@/components/ui';
+import { leaveApi, overtimeApi, remoteApi, shiftsApi, attendanceApi, expensesApi } from '@/lib/api';
 import { keys } from '@/lib/queries';
+import type { ExpenseClaim } from '@/lib/queries';
 import { useAuth } from '@/lib/auth';
-import { cn, formatTime } from '@/lib/utils';
-import { Calendar, AlarmClock, Home, Repeat, Clock, Check, X, Inbox, FilePenLine } from 'lucide-react';
+import { cn, formatTime, getApiError } from '@/lib/utils';
+import { Calendar, AlarmClock, Home, Repeat, Clock, Check, X, Inbox, FilePenLine, Receipt, Banknote } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 
-type ApprovalType = 'leave' | 'overtime' | 'remote' | 'swap' | 'late_notice' | 'correction';
+type ApprovalType = 'leave' | 'overtime' | 'remote' | 'swap' | 'late_notice' | 'correction' | 'expense';
 
 /** Normalized row rendered in the unified queue. */
 interface ApprovalItem {
@@ -38,7 +39,15 @@ const TYPE_META: Record<ApprovalType, { label: string; icon: React.ReactNode; co
   swap:        { label: 'Shift Swap',  icon: <Repeat size={13} />,     color: '#00E5FF' },
   late_notice: { label: 'Late Notice', icon: <Clock size={13} />,      color: '#94a3b8' },
   correction:  { label: 'Correction',  icon: <FilePenLine size={13} />, color: '#38bdf8' },
+  expense:     { label: 'Expense',     icon: <Receipt size={13} />,     color: '#f472b6' },
 };
+
+const MONTH_OPTIONS = Array.from({ length: 12 }, (_, i) => ({
+  value: String(i + 1),
+  label: format(new Date(2000, i, 1), 'MMMM'),
+}));
+
+const fmtClaimAmount = (c: ExpenseClaim) => `${c.currency} ${Number(c.amount).toFixed(2)}`;
 
 // Loose row shape — each source endpoint nests differently; we normalize.
 type Row = Record<string, unknown> & {
@@ -60,6 +69,8 @@ export default function ApprovalsPage() {
   const [rejectTarget, setRejectTarget] = useState<ApprovalItem | null>(null);
   const [rejectReason, setRejectReason] = useState('');
   const [actingOn, setActingOn] = useState<string | null>(null);
+  const [reimburseTarget, setReimburseTarget] = useState<ExpenseClaim | null>(null);
+  const [reimbursePeriod, setReimbursePeriod] = useState({ month: 1, year: 2000 });
 
   const can = {
     leave: hasPermission('leave.approve'),
@@ -68,6 +79,7 @@ export default function ApprovalsPage() {
     swap: hasPermission('shifts.swaps.approve'),
     late_notice: hasPermission('attendance.late_notices.manage'),
     correction: hasPermission('attendance.override'),
+    expense: hasPermission('expenses.view'),
   };
 
   const leaveScope = hasPermission('leave.view_all') ? 'all' : 'team';
@@ -111,6 +123,20 @@ export default function ApprovalsPage() {
     enabled: can.correction,
     queryFn: async (): Promise<Row[]> =>
       (await attendanceApi.getCorrections({ status: 'pending' })).data.data ?? [],
+  });
+  const expenseQ = useQuery({
+    queryKey: ['approvals', 'expense'],
+    enabled: can.expense,
+    queryFn: async (): Promise<ExpenseClaim[]> =>
+      (await expensesApi.getAll({ status: 'pending' })).data.data ?? [],
+  });
+  // Approved claims still waiting to be added to a payroll run — the
+  // reimburse action operates on these, not on the pending queue.
+  const approvedExpenseQ = useQuery({
+    queryKey: ['approvals', 'expense', 'approved'],
+    enabled: can.expense,
+    queryFn: async (): Promise<ExpenseClaim[]> =>
+      (await expensesApi.getAll({ status: 'approved' })).data.data ?? [],
   });
 
   const items: ApprovalItem[] = [
@@ -162,15 +188,23 @@ export default function ApprovalsPage() {
         rejectNeedsReason: true, rejectNoteOptional: true,
       };
     }),
+    ...(expenseQ.data ?? []).map((r): ApprovalItem => ({
+      type: 'expense', id: r.id,
+      requester: r.user?.name ?? 'Unknown', avatarUrl: r.user?.avatar_url, department: r.user?.department,
+      summary: `${fmtClaimAmount(r)} · ${r.category} · ${day(r.expense_date)}`,
+      detail: r.description, createdAt: r.created_at,
+      rejectNeedsReason: true, rejectNoteOptional: true,
+    })),
   ].sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''));
 
-  const loading = [leaveQ, overtimeQ, remoteQ, swapQ, noticeQ, correctionQ]
+  const loading = [leaveQ, overtimeQ, remoteQ, swapQ, noticeQ, correctionQ, expenseQ]
     .some(q => q.isLoading);
 
   const resync = (type: ApprovalType) => {
     queryClient.invalidateQueries({ queryKey: ['approvals', type] });
     if (type === 'leave') queryClient.invalidateQueries({ queryKey: keys.leave.all });
     if (type === 'correction') queryClient.invalidateQueries({ queryKey: keys.attendance.all });
+    if (type === 'expense') queryClient.invalidateQueries({ queryKey: keys.expenses.all });
   };
 
   const act = useMutation({
@@ -191,6 +225,10 @@ export default function ApprovalsPage() {
           return action === 'approve'
             ? attendanceApi.approveCorrection(item.id)
             : attendanceApi.rejectCorrection(item.id, reason || undefined);
+        case 'expense':
+          return action === 'approve'
+            ? expensesApi.approve(item.id)
+            : expensesApi.reject(item.id, reason || undefined);
       }
     },
     onMutate: vars => setActingOn(vars.item.id),
@@ -204,6 +242,32 @@ export default function ApprovalsPage() {
     },
   });
 
+  const reimburse = useMutation({
+    mutationFn: (vars: { id: string; month: number; year: number }) =>
+      expensesApi.reimburse(vars.id, vars.month, vars.year),
+    onSettled: () => resync('expense'),
+    onSuccess: (_d, vars) => {
+      toast.success(`Reimbursement added to ${vars.month}/${vars.year} payroll`);
+      setReimburseTarget(null);
+    },
+    onError: err => {
+      const code = (err as { response?: { data?: { code?: string } } }).response?.data?.code;
+      if (code === 'NO_PAYROLL_RECORD') {
+        toast.error('No payroll record for that period yet — generate payroll for it first, then reimburse.');
+      } else if (code === 'LOCKED') {
+        toast.error('Payroll for that period is already processed — recall the payroll period first, then reimburse.');
+      } else {
+        toast.error(getApiError(err));
+      }
+    },
+  });
+
+  const openReimburse = (claim: ExpenseClaim) => {
+    const now = new Date();
+    setReimbursePeriod({ month: now.getMonth() + 1, year: now.getFullYear() });
+    setReimburseTarget(claim);
+  };
+
   const onReject = (item: ApprovalItem) => {
     if (item.rejectNeedsReason) { setRejectTarget(item); setRejectReason(''); }
     else act.mutate({ item, action: 'reject' });
@@ -214,6 +278,10 @@ export default function ApprovalsPage() {
     acc[i.type] = (acc[i.type] ?? 0) + 1;
     return acc;
   }, {});
+
+  const approvedExpenses = approvedExpenseQ.data ?? [];
+  const showReimburseSection =
+    can.expense && (filter === 'all' || filter === 'expense') && approvedExpenses.length > 0;
 
   return (
     <DashboardLayout>
@@ -310,6 +378,49 @@ export default function ApprovalsPage() {
         </div>
       )}
 
+      {/* Approved expense claims waiting to be added to a payroll run */}
+      {showReimburseSection && (
+        <div className="mt-8">
+          <p className="px-1 mb-3 text-[10px] font-black uppercase tracking-widest text-[var(--on-glass-dim)] select-none">
+            Approved expenses · awaiting reimbursement
+          </p>
+          <div className="space-y-2.5">
+            {approvedExpenses.map(claim => (
+              <Card key={claim.id} className="glass-card">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-4">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <Avatar name={claim.user?.name ?? 'Unknown'} imageUrl={claim.user?.avatar_url} size="md" />
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-sm font-bold text-white truncate">{claim.user?.name ?? 'Unknown'}</p>
+                        <span className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md"
+                          style={{ color: TYPE_META.expense.color, backgroundColor: `${TYPE_META.expense.color}1f` }}>
+                          {TYPE_META.expense.icon}Expense
+                        </span>
+                        {claim.user?.department && (
+                          <span className="text-[10px] text-[var(--on-glass-dim)]">{claim.user.department}</span>
+                        )}
+                      </div>
+                      <p className="text-xs text-[var(--on-glass-muted)] mt-0.5 truncate capitalize">
+                        {fmtClaimAmount(claim)} · {claim.category} · {day(claim.expense_date)}
+                      </p>
+                      <p className="text-[11px] text-[var(--on-glass-dim)] mt-0.5 truncate italic">“{claim.description}”</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 sm:flex-shrink-0">
+                    <Button size="sm" variant="outline" icon={<Banknote size={13} />}
+                      loading={reimburse.isPending && reimburse.variables?.id === claim.id}
+                      onClick={() => openReimburse(claim)}>
+                      Reimburse
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
       <Modal
         isOpen={!!rejectTarget}
         onClose={() => setRejectTarget(null)}
@@ -338,6 +449,53 @@ export default function ApprovalsPage() {
           value={rejectReason}
           onChange={e => setRejectReason(e.target.value)}
         />
+      </Modal>
+
+      <Modal
+        isOpen={!!reimburseTarget}
+        onClose={() => setReimburseTarget(null)}
+        title="Reimburse expense claim"
+        size="sm"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setReimburseTarget(null)}>Cancel</Button>
+            <Button loading={reimburse.isPending}
+              onClick={() => {
+                if (reimbursePeriod.year < 2000 || reimbursePeriod.year > 2100) {
+                  toast.error('Enter a valid year'); return;
+                }
+                if (reimburseTarget) {
+                  reimburse.mutate({ id: reimburseTarget.id, ...reimbursePeriod });
+                }
+              }}>
+              Reimburse
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-[var(--on-glass-sub)]">
+            Adds <span className="font-bold text-white">{reimburseTarget ? fmtClaimAmount(reimburseTarget) : ''}</span> to{' '}
+            <span className="font-bold text-white">{reimburseTarget?.user?.name ?? 'the claimant'}</span>&apos;s payroll
+            record for the chosen period. Payroll must already be generated (and not yet processed) for that period.
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <Select
+              label="Month"
+              options={MONTH_OPTIONS}
+              value={String(reimbursePeriod.month)}
+              onChange={e => setReimbursePeriod(p => ({ ...p, month: Number(e.target.value) }))}
+            />
+            <Input
+              label="Year"
+              type="number"
+              min={2000}
+              max={2100}
+              value={reimbursePeriod.year}
+              onChange={e => setReimbursePeriod(p => ({ ...p, year: Number(e.target.value) }))}
+            />
+          </div>
+        </div>
       </Modal>
     </DashboardLayout>
   );
