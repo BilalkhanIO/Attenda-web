@@ -34,7 +34,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { label: 'Dashboard',   href: '/dashboard',           icon: <LayoutDashboard size={15} /> },
-  { label: 'Approvals',   href: '/approvals',           icon: <ClipboardCheck size={15} />,  permission: 'leave.approve', permissionsAlt: ['overtime.manage', 'remote.approve', 'shifts.swaps.approve', 'attendance.late_notices.manage'] },
+  { label: 'Approvals',   href: '/approvals',           icon: <ClipboardCheck size={15} />,  permission: 'leave.approve', permissionsAlt: ['overtime.manage', 'remote.approve', 'shifts.swaps.approve', 'attendance.late_notices.manage', 'attendance.override', 'expenses.view'] },
 
   { section: 'Workforce',
     label: 'Attendance',  href: '/attendance',           icon: <Clock size={15} />,        feature: 'attendance',         permission: 'attendance.view_team' },
